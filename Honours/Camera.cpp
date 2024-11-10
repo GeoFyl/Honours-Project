@@ -1,5 +1,6 @@
 // Camera class
 // Represents a single 3D camera with basic movement.
+#include "stdafx.h"
 #include "camera.h"
 
 // Configure defaul camera (including positions, rotation and ortho matrix)

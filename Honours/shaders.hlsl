@@ -9,6 +9,11 @@
 //
 //*********************************************************
 
+cbuffer worldViewProjection : register(b0)
+{
+    float4x4 world_view_proj_;
+}
+
 struct PSInput
 {
     float4 position : SV_POSITION;
@@ -19,7 +24,7 @@ PSInput VSMain(float4 position : POSITION, float4 color : COLOR)
 {
     PSInput result;
 
-    result.position = position;
+    result.position = mul(position, world_view_proj_);
     result.color = color;
 
     return result;

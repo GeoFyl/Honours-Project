@@ -69,7 +69,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>imGUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAsWinRT>false</CompileAsWinRT>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
@@ -124,10 +124,22 @@
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Camera.h" />
     <ClInclude Include="CubeMesh.h" />
     <ClInclude Include="HonoursApplication.h" />
+    <ClInclude Include="imGUI\imconfig.h" />
+    <ClInclude Include="imGUI\imgui.h" />
+    <ClInclude Include="imGUI\imgui_impl_dx12.h" />
+    <ClInclude Include="imGUI\imgui_impl_win32.h" />
+    <ClInclude Include="imGUI\imgui_internal.h" />
+    <ClInclude Include="imGUI\imstb_rectpack.h" />
+    <ClInclude Include="imGUI\imstb_textedit.h" />
+    <ClInclude Include="imGUI\imstb_truetype.h" />
     <ClInclude Include="Mesh.h" />
+    <ClInclude Include="Resources.h" />
+    <ClInclude Include="TimeSystem.h" />
     <ClInclude Include="TriangleMesh.h" />
+    <ClInclude Include="UploadBuffer.h" />
     <ClInclude Include="Utilities.h" />
     <ClInclude Include="Win32Application.h" />
     <ClInclude Include="DXSample.h" />
@@ -135,9 +147,33 @@
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CubeMesh.cpp" />
     <ClCompile Include="HonoursApplication.cpp" />
+    <ClCompile Include="imGUI\imgui.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="imGUI\imgui_demo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="imGUI\imgui_draw.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="imGUI\imgui_impl_dx12.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="imGUI\imgui_impl_win32.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="imGUI\imgui_tables.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="imGUI\imgui_widgets.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="Mesh.cpp" />
+    <ClCompile Include="Resources.cpp" />
+    <ClCompile Include="TimeSystem.cpp" />
     <ClCompile Include="TriangleMesh.cpp" />
     <ClCompile Include="Utilities.cpp" />
     <ClCompile Include="Win32Application.cpp" />

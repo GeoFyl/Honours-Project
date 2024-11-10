@@ -12,7 +12,9 @@
 #pragma once
 
 #include <memory>
+#include "TimeSystem.h"
 #include "DXSample.h"
+#include "Resources.h"
 #include "Camera.h"
 #include "TriangleMesh.h"
 #include "CubeMesh.h"
@@ -37,12 +39,15 @@ public:
     virtual void OnDestroy();
 
 private:
+    void LoadPipeline();
+    void InitGUI();
+    void LoadAssets();
+    void PopulateCommandList();
+    void MoveToNextFrame();
+    void WaitForGpu();
+    void DrawGUI();
 
     static const UINT FrameCount = 2;
-
-    // Meshes
-    //std::unique_ptr<TriangleMesh> triangle_ = nullptr;
-    std::unique_ptr<CubeMesh> cube_ = nullptr;
 
     // Pipeline objects.
     CD3DX12_VIEWPORT m_viewport;
@@ -52,12 +57,15 @@ private:
     ComPtr<ID3D12Resource> m_renderTargets[FrameCount];
     ComPtr<ID3D12CommandAllocator> m_commandAllocators[FrameCount];
     ComPtr<ID3D12CommandQueue> m_commandQueue;
-    ComPtr<ID3D12RootSignature> m_rootSignature;
+   // ComPtr<ID3D12RootSignature> m_rootSignature;
     ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
+    ComPtr<ID3D12DescriptorHeap> srv_heap_;
     ComPtr<ID3D12PipelineState> m_pipelineState;
     ComPtr<ID3D12GraphicsCommandList> m_commandList;
     ID3D12CommandList* ppCommandLists_[1];
     UINT m_rtvDescriptorSize;
+
+    std::unique_ptr<Resources> resources_ = nullptr;
 
     // Synchronization objects.
     UINT m_frameIndex;
@@ -65,13 +73,10 @@ private:
     ComPtr<ID3D12Fence> m_fence;
     UINT64 m_fenceValues[FrameCount];
 
-    void LoadPipeline();
-    void LoadAssets();
-    void PopulateCommandList();
-    void MoveToNextFrame();
-    void WaitForGpu();
+    // Scene Resources
+    //std::unique_ptr<TriangleMesh> triangle_ = nullptr;
+    std::unique_ptr<CubeMesh> cube_ = nullptr;
 
-    // Rendering things
     Camera camera_;
 
     XMMATRIX projection_matrix_;					///< Identity projection matrix
@@ -81,4 +86,6 @@ private:
     /*inline XMMATRIX GetProjectionMatrix() { return projection_matrix_; }	///< Returns default projection matrix
     inline XMMATRIX GetOrthoProjectionMatrix() { return ortho_projection_matrix_; }	///< Returns default orthographic matrix
     inline XMMATRIX GetWorldMatrix() { return world_matrix_; }		///< Returns identity world matrix*/
+
+    TimeSystem timer_;
 };

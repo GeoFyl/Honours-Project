@@ -25,6 +25,12 @@
     <Filter Include="Header Files\Framework\Geometry">
       <UniqueIdentifier>{f0a3548d-a5d1-44ba-b766-b35d6545364b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Framework\GUI">
+      <UniqueIdentifier>{afac20e1-648d-4753-ae9f-4bfb28ea43ab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Framework\GUI">
+      <UniqueIdentifier>{3caa20e4-c949-46fb-872f-3c2e9755981b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DXSample.h">
@@ -54,6 +60,42 @@
     <ClInclude Include="TriangleMesh.h">
       <Filter>Header Files\Framework\Geometry</Filter>
     </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>Header Files\Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="UploadBuffer.h">
+      <Filter>Header Files\Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TimeSystem.h">
+      <Filter>Header Files\Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="imGUI\imgui.h">
+      <Filter>Header Files\Framework\GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="imGUI\imgui_impl_dx12.h">
+      <Filter>Header Files\Framework\GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="imGUI\imgui_impl_win32.h">
+      <Filter>Header Files\Framework\GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="imGUI\imgui_internal.h">
+      <Filter>Header Files\Framework\GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="imGUI\imstb_rectpack.h">
+      <Filter>Header Files\Framework\GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="imGUI\imstb_textedit.h">
+      <Filter>Header Files\Framework\GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="imGUI\imstb_truetype.h">
+      <Filter>Header Files\Framework\GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="imGUI\imconfig.h">
+      <Filter>Header Files\Framework\GUI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="HonoursApplication.cpp">
@@ -82,6 +124,36 @@
     </ClCompile>
     <ClCompile Include="TriangleMesh.cpp">
       <Filter>Source Files\Framework\Geometry</Filter>
+    </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>Source Files\Framework</Filter>
+    </ClCompile>
+    <ClCompile Include="Resources.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TimeSystem.cpp">
+      <Filter>Source Files\Framework</Filter>
+    </ClCompile>
+    <ClCompile Include="imGUI\imgui.cpp">
+      <Filter>Source Files\Framework\GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="imGUI\imgui_demo.cpp">
+      <Filter>Source Files\Framework\GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="imGUI\imgui_draw.cpp">
+      <Filter>Source Files\Framework\GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="imGUI\imgui_impl_dx12.cpp">
+      <Filter>Source Files\Framework\GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="imGUI\imgui_impl_win32.cpp">
+      <Filter>Source Files\Framework\GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="imGUI\imgui_tables.cpp">
+      <Filter>Source Files\Framework\GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="imGUI\imgui_widgets.cpp">
+      <Filter>Source Files\Framework\GUI</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

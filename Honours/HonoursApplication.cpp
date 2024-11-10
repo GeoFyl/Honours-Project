@@ -10,6 +10,9 @@
 //*********************************************************
 
 #include "stdafx.h"
+#include "imgui.h"
+#include "imgui_impl_win32.h"
+#include "imgui_impl_dx12.h"
 #include "HonoursApplication.h"
 
 HonoursApplication::HonoursApplication(UINT width, UINT height, std::wstring name) :
@@ -20,11 +23,11 @@ HonoursApplication::HonoursApplication(UINT width, UINT height, std::wstring nam
     m_fenceValues{},
     m_rtvDescriptorSize(0)
 {
-    // Create the projection matrix for 3D rendering.
-    projection_matrix_ = XMMatrixPerspectiveFovLH((float)XM_PI / 4.0f, m_aspectRatio, 0.01f, 100.f);
-
     // Initialize the world matrix to the identity matrix.
     world_matrix_ = XMMatrixIdentity();
+
+    // Create the projection matrix for 3D rendering.
+    projection_matrix_ = XMMatrixPerspectiveFovLH((float)XM_PI / 4.0f, m_aspectRatio, 0.01f, 100.f);
 
     // Create an orthographic projection matrix for 2D rendering.
     ortho_projection_matrix_ = XMMatrixOrthographicLH((float)m_width, (float)m_height, 0.01f, 100.f);
@@ -32,9 +35,12 @@ HonoursApplication::HonoursApplication(UINT width, UINT height, std::wstring nam
 
 void HonoursApplication::OnInit()
 {
-    camera_.setPosition(0, 0, -10.f);
+    camera_.setPosition(5, 0, -10.f);
+    camera_.setRotation(0, -30, 0);
     LoadPipeline();
     LoadAssets();
+    InitGUI();
+    timer_.Start();
 }
 
 // Load the rendering pipeline dependencies.
@@ -60,29 +66,15 @@ void HonoursApplication::LoadPipeline()
     ComPtr<IDXGIFactory4> factory;
     ThrowIfFailed(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&factory)));
 
-    if (m_useWarpDevice)
-    {
-        ComPtr<IDXGIAdapter> warpAdapter;
-        ThrowIfFailed(factory->EnumWarpAdapter(IID_PPV_ARGS(&warpAdapter)));
+    ComPtr<IDXGIAdapter1> hardwareAdapter;
+    GetHardwareAdapter(factory.Get(), &hardwareAdapter);
 
-        ThrowIfFailed(D3D12CreateDevice(
-            warpAdapter.Get(),
-            D3D_FEATURE_LEVEL_11_0,
-            IID_PPV_ARGS(&m_device)
-            ));
-    }
-    else
-    {
-        ComPtr<IDXGIAdapter1> hardwareAdapter;
-        GetHardwareAdapter(factory.Get(), &hardwareAdapter);
-
-        ThrowIfFailed(D3D12CreateDevice(
-            hardwareAdapter.Get(),
-            D3D_FEATURE_LEVEL_11_0,
-            IID_PPV_ARGS(&m_device)
-            ));
-    }
-
+    ThrowIfFailed(D3D12CreateDevice(
+        hardwareAdapter.Get(),
+        D3D_FEATURE_LEVEL_11_0,
+        IID_PPV_ARGS(&m_device)
+        ));
+ 
     // Describe and create the command queue.
     D3D12_COMMAND_QUEUE_DESC queueDesc = {};
     queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
@@ -126,6 +118,13 @@ void HonoursApplication::LoadPipeline()
         ThrowIfFailed(m_device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_rtvHeap)));
 
         m_rtvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+        // Describe and create a shader resource view (SRV) descriptor heap (currently only needed for imgui)
+        D3D12_DESCRIPTOR_HEAP_DESC srv_heap_desc = {};
+        srv_heap_desc.NumDescriptors = 1;
+        srv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        srv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        ThrowIfFailed(m_device->CreateDescriptorHeap(&srv_heap_desc, IID_PPV_ARGS(&srv_heap_)));
     }
 
     // Create frame resources.
@@ -144,19 +143,27 @@ void HonoursApplication::LoadPipeline()
     }
 }
 
+void HonoursApplication::InitGUI()
+{
+    // Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    //ImGuiIO& io = ImGui::GetIO();
+    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplWin32_Init(Win32Application::GetHwnd());
+    ImGui_ImplDX12_Init(m_device.Get(), FrameCount, DXGI_FORMAT_R8G8B8A8_UNORM, srv_heap_.Get(),
+        srv_heap_->GetCPUDescriptorHandleForHeapStart(),
+        srv_heap_->GetGPUDescriptorHandleForHeapStart());
+}
+
 // Load the sample assets.
 void HonoursApplication::LoadAssets()
 {
-    // Create an empty root signature.
-    {
-        CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
-        rootSignatureDesc.Init(0, nullptr, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
-
-        ComPtr<ID3DBlob> signature;
-        ComPtr<ID3DBlob> error;
-        ThrowIfFailed(D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error));
-        ThrowIfFailed(m_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature)));
-    }
+    // Create buffers and root signatures
+    resources_ = std::make_unique<Resources>(m_device.Get());
 
     // Create the pipeline state, which includes compiling and loading shaders.
     {
@@ -183,7 +190,7 @@ void HonoursApplication::LoadAssets()
         // Describe and create the graphics pipeline state object (PSO).
         D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
         psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
-        psoDesc.pRootSignature = m_rootSignature.Get();
+        psoDesc.pRootSignature = resources_->GetRootSignature();
         psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());
         psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
         psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
@@ -236,12 +243,18 @@ void HonoursApplication::LoadAssets()
 // Update frame-based values.
 void HonoursApplication::OnUpdate()
 {
+    timer_.Update();
     camera_.update();
 }
 
 // Render the scene.
 void HonoursApplication::OnRender()
 {
+    // Prepare GUI for new frame
+    ImGui_ImplDX12_NewFrame();
+    ImGui_ImplWin32_NewFrame();
+    ImGui::NewFrame();
+
     // Record all the commands we need to render the scene into the command list.
     PopulateCommandList();
 
@@ -261,6 +274,11 @@ void HonoursApplication::OnDestroy()
     WaitForGpu();
 
     CloseHandle(m_fenceEvent);
+
+    // Destroy GUI
+    ImGui_ImplDX12_Shutdown();
+    ImGui_ImplWin32_Shutdown();
+    ImGui::DestroyContext();
 }
 
 void HonoursApplication::PopulateCommandList()
@@ -276,9 +294,11 @@ void HonoursApplication::PopulateCommandList()
     ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_frameIndex].Get(), m_pipelineState.Get()));
 
     // Set necessary state.
-    m_commandList->SetGraphicsRootSignature(m_rootSignature.Get());
+    m_commandList->SetGraphicsRootSignature(resources_->GetRootSignature());
     m_commandList->RSSetViewports(1, &m_viewport);
     m_commandList->RSSetScissorRects(1, &m_scissorRect);
+    ID3D12DescriptorHeap* srv_heaps[1] = { srv_heap_.Get() };
+    m_commandList->SetDescriptorHeaps(1, srv_heaps);
 
     // Indicate that the back buffer will be used as a render target.
     m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
@@ -287,12 +307,22 @@ void HonoursApplication::PopulateCommandList()
     m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
 
     // Record commands.
+    XMMATRIX view_projection = XMMatrixMultiply(camera_.getViewMatrix(), projection_matrix_);
+
     const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
     m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-    //triangle_->SendData(m_commandList.Get());
+
+    // Set world-view-projection matrix for current object
+    XMMATRIX world_view_proj = XMMatrixMultiplyTranspose(world_matrix_, view_projection);
+    resources_->SetWorldViewProj(world_view_proj);
+
+    // Set root views to the ones for current object and draw
+    resources_->SetRootViews(m_commandList.Get());
     cube_->SendData(m_commandList.Get());
-    //triangle_->Draw(m_commandList.Get());
     cube_->Draw(m_commandList.Get());
+
+    // Record commands for drawing GUI
+    DrawGUI();
 
     // Indicate that the back buffer will now be used to present.
     m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
@@ -312,6 +342,15 @@ void HonoursApplication::WaitForGpu()
 
     // Increment the fence value for the current frame.
     m_fenceValues[m_frameIndex]++;
+}
+
+// Records commands for drawing GUI
+void HonoursApplication::DrawGUI()
+{
+    ImGui::ShowDemoWindow();
+
+    ImGui::Render();
+    ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_commandList.Get());
 }
 
 // Prepare to render the next frame.
