@@ -31,6 +31,12 @@
     <Filter Include="Source Files\Framework\GUI">
       <UniqueIdentifier>{3caa20e4-c949-46fb-872f-3c2e9755981b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\RayTracing">
+      <UniqueIdentifier>{7995c9b5-c848-44cc-af13-e15e33f63f66}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\RayTracing">
+      <UniqueIdentifier>{f3672757-8b90-418f-9918-482120dc732a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DXSample.h">
@@ -96,6 +102,15 @@
     <ClInclude Include="imGUI\imconfig.h">
       <Filter>Header Files\Framework\GUI</Filter>
     </ClInclude>
+    <ClInclude Include="RayTracingStructs.h">
+      <Filter>Header Files\RayTracing</Filter>
+    </ClInclude>
+    <ClInclude Include="RayTracer.h">
+      <Filter>Header Files\RayTracing</Filter>
+    </ClInclude>
+    <ClInclude Include="DeviceResources.h">
+      <Filter>Header Files\Framework</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="HonoursApplication.cpp">
@@ -155,6 +170,12 @@
     <ClCompile Include="imGUI\imgui_widgets.cpp">
       <Filter>Source Files\Framework\GUI</Filter>
     </ClCompile>
+    <ClCompile Include="RayTracer.cpp">
+      <Filter>Source Files\RayTracing</Filter>
+    </ClCompile>
+    <ClCompile Include="DeviceResources.cpp">
+      <Filter>Source Files\Framework</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="shaders.hlsl">
@@ -163,5 +184,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="assets\RayTracing.hlsl">
+      <Filter>Assets\Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

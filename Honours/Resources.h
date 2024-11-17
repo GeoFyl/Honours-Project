@@ -24,7 +24,7 @@ private:
 	void CreateRootSignatures(ID3D12Device* device);                                        
 
 	//ComPtr<ID3D12DescriptorHeap> cb_heap_;
-	ComPtr<ID3D12DescriptorHeap> srv_heap_;
+	//ComPtr<ID3D12DescriptorHeap> srv_heap_;
 	std::unique_ptr<UploadBuffer<WorldViewProjectionBuffer>> world_view_proj_cb_ = nullptr;
 
 	// just one graphics signature rn, prob need more in future

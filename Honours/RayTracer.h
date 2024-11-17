@@ -1,0 +1,73 @@
+#pragma once
+#include "RayTracingStructs.h"
+#include "DeviceResources.h"
+
+namespace GlobalRootSignatureParams {
+    enum Value {
+        OutputViewSlot = 0,
+        AccelerationStructureSlot,
+        ConstantBufferSlot,
+        Count
+    };
+}
+
+//namespace LocalRootSignatureParams {
+//    enum Value {
+//        ViewportConstantSlot = 0,
+//        Count
+//    };
+//}
+
+using Microsoft::WRL::ComPtr;
+
+class RayTracer
+{
+public:
+	RayTracer(DX::DeviceResources* device_resources);
+
+	static void CheckRayTracingSupport(ID3D12Device5* device);
+
+    void ReleaseUploaders() { aabb_buffer_uploader_.Reset(); }
+
+private:
+    void CreateRootSignatures();
+    void SerializeAndCreateRaytracingRootSignature(D3D12_ROOT_SIGNATURE_DESC& desc, ComPtr<ID3D12RootSignature>* rootSig);
+    void CreateRaytracingPipelineStateObject();
+
+    void BuildAccelerationStructures();
+
+    // DXR attributes
+    ComPtr<ID3D12StateObject> rt_state_object_;
+
+    // Root signatures
+    ComPtr<ID3D12RootSignature> rt_global_root_signature_;
+    //ComPtr<ID3D12RootSignature> rt_local_root_signature_;
+
+    // Acceleration structure
+    ComPtr<ID3D12Resource> m_accelerationStructure;
+    ComPtr<ID3D12Resource> m_bottomLevelAccelerationStructure;
+    ComPtr<ID3D12Resource> m_topLevelAccelerationStructure;
+
+    ComPtr<ID3D12Resource> aabb_buffer_uploader_;
+    ComPtr<ID3D12Resource> aabb_buffer_;
+
+    // Raytracing output
+    ComPtr<ID3D12Resource> m_raytracingOutput;
+    D3D12_GPU_DESCRIPTOR_HANDLE m_raytracingOutputResourceUAVGpuDescriptor;
+    UINT m_raytracingOutputResourceUAVDescriptorHeapIndex;
+
+    // Shader tables
+    static const wchar_t* hit_group_name_;
+    static const wchar_t* ray_gen_shader_name_;
+    static const wchar_t* intersection_shader_name_;
+    static const wchar_t* closest_hit_shader_name_;
+    static const wchar_t* miss_shader_name;
+    ComPtr<ID3D12Resource> m_missShaderTable;
+    ComPtr<ID3D12Resource> m_hitGroupShaderTable;
+    ComPtr<ID3D12Resource> m_rayGenShaderTable;
+
+    DX::DeviceResources* device_resources_;
+    //ID3D12Device5* device_ = nullptr;
+    //ID3D12GraphicsCommandList4* command_list_ = nullptr;
+};
+

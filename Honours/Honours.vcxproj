@@ -126,6 +126,7 @@
   <ItemGroup>
     <ClInclude Include="Camera.h" />
     <ClInclude Include="CubeMesh.h" />
+    <ClInclude Include="DeviceResources.h" />
     <ClInclude Include="HonoursApplication.h" />
     <ClInclude Include="imGUI\imconfig.h" />
     <ClInclude Include="imGUI\imgui.h" />
@@ -136,6 +137,8 @@
     <ClInclude Include="imGUI\imstb_textedit.h" />
     <ClInclude Include="imGUI\imstb_truetype.h" />
     <ClInclude Include="Mesh.h" />
+    <ClInclude Include="RayTracer.h" />
+    <ClInclude Include="RayTracingStructs.h" />
     <ClInclude Include="Resources.h" />
     <ClInclude Include="TimeSystem.h" />
     <ClInclude Include="TriangleMesh.h" />
@@ -149,6 +152,7 @@
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CubeMesh.cpp" />
+    <ClCompile Include="DeviceResources.cpp" />
     <ClCompile Include="HonoursApplication.cpp" />
     <ClCompile Include="imGUI\imgui.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
@@ -172,6 +176,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Mesh.cpp" />
+    <ClCompile Include="RayTracer.cpp" />
     <ClCompile Include="Resources.cpp" />
     <ClCompile Include="TimeSystem.cpp" />
     <ClCompile Include="TriangleMesh.cpp" />
@@ -192,6 +197,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="assets\RayTracing.hlsl">
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.1</ShaderModel>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

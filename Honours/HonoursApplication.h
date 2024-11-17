@@ -14,6 +14,8 @@
 #include <memory>
 #include "TimeSystem.h"
 #include "DXSample.h"
+#include "DeviceResources.h"
+#include "RayTracer.h"
 #include "Resources.h"
 #include "Camera.h"
 #include "TriangleMesh.h"
@@ -37,41 +39,50 @@ public:
     virtual void OnUpdate();
     virtual void OnRender();
     virtual void OnDestroy();
+    virtual void OnSizeChanged(UINT width, UINT height, bool minimized);
+    virtual IDXGISwapChain* GetSwapchain() { return device_resources_->GetSwapChain(); }
+
+    // IDeviceNotify
+    virtual void OnDeviceLost() override;
+    virtual void OnDeviceRestored() override;
 
 private:
     void LoadPipeline();
     void InitGUI();
     void LoadAssets();
     void PopulateCommandList();
-    void MoveToNextFrame();
-    void WaitForGpu();
+   // void MoveToNextFrame();
+    //void WaitForGpu();
     void DrawGUI();
 
     static const UINT FrameCount = 2;
 
-    // Pipeline objects.
-    CD3DX12_VIEWPORT m_viewport;
-    CD3DX12_RECT m_scissorRect;
-    ComPtr<IDXGISwapChain3> m_swapChain;
-    ComPtr<ID3D12Device> m_device;
-    ComPtr<ID3D12Resource> m_renderTargets[FrameCount];
-    ComPtr<ID3D12CommandAllocator> m_commandAllocators[FrameCount];
-    ComPtr<ID3D12CommandQueue> m_commandQueue;
-   // ComPtr<ID3D12RootSignature> m_rootSignature;
-    ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
-    ComPtr<ID3D12DescriptorHeap> srv_heap_;
+   // // Pipeline objects.
+   // CD3DX12_VIEWPORT m_viewport;
+   // CD3DX12_RECT m_scissorRect;
+   // ComPtr<IDXGISwapChain3> m_swapChain;
+   // ComPtr<ID3D12Device5> m_device;
+   // ComPtr<ID3D12Resource> m_renderTargets[FrameCount];
+   // ComPtr<ID3D12CommandAllocator> m_commandAllocators[FrameCount];
+   // ComPtr<ID3D12CommandQueue> m_commandQueue;
+    ComPtr<ID3D12RootSignature> m_rootSignature;
+   // ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
+    ComPtr<ID3D12DescriptorHeap> descriptor_heap_;
     ComPtr<ID3D12PipelineState> m_pipelineState;
-    ComPtr<ID3D12GraphicsCommandList> m_commandList;
-    ID3D12CommandList* ppCommandLists_[1];
-    UINT m_rtvDescriptorSize;
+   // ComPtr<ID3D12GraphicsCommandList4> m_commandList;
+   // ID3D12CommandList* ppCommandLists_[1];
+   // UINT m_rtvDescriptorSize;
 
+
+    // idk what to call this
     std::unique_ptr<Resources> resources_ = nullptr;
+    std::unique_ptr<RayTracer> ray_tracer_ = nullptr;
 
-    // Synchronization objects.
-    UINT m_frameIndex;
-    HANDLE m_fenceEvent;
-    ComPtr<ID3D12Fence> m_fence;
-    UINT64 m_fenceValues[FrameCount];
+    //// Synchronization objects.
+    //UINT m_frameIndex;
+    //HANDLE m_fenceEvent;
+    //ComPtr<ID3D12Fence> m_fence;
+    //UINT64 m_fenceValues[FrameCount];
 
     // Scene Resources
     //std::unique_ptr<TriangleMesh> triangle_ = nullptr;

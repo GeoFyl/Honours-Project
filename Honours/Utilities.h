@@ -7,8 +7,8 @@ class Utilities {
 public :
 	// Method for creating a default buffer as described in (Luna, 2016)
 	static Microsoft::WRL::ComPtr<ID3D12Resource> CreateDefaultBuffer(ID3D12Device* device, ID3D12GraphicsCommandList* command_list, const void* data, UINT64 byte_size, Microsoft::WRL::ComPtr<ID3D12Resource>& upload_buffer);
+	static void AllocateDefaultBuffer(ID3D12Device* device, UINT64 buffer_size, ID3D12Resource** buffer, D3D12_RESOURCE_STATES initial_state = D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE);
 };
-
 
 // Class used in handling HRESULT errors as described in (Luna, 2016)
 class DxException {
@@ -25,10 +25,10 @@ public:
 
 #ifndef ThrowIfFailed
 #define ThrowIfFailed(x) { \
-	HRESULT hr = (x); \
+	HRESULT res = (x); \
 	WCHAR buffer[512]; \
 	MultiByteToWideChar(CP_ACP, 0, std::string(__FILE__).c_str(), -1, buffer, 512); \
-	if(FAILED(hr)) {throw DxException(hr, L#x, std::wstring(buffer), __LINE__);} \
+	if(FAILED(res)) {throw DxException(res, L#x, std::wstring(buffer), __LINE__);} \
 }
 #endif
 

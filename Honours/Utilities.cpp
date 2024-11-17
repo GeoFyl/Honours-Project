@@ -16,13 +16,7 @@ ComPtr<ID3D12Resource> Utilities::CreateDefaultBuffer(ID3D12Device* device, ID3D
 {
 	// Create default buffer resource
 	ComPtr<ID3D12Resource> default_buffer;
-	ThrowIfFailed(device->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(byte_size),
-		D3D12_RESOURCE_STATE_COMMON,
-		nullptr,
-		IID_PPV_ARGS(default_buffer.GetAddressOf())));
+	AllocateDefaultBuffer(device, byte_size, default_buffer.GetAddressOf());
 
 	// Create intermediate upload resource
 	ThrowIfFailed(device->CreateCommittedResource(
@@ -47,4 +41,15 @@ ComPtr<ID3D12Resource> Utilities::CreateDefaultBuffer(ID3D12Device* device, ID3D
 	command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(default_buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ));
 
 	return default_buffer;
+}
+
+void Utilities::AllocateDefaultBuffer(ID3D12Device* device, UINT64 buffer_size, ID3D12Resource** buffer, D3D12_RESOURCE_STATES initial_state, D3D12_RESOURCE_FLAGS flags)
+{
+	ThrowIfFailed(device->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(buffer_size, flags),
+		initial_state,
+		nullptr,
+		IID_PPV_ARGS(buffer)));
 }

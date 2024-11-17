@@ -32,3 +32,7 @@
 #include <shellapi.h>
 
 #include <iostream>
+
+#ifdef _DEBUG
+#include <dxgidebug.h>
+#endif
