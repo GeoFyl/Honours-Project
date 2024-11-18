@@ -126,7 +126,7 @@ void RayTracer::CreateRaytracingPipelineStateObject()
     //ComPtr<ID3DBlob> blob;
     UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION; // allow debugging !!!!!!!!!!!!!! - prob dont do this in final build
 
-    auto blob = CompileShaderLibrary(L"assets/RayTracing.hlsl");
+    auto blob = CompileShaderLibrary(application_->GetAssetFullPath(L"RayTracing.hlsl").c_str());
     //ThrowIfFailed(D3DCompileFromFile(L"assets/RayTracing.hlsl", NULL, NULL, NULL, "lib", compileFlags, 0, &blob, nullptr));
    // ThrowIfFailed(D3DShaderCompiler::CompileFromFile(L"assets/shaders/raytracing/raytracing.hlsl", L"main", L"lib", {}, &blob));
     D3D12_SHADER_BYTECODE libdxil = CD3DX12_SHADER_BYTECODE(blob->GetBufferPointer(), blob->GetBufferSize());

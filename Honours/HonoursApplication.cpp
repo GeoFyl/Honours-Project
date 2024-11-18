@@ -52,7 +52,7 @@ void HonoursApplication::OnInit()
     device_resources_->CreateWindowSizeDependentResources();
 
     // Initialise camera
-    camera_.setPosition(5, 0, -10.f);
+    camera_.setPosition(4, 0.5, -5.f);
     camera_.setRotation(0, -30, 0);
     LoadPipeline();
    // LoadAssets();
@@ -279,7 +279,7 @@ void HonoursApplication::OnUpdate()
     if (camera_.update()) {
         RayTracingCB buff;
         buff.camera_pos_ = camera_.getPosition();
-        buff.inv_view_proj_ = XMMatrixInverse(nullptr, XMMatrixMultiply(camera_.getViewMatrix(), projection_matrix_));
+        buff.inv_view_proj_ = XMMatrixTranspose(XMMatrixInverse(nullptr, XMMatrixMultiply(camera_.getViewMatrix(), projection_matrix_)));
      
         ray_tracing_cb_->CopyData(0, buff);
     }

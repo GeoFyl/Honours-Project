@@ -24,10 +24,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
         MessageBox(nullptr, exception.ToString().c_str(), L"HRESULT Failed", MB_OK);
         return 0;
     }
-    catch (std::runtime_error error) {
+    /*catch (std::runtime_error error) {
         std::wstring ws(error.what(), error.what() + strlen(error.what()));
         OutputDebugString(ws.c_str());
         MessageBox(nullptr, ws.c_str(), L"RUNTIME ERROR", MB_OK);
         return 0;
+    }*/
+    catch (std::exception& error)
+    {
+        std::wstring ws(error.what(), error.what() + strlen(error.what()));
+        OutputDebugString(ws.c_str());
+        MessageBox(nullptr, ws.c_str(), L"EXCEPTION", MB_OK);
+        return 0;
+
+        //pSample->OnDestroy();
+       // return EXIT_FAILURE;
     }
 }

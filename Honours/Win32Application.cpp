@@ -23,8 +23,8 @@ using Microsoft::WRL::ComPtr;
 
 int Win32Application::Run(DXSample* pSample, HINSTANCE hInstance, int nCmdShow)
 {
-    try
-    {
+   // try
+   // {
         // Parse the command line parameters
         int argc;
         LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
@@ -79,8 +79,8 @@ int Win32Application::Run(DXSample* pSample, HINSTANCE hInstance, int nCmdShow)
 
         // Return this part of the WM_QUIT message to Windows.
         return static_cast<char>(msg.wParam);
-    }
-    catch (std::exception& e)
+    //}
+    /*catch (std::exception& e)
     {
         OutputDebugString(L"Application hit a problem: ");
         OutputDebugStringA(e.what());
@@ -88,7 +88,7 @@ int Win32Application::Run(DXSample* pSample, HINSTANCE hInstance, int nCmdShow)
 
         pSample->OnDestroy();
         return EXIT_FAILURE;
-    }
+    }*/
 }
 
 // Convert a styled window into a fullscreen borderless window and back again.
