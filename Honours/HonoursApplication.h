@@ -42,15 +42,22 @@ public:
     virtual void OnSizeChanged(UINT width, UINT height, bool minimized);
     virtual IDXGISwapChain* GetSwapchain() { return device_resources_->GetSwapChain(); }
 
+    inline ID3D12Resource* GetRaytracingCB() { return ray_tracing_cb_->Resource(); }
+
     // IDeviceNotify
     virtual void OnDeviceLost() override;
     virtual void OnDeviceRestored() override;
+
+    UINT AllocateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescriptor, UINT descriptorIndexToUse = UINT_MAX);
+
+    inline ID3D12DescriptorHeap* GetDescriptorHeap() { return descriptor_heap_.Get(); }
 
 private:
     void LoadPipeline();
     void InitGUI();
     void LoadAssets();
     void PopulateCommandList();
+    void CopyRaytracingOutputToBackbuffer();
    // void MoveToNextFrame();
     //void WaitForGpu();
     void DrawGUI();
@@ -69,6 +76,9 @@ private:
    // ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
     ComPtr<ID3D12DescriptorHeap> descriptor_heap_;
     ComPtr<ID3D12PipelineState> m_pipelineState;
+
+    UINT descriptors_allocated_ = 1; // 0th descriptor for ImGui
+
    // ComPtr<ID3D12GraphicsCommandList4> m_commandList;
    // ID3D12CommandList* ppCommandLists_[1];
    // UINT m_rtvDescriptorSize;
@@ -77,6 +87,8 @@ private:
     // idk what to call this
     std::unique_ptr<Resources> resources_ = nullptr;
     std::unique_ptr<RayTracer> ray_tracer_ = nullptr;
+
+    std::unique_ptr<UploadBuffer<RayTracingCB>> ray_tracing_cb_ = nullptr;
 
     //// Synchronization objects.
     //UINT m_frameIndex;

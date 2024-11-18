@@ -56,7 +56,7 @@ XMFLOAT3 Camera::getRotation()
 }
 
 // Re-calucation view Matrix.
-void Camera::update()
+bool Camera::update()
 {
 	if (transform_changed_) {
 		transform_changed_ = false;
@@ -87,7 +87,10 @@ void Camera::update()
 
 		// Finally create the view matrix from the three updated vectors.
 		viewMatrix = XMMatrixLookAtLH(positionv, lookAt, up);
+
+		return true;
 	}
+	return false;
 }
 
 

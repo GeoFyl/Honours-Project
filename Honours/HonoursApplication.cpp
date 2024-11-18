@@ -35,6 +35,7 @@ HonoursApplication::HonoursApplication(UINT width, UINT height, std::wstring nam
 
 void HonoursApplication::OnInit()
 {
+    // Initialise device resources
     device_resources_ = std::make_unique<DX::DeviceResources>(
         DXGI_FORMAT_R8G8B8A8_UNORM,
         DXGI_FORMAT_UNKNOWN,
@@ -50,10 +51,13 @@ void HonoursApplication::OnInit()
     RayTracer::CheckRayTracingSupport(device_resources_->GetD3DDevice());
     device_resources_->CreateWindowSizeDependentResources();
 
+    // Initialise camera
     camera_.setPosition(5, 0, -10.f);
     camera_.setRotation(0, -30, 0);
     LoadPipeline();
-    LoadAssets();
+   // LoadAssets();
+    // Create constant buffers
+    ray_tracing_cb_ = std::make_unique<UploadBuffer<RayTracingCB>>(device_resources_->GetD3DDevice(), 1, true);
     InitGUI();
     timer_.Start();
 }
@@ -127,7 +131,7 @@ void HonoursApplication::LoadPipeline()
 //    m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
 
     // Create descriptor heaps.
-    {
+    
         //// Describe and create a render target view (RTV) descriptor heap.
         //D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
         //rtvHeapDesc.NumDescriptors = FrameCount;
@@ -138,13 +142,14 @@ void HonoursApplication::LoadPipeline()
         //m_rtvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
         // Describe and create a descriptor heap to hold constant buffer, shader resource, and unordered access views (CBV/SRV/UAV)
-        // 0th is SRV for ImGui
         D3D12_DESCRIPTOR_HEAP_DESC srv_heap_desc = {};
-        srv_heap_desc.NumDescriptors = 1;
+        srv_heap_desc.NumDescriptors = 2;
         srv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
         srv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
         ThrowIfFailed(device_resources_->GetD3DDevice()->CreateDescriptorHeap(&srv_heap_desc, IID_PPV_ARGS(&descriptor_heap_)));
-    }
+
+    // Create ray tracer
+        ray_tracer_ = std::make_unique<RayTracer>(device_resources_.get(), this);
 
     // Create frame resources.
     //{
@@ -228,6 +233,8 @@ void HonoursApplication::LoadAssets()
     //ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocators[m_frameIndex].Get(), m_pipelineState.Get(), IID_PPV_ARGS(&m_commandList)));
     //ppCommandLists_[0] = m_commandList.Get();
 
+    
+
     // Create meshes
     //triangle_ = std::make_unique<TriangleMesh>(m_device.Get(), m_commandList.Get());
     device_resources_->GetCommandList()->Reset(device_resources_->GetCommandAllocator(), m_pipelineState.Get());
@@ -268,7 +275,14 @@ void HonoursApplication::LoadAssets()
 void HonoursApplication::OnUpdate()
 {
     timer_.Update();
-    camera_.update();
+
+    if (camera_.update()) {
+        RayTracingCB buff;
+        buff.camera_pos_ = camera_.getPosition();
+        buff.inv_view_proj_ = XMMatrixInverse(nullptr, XMMatrixMultiply(camera_.getViewMatrix(), projection_matrix_));
+     
+        ray_tracing_cb_->CopyData(0, buff);
+    }
 }
 
 // Render the scene.
@@ -287,8 +301,20 @@ void HonoursApplication::OnRender()
     // Prepare the command list and render target for rendering.
     device_resources_->Prepare(m_pipelineState.Get());
 
+    /*ID3D12DescriptorHeap* srv_heaps[1] = { descriptor_heap_.Get() };
+    device_resources_->GetCommandList()->SetDescriptorHeaps(1, srv_heaps);*/
+
+    CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle = device_resources_->GetRenderTargetView();
+    device_resources_->GetCommandList()->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+
     // Record all the commands we need to render the scene into the command list.
-    PopulateCommandList();
+    //PopulateCommandList();
+
+    ray_tracer_->RayTracing();
+    CopyRaytracingOutputToBackbuffer();
+
+    // Record commands for drawing GUI
+    DrawGUI();
 
     // Present the back buffer
     device_resources_->Present();
@@ -345,6 +371,27 @@ void HonoursApplication::PopulateCommandList()
     //m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 
     //ThrowIfFailed(m_commandList->Close());
+}
+
+// Copy the raytracing output to the backbuffer.
+void HonoursApplication::CopyRaytracingOutputToBackbuffer()
+{
+    auto commandList = device_resources_->GetCommandList();
+    auto renderTarget = device_resources_->GetRenderTarget();
+    ID3D12Resource* ray_tracing_output = ray_tracer_->GetRaytracingOutput();
+
+    D3D12_RESOURCE_BARRIER preCopyBarriers[2];
+    preCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(renderTarget, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);
+    preCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(ray_tracing_output, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
+    commandList->ResourceBarrier(ARRAYSIZE(preCopyBarriers), preCopyBarriers);
+
+    commandList->CopyResource(renderTarget, ray_tracing_output);
+
+    D3D12_RESOURCE_BARRIER postCopyBarriers[2];
+    postCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(renderTarget, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
+    postCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(ray_tracing_output, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+    commandList->ResourceBarrier(ARRAYSIZE(postCopyBarriers), postCopyBarriers);
 }
 
 // Wait for pending GPU work to complete.
@@ -405,6 +452,20 @@ void HonoursApplication::OnDeviceLost()
 
 void HonoursApplication::OnDeviceRestored()
 {
+}
+
+// Allocate a descriptor and return its index. 
+// If the passed descriptorIndexToUse is valid, it will be used instead of allocating a new one.
+UINT HonoursApplication::AllocateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescriptor, UINT descriptorIndexToUse)
+{
+    UINT descriptor_size = device_resources_->GetD3DDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    auto descriptorHeapCpuBase = descriptor_heap_->GetCPUDescriptorHandleForHeapStart();
+    if (descriptorIndexToUse >= descriptor_heap_->GetDesc().NumDescriptors)
+    {
+        descriptorIndexToUse = descriptors_allocated_++;
+    }
+    *cpuDescriptor = CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptorHeapCpuBase, descriptorIndexToUse, descriptor_size);
+    return descriptorIndexToUse;
 }
 
 // Prepare to render the next frame.

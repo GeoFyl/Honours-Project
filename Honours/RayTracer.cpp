@@ -1,7 +1,11 @@
 #include "stdafx.h"
 #include "RayTracer.h"
+#include "HonoursApplication.h"
 #include "Utilities.h"
 #include "UploadBuffer.h"
+#include <dxcapi.h>
+#include <fstream>
+#include <sstream>
 
 const wchar_t* RayTracer::hit_group_name_ = L"HitGroup";
 const wchar_t* RayTracer::ray_gen_shader_name_ = L"RayGenerationShader";
@@ -9,12 +13,52 @@ const wchar_t* RayTracer::intersection_shader_name_ = L"IntersectionShader";
 const wchar_t* RayTracer::closest_hit_shader_name_ = L"ClosestHitShader";
 const wchar_t* RayTracer::miss_shader_name = L"MissShader";
 
-RayTracer::RayTracer(DX::DeviceResources* device_resources) :
-    device_resources_(device_resources)
+RayTracer::RayTracer(DX::DeviceResources* device_resources, HonoursApplication* app) :
+    device_resources_(device_resources), application_(app)
 {
+    device_resources_->GetCommandList()->Reset(device_resources_->GetCommandAllocator(), nullptr);
+
     CreateRootSignatures();
     CreateRaytracingPipelineStateObject();
     BuildAccelerationStructures();
+
+    device_resources_->GetCommandList()->Reset(device_resources_->GetCommandAllocator(), nullptr);
+    BuildShaderTables();
+    CreateRaytracingOutputResource();
+
+    // Execute command list and wait until assets have been uploaded to the GPU.
+    device_resources_->ExecuteCommandList();
+    device_resources_->WaitForGpu();
+}
+
+void RayTracer::RayTracing()
+{
+    auto commandList = device_resources_->GetCommandList();
+
+    commandList->SetComputeRootSignature(rt_global_root_signature_.Get());
+
+    // Bind the heaps, acceleration structure and dispatch rays.
+    ID3D12DescriptorHeap* heap = application_->GetDescriptorHeap();
+    commandList->SetDescriptorHeaps(1, &heap);
+    commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
+    commandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AccelerationStructureSlot, m_topLevelAccelerationStructure->GetGPUVirtualAddress());
+    commandList->SetComputeRootConstantBufferView(GlobalRootSignatureParams::ConstantBufferSlot, application_->GetRaytracingCB()->GetGPUVirtualAddress());
+
+    // Since each shader table has only one shader record, the stride is same as the size.
+    D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
+    dispatchDesc.HitGroupTable.StartAddress = m_hitGroupShaderTable->Resource()->GetGPUVirtualAddress();
+    dispatchDesc.HitGroupTable.SizeInBytes = m_hitGroupShaderTable->Resource()->GetDesc().Width;
+    dispatchDesc.HitGroupTable.StrideInBytes = dispatchDesc.HitGroupTable.SizeInBytes;
+    dispatchDesc.MissShaderTable.StartAddress = m_missShaderTable->Resource()->GetGPUVirtualAddress();
+    dispatchDesc.MissShaderTable.SizeInBytes = m_missShaderTable->Resource()->GetDesc().Width;
+    dispatchDesc.MissShaderTable.StrideInBytes = dispatchDesc.MissShaderTable.SizeInBytes;
+    dispatchDesc.RayGenerationShaderRecord.StartAddress = m_rayGenShaderTable->Resource()->GetGPUVirtualAddress();
+    dispatchDesc.RayGenerationShaderRecord.SizeInBytes = m_rayGenShaderTable->Resource()->GetDesc().Width;
+    dispatchDesc.Width = window_size_.x;
+    dispatchDesc.Height = window_size_.y;
+    dispatchDesc.Depth = 1;
+    commandList->SetPipelineState1(rt_state_object_.Get());
+    commandList->DispatchRays(&dispatchDesc);
 }
 
 void RayTracer::CheckRayTracingSupport(ID3D12Device5* device)
@@ -79,9 +123,11 @@ void RayTracer::CreateRaytracingPipelineStateObject()
     // This contains the shaders and their entrypoints for the state object.
     // Since shaders are not considered a subobject, they need to be passed in via DXIL library subobjects.
     auto lib = raytracingPipeline.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
-    ComPtr<ID3DBlob> blob;
+    //ComPtr<ID3DBlob> blob;
     UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION; // allow debugging !!!!!!!!!!!!!! - prob dont do this in final build
-    ThrowIfFailed(D3DCompileFromFile(L"assets/RayTracing.hlsl", nullptr, nullptr, "main", "lib", compileFlags, 0, &blob, nullptr));
+
+    auto blob = CompileShaderLibrary(L"assets/RayTracing.hlsl");
+    //ThrowIfFailed(D3DCompileFromFile(L"assets/RayTracing.hlsl", NULL, NULL, NULL, "lib", compileFlags, 0, &blob, nullptr));
    // ThrowIfFailed(D3DShaderCompiler::CompileFromFile(L"assets/shaders/raytracing/raytracing.hlsl", L"main", L"lib", {}, &blob));
     D3D12_SHADER_BYTECODE libdxil = CD3DX12_SHADER_BYTECODE(blob->GetBufferPointer(), blob->GetBufferSize());
     lib->SetDXILLibrary(&libdxil);
@@ -161,7 +207,7 @@ void RayTracer::BuildAccelerationStructures()
     //ThrowIfFalse(bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes > 0);
 
     ComPtr<ID3D12Resource> scratchResource;
-    Utilities::AllocateDefaultBuffer(device, max(topLevelPrebuildInfo.ScratchDataSizeInBytes, bottomLevelPrebuildInfo.ScratchDataSizeInBytes), &scratchResource, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    Utilities::AllocateDefaultBuffer(device, max(topLevelPrebuildInfo.ScratchDataSizeInBytes, bottomLevelPrebuildInfo.ScratchDataSizeInBytes), &scratchResource, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
     // Allocate resources for acceleration structures.
     // Acceleration structures can only be placed in resources that are created in the default heap (or custom heap equivalent). 
@@ -220,4 +266,176 @@ void RayTracer::BuildAccelerationStructures()
 
     // Wait for GPU to finish as the locally created temporary GPU resources will get released once we go out of scope.
     device_resources_->WaitForGpu();
+}
+
+// Build shader tables.
+// This encapsulates all shader records - shaders and the arguments for their local root signatures.
+void RayTracer::BuildShaderTables()
+{
+    auto device = device_resources_->GetD3DDevice();
+
+    void* rayGenShaderIdentifier;
+    void* missShaderIdentifier;
+    void* hitGroupShaderIdentifier;
+
+    auto GetShaderIdentifiers = [&](auto* stateObjectProperties)
+        {
+            rayGenShaderIdentifier = stateObjectProperties->GetShaderIdentifier(ray_gen_shader_name_);
+            missShaderIdentifier = stateObjectProperties->GetShaderIdentifier(miss_shader_name);
+            hitGroupShaderIdentifier = stateObjectProperties->GetShaderIdentifier(hit_group_name_);
+        };
+
+    // Get shader identifiers.
+    UINT shaderIdentifierSize;
+    {
+        ComPtr<ID3D12StateObjectProperties> stateObjectProperties;
+        ThrowIfFailed(rt_state_object_.As(&stateObjectProperties));
+        GetShaderIdentifiers(stateObjectProperties.Get());
+        shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+    }
+
+    // Ray gen shader table
+    {
+        UINT numShaderRecords = 1;
+        UINT shaderRecordSize = shaderIdentifierSize;
+        m_rayGenShaderTable = std::make_unique<ShaderTable>(device, numShaderRecords, shaderRecordSize);
+        m_rayGenShaderTable->CopyRecord(0, ShaderRecord(rayGenShaderIdentifier));
+    }
+
+    // Miss shader table
+    {
+        UINT numShaderRecords = 1;
+        UINT shaderRecordSize = shaderIdentifierSize;
+        m_missShaderTable = std::make_unique<ShaderTable>(device, numShaderRecords, shaderRecordSize);
+        m_missShaderTable->CopyRecord(0, ShaderRecord(missShaderIdentifier));
+    }
+
+    // Hit group shader table
+    {
+        UINT numShaderRecords = 1;
+        UINT shaderRecordSize = shaderIdentifierSize;
+        m_hitGroupShaderTable = std::make_unique<ShaderTable>(device, numShaderRecords, shaderRecordSize);
+        m_hitGroupShaderTable->CopyRecord(0, ShaderRecord(hitGroupShaderIdentifier));
+    }
+}
+
+// Create 2D output texture for raytracing.
+void RayTracer::CreateRaytracingOutputResource()
+{
+    auto device = device_resources_->GetD3DDevice();
+    auto backbufferFormat = device_resources_->GetBackBufferFormat();
+    UINT descriptor_size = device_resources_->GetD3DDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+    window_size_.x = device_resources_->GetOutputSize().right;
+    window_size_.y = device_resources_->GetOutputSize().bottom;
+
+    // Create the output resource. The dimensions and format should match the swap-chain.
+    auto uavDesc = CD3DX12_RESOURCE_DESC::Tex2D(backbufferFormat, window_size_.x, window_size_.y, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+
+    auto defaultHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+    ThrowIfFailed(device->CreateCommittedResource(
+        &defaultHeapProperties, 
+        D3D12_HEAP_FLAG_NONE,
+        &uavDesc,
+        D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+        nullptr, IID_PPV_ARGS(&m_raytracingOutput)));
+
+    D3D12_CPU_DESCRIPTOR_HANDLE uavDescriptorHandle;
+    m_raytracingOutputResourceUAVDescriptorHeapIndex = application_->AllocateDescriptor(&uavDescriptorHandle);
+    D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc = {};
+    UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+    device->CreateUnorderedAccessView(m_raytracingOutput.Get(), nullptr, &UAVDesc, uavDescriptorHandle);
+
+    m_raytracingOutputResourceUAVGpuDescriptor = CD3DX12_GPU_DESCRIPTOR_HANDLE(application_->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart(), m_raytracingOutputResourceUAVDescriptorHeapIndex, descriptor_size);
+}
+
+// Compile a HLSL file into a DXIL library - from NVIDIA
+// 
+/*-----------------------------------------------------------------------
+Copyright (c) 2014-2018, NVIDIA. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+* Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+* Neither the name of its contributors may be used to endorse
+or promote products derived from this software without specific
+prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ``AS IS'' AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-----------------------------------------------------------------------*/
+//
+IDxcBlob* RayTracer::CompileShaderLibrary(LPCWSTR fileName)
+{
+    static IDxcCompiler* pCompiler = nullptr;
+    static IDxcLibrary* pLibrary = nullptr;
+    static IDxcIncludeHandler* dxcIncludeHandler;
+
+    HRESULT hr;
+
+    // Initialize the DXC compiler and compiler helper
+    if (!pCompiler)
+    {
+        ThrowIfFailed(DxcCreateInstance(CLSID_DxcCompiler, __uuidof(IDxcCompiler), (void**)&pCompiler));
+        ThrowIfFailed(DxcCreateInstance(CLSID_DxcLibrary, __uuidof(IDxcLibrary), (void**)&pLibrary));
+        ThrowIfFailed(pLibrary->CreateIncludeHandler(&dxcIncludeHandler));
+    }
+    // Open and read the file
+    std::ifstream shaderFile(fileName);
+    if (shaderFile.good() == false)
+    {
+        throw std::logic_error("Cannot find shader file");
+    }
+    std::stringstream strStream;
+    strStream << shaderFile.rdbuf();
+    std::string sShader = strStream.str();
+
+    // Create blob from the string
+    IDxcBlobEncoding* pTextBlob;
+    ThrowIfFailed(pLibrary->CreateBlobWithEncodingFromPinned(
+        (LPBYTE)sShader.c_str(), (uint32_t)sShader.size(), 0, &pTextBlob));
+
+    // Compile
+    IDxcOperationResult* pResult;
+    ThrowIfFailed(pCompiler->Compile(pTextBlob, fileName, L"", L"lib_6_3", nullptr, 0, nullptr, 0,
+        dxcIncludeHandler, &pResult));
+
+    // Verify the result
+    HRESULT resultCode;
+    ThrowIfFailed(pResult->GetStatus(&resultCode));
+    if (FAILED(resultCode))
+    {
+        IDxcBlobEncoding* pError;
+        hr = pResult->GetErrorBuffer(&pError);
+        if (FAILED(hr))
+        {
+            throw std::logic_error("Failed to get shader compiler error");
+        }
+
+        // Convert error blob to a string
+        std::vector<char> infoLog(pError->GetBufferSize() + 1);
+        memcpy(infoLog.data(), pError->GetBufferPointer(), pError->GetBufferSize());
+        infoLog[pError->GetBufferSize()] = 0;
+
+        std::string errorMsg = "Shader Compiler Error:\n";
+        errorMsg.append(infoLog.data());
+
+        MessageBoxA(nullptr, errorMsg.c_str(), "Error!", MB_OK);
+        throw std::logic_error("Failed compile shader");
+    }
+
+    IDxcBlob* pBlob;
+    ThrowIfFailed(pResult->GetResult(&pBlob));
+    return pBlob;
 }

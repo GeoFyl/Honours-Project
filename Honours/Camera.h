@@ -41,7 +41,8 @@ public:
 	XMFLOAT3 getPosition();		///< Get camera's current position
 	XMFLOAT3 getRotation();		///< Get camera's current rotation
 
-	void update();				///< Update camera, recalculates view matrix based on rotation
+	// Returns true when camera updated
+	bool update();				///< Update camera, recalculates view matrix based on rotation
 	XMMATRIX getViewMatrix();	///< Get current view matrix of camera
 	XMMATRIX getOrthoViewMatrix();	///< Get current orthographic view matrix for camera
 

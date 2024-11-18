@@ -21,7 +21,7 @@ public:
         // UINT   SizeInBytes;   // multiple of 256
         // } D3D12_CONSTANT_BUFFER_VIEW_DESC;
         if(isConstantBuffer)
-            mElementByteSize = FindCBByteSize(sizeof(T));
+            mElementByteSize = Utilities::Align(sizeof(T), 256);
 
         ThrowIfFailed(device->CreateCommittedResource(
             &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
@@ -60,10 +60,6 @@ public:
     UINT GetCBByteSize() { return mElementByteSize; }
 
 private:
-    // Pads byte size to a multiple of 256
-    UINT FindCBByteSize(UINT byte_size) {
-        return (byte_size + 255) & ~255;
-    }
 
     Microsoft::WRL::ComPtr<ID3D12Resource> mUploadBuffer;
     BYTE* mMappedData = nullptr;

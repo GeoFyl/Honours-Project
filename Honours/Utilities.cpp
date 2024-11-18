@@ -53,3 +53,4 @@ void Utilities::AllocateDefaultBuffer(ID3D12Device* device, UINT64 buffer_size, 
 		nullptr,
 		IID_PPV_ARGS(buffer)));
 }
+

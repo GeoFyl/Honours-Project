@@ -16,5 +16,6 @@ struct RayIntersectionAttributes
 };
 
 struct RayTracingCB {
+    XMMATRIX inv_view_proj_;
 	XMFLOAT3 camera_pos_;
 };

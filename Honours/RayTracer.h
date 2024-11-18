@@ -1,6 +1,8 @@
 #pragma once
 #include "RayTracingStructs.h"
 #include "DeviceResources.h"
+#include "ShaderTable.h"
+#include <dxcapi.h>
 
 namespace GlobalRootSignatureParams {
     enum Value {
@@ -20,14 +22,21 @@ namespace GlobalRootSignatureParams {
 
 using Microsoft::WRL::ComPtr;
 
+class HonoursApplication;
+
 class RayTracer
 {
 public:
-	RayTracer(DX::DeviceResources* device_resources);
+	RayTracer(DX::DeviceResources* device_resources, HonoursApplication* app);
+
+    void RayTracing();
+
+    void CreateRaytracingOutputResource();
+
+    inline ID3D12Resource* GetRaytracingOutput() { return m_raytracingOutput.Get(); }
+    void ReleaseUploaders() { aabb_buffer_uploader_.Reset(); }
 
 	static void CheckRayTracingSupport(ID3D12Device5* device);
-
-    void ReleaseUploaders() { aabb_buffer_uploader_.Reset(); }
 
 private:
     void CreateRootSignatures();
@@ -35,6 +44,9 @@ private:
     void CreateRaytracingPipelineStateObject();
 
     void BuildAccelerationStructures();
+
+    void BuildShaderTables();
+    IDxcBlob* CompileShaderLibrary(LPCWSTR fileName);
 
     // DXR attributes
     ComPtr<ID3D12StateObject> rt_state_object_;
@@ -55,6 +67,7 @@ private:
     ComPtr<ID3D12Resource> m_raytracingOutput;
     D3D12_GPU_DESCRIPTOR_HANDLE m_raytracingOutputResourceUAVGpuDescriptor;
     UINT m_raytracingOutputResourceUAVDescriptorHeapIndex;
+    XMFLOAT2 window_size_;
 
     // Shader tables
     static const wchar_t* hit_group_name_;
@@ -62,11 +75,12 @@ private:
     static const wchar_t* intersection_shader_name_;
     static const wchar_t* closest_hit_shader_name_;
     static const wchar_t* miss_shader_name;
-    ComPtr<ID3D12Resource> m_missShaderTable;
-    ComPtr<ID3D12Resource> m_hitGroupShaderTable;
-    ComPtr<ID3D12Resource> m_rayGenShaderTable;
+    std::unique_ptr<ShaderTable> m_missShaderTable;
+    std::unique_ptr<ShaderTable> m_hitGroupShaderTable;
+    std::unique_ptr<ShaderTable> m_rayGenShaderTable;
 
     DX::DeviceResources* device_resources_;
+    HonoursApplication* application_;
     //ID3D12Device5* device_ = nullptr;
     //ID3D12GraphicsCommandList4* command_list_ = nullptr;
 };

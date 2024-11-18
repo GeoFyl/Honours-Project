@@ -111,6 +111,7 @@
     <ClInclude Include="DeviceResources.h">
       <Filter>Header Files\Framework</Filter>
     </ClInclude>
+    <ClInclude Include="ShaderTable.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="HonoursApplication.cpp">
@@ -176,6 +177,7 @@
     <ClCompile Include="DeviceResources.cpp">
       <Filter>Source Files\Framework</Filter>
     </ClCompile>
+    <ClCompile Include="ShaderTable.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="shaders.hlsl">
