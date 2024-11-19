@@ -2,6 +2,8 @@
 #define RAYTRACING_HLSL
 
 #define MAX_RECURSION_DEPTH 1 // Primary rays
+#define MAX_SPHERE_TRACING_STEPS 512
+#define MAX_SPHERE_TRACING_THRESHOLD 0.001f
 
 struct Ray
 {
@@ -16,7 +18,7 @@ struct RayPayload
 
 struct RayIntersectionAttributes
 {
-    float example;
+    float distance_;
 };
 
 struct RayTracingCB
@@ -71,6 +73,55 @@ RayPayload TracePrimaryRay(in Ray ray, in uint current_recursion_depth)
 	return payload;
 }
 
+// Test if a ray segment <RayTMin(), RayTCurrent()> intersects an AABB.
+// Limitation: this test does not take RayFlags into consideration and does not calculate a surface normal.
+// Ref: https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-box-intersection
+bool RayAABBIntersectionTest(Ray ray, float3 aabb[2], out float tmin, out float tmax)
+{
+    float3 tmin3, tmax3;
+    int3 sign3 = ray.direction_ > 0;
+
+    // Handle rays parallel to any x|y|z slabs of the AABB.
+    // If a ray is within the parallel slabs, 
+    //  the tmin, tmax will get set to -inf and +inf
+    //  which will get ignored on tmin/tmax = max/min.
+    // If a ray is outside the parallel slabs, -inf/+inf will
+    //  make tmax > tmin fail (i.e. no intersection).
+    // TODO: handle cases where ray origin is within a slab 
+    //  that a ray direction is parallel to. In that case
+    //  0 * INF => NaN
+    const float FLT_INFINITY = 1.#INF;
+    float3 invRayDirection = select(ray.direction_ != 0, 1 / ray.direction_, select(ray.direction_ > 0, FLT_INFINITY, -FLT_INFINITY));
+
+    tmin3.x = (aabb[1 - sign3.x].x - ray.origin_.x) * invRayDirection.x;
+    tmax3.x = (aabb[sign3.x].x - ray.origin_.x) * invRayDirection.x;
+
+    tmin3.y = (aabb[1 - sign3.y].y - ray.origin_.y) * invRayDirection.y;
+    tmax3.y = (aabb[sign3.y].y - ray.origin_.y) * invRayDirection.y;
+    
+    tmin3.z = (aabb[1 - sign3.z].z - ray.origin_.z) * invRayDirection.z;
+    tmax3.z = (aabb[sign3.z].z - ray.origin_.z) * invRayDirection.z;
+    
+    tmin = max(max(tmin3.x, tmin3.y), tmin3.z);
+    tmax = min(min(tmax3.x, tmax3.y), tmax3.z);
+    
+    return tmax > tmin && tmax >= RayTMin() && tmin <= RayTCurrent();
+}
+
+float GetDistanceToSphere(float3 displacement, float radius)
+{
+    return length(displacement) - radius;
+}
+
+float GetAnalyticalSignedDistance(float3 position)
+{
+    // vector between the particle position and the current sphere tracing position
+    // particle postion currently hard coded as (0.5f, 0.5f, 0.5f)
+    float3 displacement = float3(0.5f, 0.5f, 0.5f) - position;
+    
+    // radius hard coded as 0.5
+    return GetDistanceToSphere(displacement, 0.5f);
+}
 
 // ------------ Ray Generation Shader ----------------
 
@@ -93,8 +144,37 @@ void RayGenerationShader()
 [shader("intersection")]
 void IntersectionShader()
 {
-    RayIntersectionAttributes attributes;
-    ReportHit(1, 0, attributes);
+    Ray ray;
+    ray.origin_ = WorldRayOrigin();
+    ray.direction_ = WorldRayDirection();
+    
+    float3 aabb[2];
+    aabb[0] = float3(0.0f, 0.0f, 0.0f);
+    aabb[1] = float3(1.f, 1.f, 1.f);
+    
+    float t_min, t_max;
+    if (RayAABBIntersectionTest(ray, aabb, t_min, t_max))
+    {
+        // Perform sphere tracing through the AABB.
+        uint i = 0;
+        while (i++ < MAX_SPHERE_TRACING_STEPS && t_min <= t_max)
+        {
+            float3 position = ray.origin_ + t_min * ray.direction_;
+            float distance = GetAnalyticalSignedDistance(position);
+
+            // Has the ray intersected the primitive? 
+            if (distance <= MAX_SPHERE_TRACING_THRESHOLD)
+            {
+                //float3 hitSurfaceNormal = sdCalculateNormal(position, sdPrimitive);
+                RayIntersectionAttributes attributes;
+                ReportHit(max(t_min, RayTMin()), 0, attributes);
+            }
+
+            // Since distance is the minimum distance to the primitive, 
+            // we can safely jump by that amount without intersecting the primitive.
+            t_min += distance;
+        }   
+    }
 }
 
 
@@ -103,7 +183,9 @@ void IntersectionShader()
 [shader("closesthit")]
 void ClosestHitShader(inout RayPayload payload, in RayIntersectionAttributes attributes)
 {
-    payload.colour_ = float4(0.537f, 0.984f, 1, 1);
+
+    payload.colour_ = (float4(0.306, 0.941, 0.933, 1) * (length(WorldRayOrigin()) - RayTCurrent() + 0.6));
+
 }
 
 

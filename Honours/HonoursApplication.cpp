@@ -52,8 +52,8 @@ void HonoursApplication::OnInit()
     device_resources_->CreateWindowSizeDependentResources();
 
     // Initialise camera
-    camera_.setPosition(4, 0.5, -5.f);
-    camera_.setRotation(0, -30, 0);
+    camera_.setPosition(0.5, 0.5, -3.f);
+    //camera_.setRotation(0, -30, 0);
     LoadPipeline();
    // LoadAssets();
     // Create constant buffers
