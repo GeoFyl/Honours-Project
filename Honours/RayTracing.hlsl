@@ -108,6 +108,15 @@ bool RayAABBIntersectionTest(Ray ray, float3 aabb[2], out float tmin, out float 
     return tmax > tmin && tmax >= RayTMin() && tmin <= RayTCurrent();
 }
 
+// quadratic polynomial smooth minimum
+// https://iquilezles.org/articles/smin/
+float SmoothMin(float a, float b, float k)
+{
+    k *= 4.0;
+    float h = max(k - abs(a - b), 0.0) / k;
+    return min(a, b) - h * h * k * (1.0 / 4.0);
+}
+
 float GetDistanceToSphere(float3 displacement, float radius)
 {
     return length(displacement) - radius;
@@ -116,11 +125,32 @@ float GetDistanceToSphere(float3 displacement, float radius)
 float GetAnalyticalSignedDistance(float3 position)
 {
     // vector between the particle position and the current sphere tracing position
-    // particle postion currently hard coded as (0.5f, 0.5f, 0.5f)
-    float3 displacement = float3(0.5f, 0.5f, 0.5f) - position;
+    // particle postions currently hard coded
+    float3 particle_positions[25];
+    int index = 0;
     
-    // radius hard coded as 0.5
-    return GetDistanceToSphere(displacement, 0.5f);
+    
+    for (int i = 0; i < 5; i++)
+    {
+        for (int j = 0; j < 5; j++)
+        {
+            particle_positions[index] = float3((j + 5) * 0.1, (i + 5) * 0.1, 0.3);
+            index++;
+        }
+    }
+    
+    float distance = GetDistanceToSphere(particle_positions[0] - position, 0.1f);
+    for (int x = 1; x < 25; x++)
+    {
+        float distance1 = GetDistanceToSphere(particle_positions[x] - position, 0.1f);            
+        distance = SmoothMin(distance, distance1, 0.05f);
+        //distance = min(distance, distance1);
+    }
+    
+    return distance;
+    
+    // radius hard coded as 0.3
+    //return SmoothMin(distance0, distance1, 0.05f);
 }
 
 // ------------ Ray Generation Shader ----------------

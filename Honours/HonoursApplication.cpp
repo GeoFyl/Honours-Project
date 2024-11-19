@@ -52,7 +52,8 @@ void HonoursApplication::OnInit()
     device_resources_->CreateWindowSizeDependentResources();
 
     // Initialise camera
-    camera_.setPosition(0.5, 0.5, -3.f);
+    camera_ = std::make_unique<FPCamera>(&input_, m_width, m_height, Win32Application::GetHwnd());
+    camera_->setPosition(0.5, 0.5, -3.f);
     //camera_.setRotation(0, -30, 0);
     LoadPipeline();
    // LoadAssets();
@@ -276,10 +277,10 @@ void HonoursApplication::OnUpdate()
 {
     timer_.Update();
 
-    if (camera_.update()) {
+    if (camera_->move(timer_.GetDeltaTime())) {
         RayTracingCB buff;
-        buff.camera_pos_ = camera_.getPosition();
-        buff.inv_view_proj_ = XMMatrixTranspose(XMMatrixInverse(nullptr, XMMatrixMultiply(camera_.getViewMatrix(), projection_matrix_)));
+        buff.camera_pos_ = camera_->getPosition();
+        buff.inv_view_proj_ = XMMatrixTranspose(XMMatrixInverse(nullptr, XMMatrixMultiply(camera_->getViewMatrix(), projection_matrix_)));
      
         ray_tracing_cb_->CopyData(0, buff);
     }
@@ -350,7 +351,7 @@ void HonoursApplication::PopulateCommandList()
     command_list->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
 
     // Record commands.
-    XMMATRIX view_projection = XMMatrixMultiply(camera_.getViewMatrix(), projection_matrix_);
+    XMMATRIX view_projection = XMMatrixMultiply(camera_->getViewMatrix(), projection_matrix_);
 
     const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
     command_list->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);

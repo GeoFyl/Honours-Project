@@ -28,12 +28,14 @@ public:
     virtual void OnDestroy() = 0;
 
     // Samples override the event handlers to handle specific messages.
-    virtual void OnKeyDown(UINT8 /*key*/) {}
-    virtual void OnKeyUp(UINT8 /*key*/) {}
+    virtual void OnKeyDown(WPARAM /*key*/) {}
+    virtual void OnKeyUp(WPARAM /*key*/) {}
     virtual void OnWindowMoved(int /*x*/, int /*y*/) {}
-    virtual void OnMouseMove(UINT /*x*/, UINT /*y*/) {}
-    virtual void OnLeftButtonDown(UINT /*x*/, UINT /*y*/) {}
-    virtual void OnLeftButtonUp(UINT /*x*/, UINT /*y*/) {}
+    virtual void OnMouseMove(WPARAM /*x*/, WPARAM /*y*/) {}
+    virtual void OnLeftButtonDown(WPARAM /*x*/, WPARAM /*y*/) {}
+    virtual void OnLeftButtonUp(WPARAM /*x*/, WPARAM /*y*/) {}
+    virtual void OnRightButtonDown(WPARAM /*x*/, WPARAM /*y*/) {}
+    virtual void OnRightButtonUp(WPARAM /*x*/, WPARAM /*y*/) {}
     virtual void OnDisplayChanged() {}
 
     // Overridable members.

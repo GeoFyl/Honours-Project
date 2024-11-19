@@ -188,8 +188,6 @@ void Win32Application::SetWindowZorderToTopMost(bool setToTopMost)
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
-        return true;
 
     DXSample* pSample = reinterpret_cast<DXSample*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
 
@@ -272,7 +270,7 @@ LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wP
         return 0;
 
     case WM_MOUSEMOVE:
-        if (pSample && static_cast<UINT8>(wParam) == MK_LBUTTON)
+        //if (pSample && static_cast<UINT8>(wParam) == MK_LBUTTON)
         {
             UINT x = LOWORD(lParam);
             UINT y = HIWORD(lParam);
@@ -296,10 +294,31 @@ LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wP
     }
     return 0;
 
+    case WM_RBUTTONDOWN:
+    {
+        UINT x = LOWORD(lParam);
+        UINT y = HIWORD(lParam);
+        pSample->OnRightButtonDown(x, y);
+    }
+    return 0;
+
+    case WM_RBUTTONUP:
+    {
+        UINT x = LOWORD(lParam);
+        UINT y = HIWORD(lParam);
+        pSample->OnRightButtonUp(x, y);
+    }
+    return 0;
+
+
+
     case WM_DESTROY:
         PostQuitMessage(0);
         return 0;
     }
+
+    if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
+        return true;
 
     // Handle any messages the switch statement didn't.
     return DefWindowProc(hWnd, message, wParam, lParam);

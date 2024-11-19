@@ -17,7 +17,8 @@
 #include "DeviceResources.h"
 #include "RayTracer.h"
 #include "Resources.h"
-#include "Camera.h"
+#include "Input.h"
+#include "FPCamera.h"
 #include "TriangleMesh.h"
 #include "CubeMesh.h"
 
@@ -47,6 +48,14 @@ public:
     // IDeviceNotify
     virtual void OnDeviceLost() override;
     virtual void OnDeviceRestored() override;
+
+    virtual inline void OnKeyDown(WPARAM key) override { input_.SetKeyDown(key); }
+    virtual inline void OnKeyUp(WPARAM key) override { input_.SetKeyUp(key); }
+    virtual inline void OnMouseMove(WPARAM x, WPARAM y) override { input_.setMouseX(x); input_.setMouseY(y); }
+    virtual inline void OnLeftButtonDown(WPARAM x, WPARAM y) override { input_.setLeftMouse(true); }
+    virtual inline void OnLeftButtonUp(WPARAM x, WPARAM y) override { input_.setLeftMouse(false); }
+    virtual inline void OnRightButtonDown(WPARAM x, WPARAM y) override { input_.setRightMouse(true); }
+    virtual inline void OnRightButtonUp(WPARAM x, WPARAM y) override { input_.setRightMouse(false); }
 
     UINT AllocateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescriptor, UINT descriptorIndexToUse = UINT_MAX);
 
@@ -100,7 +109,8 @@ private:
     //std::unique_ptr<TriangleMesh> triangle_ = nullptr;
     std::unique_ptr<CubeMesh> cube_ = nullptr;
 
-    Camera camera_;
+    Input input_;
+    std::unique_ptr<FPCamera> camera_;
 
     XMMATRIX projection_matrix_;					///< Identity projection matrix
     XMMATRIX world_matrix_;						///< Identity world matrix
