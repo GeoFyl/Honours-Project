@@ -125,6 +125,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="Computer.h" />
+    <ClInclude Include="ComputeStructs.h" />
     <ClInclude Include="CubeMesh.h" />
     <ClInclude Include="DeviceResources.h" />
     <ClInclude Include="FPCamera.h" />
@@ -154,6 +156,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="Computer.cpp" />
     <ClCompile Include="CubeMesh.cpp" />
     <ClCompile Include="DeviceResources.cpp" />
     <ClCompile Include="FPCamera.cpp">
@@ -213,12 +216,31 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
+    <CustomBuild Include="ComputeCommon.hlsli">
+      <FileType>Document</FileType>
+    </CustomBuild>
     <None Include="packages.config" />
+    <CustomBuild Include="RayTracingCommon.hlsli">
+      <FileType>Document</FileType>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="RayTracing.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="RayHelpers.hlsli">
+      <FileType>Document</FileType>
+    </CustomBuild>
+    <CustomBuild Include="SdfHelpers.hlsli">
+      <FileType>Document</FileType>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="Compute.hlsl">
       <FileType>Document</FileType>
     </CustomBuild>
   </ItemGroup>

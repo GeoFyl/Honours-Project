@@ -15,6 +15,7 @@
 #include "TimeSystem.h"
 #include "DXSample.h"
 #include "DeviceResources.h"
+#include "Computer.h"
 #include "RayTracer.h"
 #include "Resources.h"
 #include "Input.h"
@@ -96,6 +97,8 @@ private:
     // idk what to call this
     std::unique_ptr<Resources> resources_ = nullptr;
     std::unique_ptr<RayTracer> ray_tracer_ = nullptr;
+    std::unique_ptr<Computer> computer_ = nullptr;
+
 
     std::unique_ptr<UploadBuffer<RayTracingCB>> ray_tracing_cb_ = nullptr;
 

@@ -12,11 +12,11 @@ std::wstring DxException::ToString() const
 }
 
 using namespace Microsoft::WRL;
-ComPtr<ID3D12Resource> Utilities::CreateDefaultBuffer(ID3D12Device* device, ID3D12GraphicsCommandList* command_list, const void* data, UINT64 byte_size, ComPtr<ID3D12Resource>& upload_buffer)
+ComPtr<ID3D12Resource> Utilities::CreateDefaultBuffer(ID3D12Device* device, ID3D12GraphicsCommandList* command_list, const void* data, UINT64 byte_size, ComPtr<ID3D12Resource>& upload_buffer, D3D12_RESOURCE_STATES initial_state, D3D12_RESOURCE_FLAGS flags)
 {
 	// Create default buffer resource
 	ComPtr<ID3D12Resource> default_buffer;
-	AllocateDefaultBuffer(device, byte_size, default_buffer.GetAddressOf());
+	AllocateDefaultBuffer(device, byte_size, default_buffer.GetAddressOf(), initial_state, flags);
 
 	// Create intermediate upload resource
 	ThrowIfFailed(device->CreateCommittedResource(

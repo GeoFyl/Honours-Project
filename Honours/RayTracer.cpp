@@ -13,8 +13,8 @@ const wchar_t* RayTracer::intersection_shader_name_ = L"IntersectionShader";
 const wchar_t* RayTracer::closest_hit_shader_name_ = L"ClosestHitShader";
 const wchar_t* RayTracer::miss_shader_name = L"MissShader";
 
-RayTracer::RayTracer(DX::DeviceResources* device_resources, HonoursApplication* app) :
-    device_resources_(device_resources), application_(app)
+RayTracer::RayTracer(DX::DeviceResources* device_resources, HonoursApplication* app, Computer* comp) :
+    device_resources_(device_resources), application_(app), computer_(comp)
 {
     device_resources_->GetCommandList()->Reset(device_resources_->GetCommandAllocator(), nullptr);
 
@@ -40,9 +40,10 @@ void RayTracer::RayTracing()
     // Bind the heaps, acceleration structure and dispatch rays.
     ID3D12DescriptorHeap* heap = application_->GetDescriptorHeap();
     commandList->SetDescriptorHeaps(1, &heap);
-    commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
-    commandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::AccelerationStructureSlot, m_topLevelAccelerationStructure->GetGPUVirtualAddress());
-    commandList->SetComputeRootConstantBufferView(GlobalRootSignatureParams::ConstantBufferSlot, application_->GetRaytracingCB()->GetGPUVirtualAddress());
+    commandList->SetComputeRootDescriptorTable(GlobalRTRootSignatureParams::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
+    commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::AccelerationStructureSlot, m_topLevelAccelerationStructure->GetGPUVirtualAddress());
+    //commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::ParticlePositionsBufferSlot, computer_->GetOutputBuffer()->GetGPUVirtualAddress());
+    commandList->SetComputeRootConstantBufferView(GlobalRTRootSignatureParams::ConstantBufferSlot, application_->GetRaytracingCB()->GetGPUVirtualAddress());
 
     // Since each shader table has only one shader record, the stride is same as the size.
     D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
@@ -77,10 +78,11 @@ void RayTracer::CreateRootSignatures()
     {
         CD3DX12_DESCRIPTOR_RANGE UAVDescriptor;
         UAVDescriptor.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
-        CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParams::Count];
-        rootParameters[GlobalRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &UAVDescriptor);
-        rootParameters[GlobalRootSignatureParams::AccelerationStructureSlot].InitAsShaderResourceView(0);
-        rootParameters[GlobalRootSignatureParams::ConstantBufferSlot].InitAsConstantBufferView(0);
+        CD3DX12_ROOT_PARAMETER rootParameters[GlobalRTRootSignatureParams::Count];
+        rootParameters[GlobalRTRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &UAVDescriptor);
+        rootParameters[GlobalRTRootSignatureParams::AccelerationStructureSlot].InitAsShaderResourceView(0);
+       // rootParameters[GlobalRTRootSignatureParams::ParticlePositionsBufferSlot].InitAsShaderResourceView(1);
+        rootParameters[GlobalRTRootSignatureParams::ConstantBufferSlot].InitAsConstantBufferView(0);
         CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
         SerializeAndCreateRaytracingRootSignature(globalRootSignatureDesc, &rt_global_root_signature_);
     }
@@ -266,6 +268,8 @@ void RayTracer::BuildAccelerationStructures()
 
     // Wait for GPU to finish as the locally created temporary GPU resources will get released once we go out of scope.
     device_resources_->WaitForGpu();
+
+    ReleaseUploaders();
 }
 
 // Build shader tables.
@@ -322,6 +326,8 @@ void RayTracer::BuildShaderTables()
 // Create 2D output texture for raytracing.
 void RayTracer::CreateRaytracingOutputResource()
 {
+    m_raytracingOutput.Reset();
+
     auto device = device_resources_->GetD3DDevice();
     auto backbufferFormat = device_resources_->GetBackBufferFormat();
     UINT descriptor_size = device_resources_->GetD3DDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -341,7 +347,9 @@ void RayTracer::CreateRaytracingOutputResource()
         nullptr, IID_PPV_ARGS(&m_raytracingOutput)));
 
     D3D12_CPU_DESCRIPTOR_HANDLE uavDescriptorHandle;
-    m_raytracingOutputResourceUAVDescriptorHeapIndex = application_->AllocateDescriptor(&uavDescriptorHandle);
+    m_raytracingOutputResourceUAVDescriptorHeapIndex = application_->AllocateDescriptor(&uavDescriptorHandle, m_raytracingOutputResourceUAVDescriptorHeapIndex);
+    
+
     D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc = {};
     UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
     device->CreateUnorderedAccessView(m_raytracingOutput.Get(), nullptr, &UAVDesc, uavDescriptorHandle);

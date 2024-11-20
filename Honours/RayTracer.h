@@ -2,13 +2,15 @@
 #include "RayTracingStructs.h"
 #include "DeviceResources.h"
 #include "ShaderTable.h"
+#include "Computer.h"
 #include <dxcapi.h>
 
-namespace GlobalRootSignatureParams {
+namespace GlobalRTRootSignatureParams {
     enum Value {
         OutputViewSlot = 0,
         AccelerationStructureSlot,
         ConstantBufferSlot,
+        //ParticlePositionsBufferSlot,
         Count
     };
 }
@@ -27,14 +29,14 @@ class HonoursApplication;
 class RayTracer
 {
 public:
-	RayTracer(DX::DeviceResources* device_resources, HonoursApplication* app);
+	RayTracer(DX::DeviceResources* device_resources, HonoursApplication* app, Computer* comp);
 
     void RayTracing();
 
     void CreateRaytracingOutputResource();
 
     inline ID3D12Resource* GetRaytracingOutput() { return m_raytracingOutput.Get(); }
-    void ReleaseUploaders() { aabb_buffer_uploader_.Reset(); }
+    inline void ReleaseUploaders() { aabb_buffer_uploader_.Reset(); }
 
 	static void CheckRayTracingSupport(ID3D12Device5* device);
 
@@ -66,7 +68,7 @@ private:
     // Raytracing output
     ComPtr<ID3D12Resource> m_raytracingOutput;
     D3D12_GPU_DESCRIPTOR_HANDLE m_raytracingOutputResourceUAVGpuDescriptor;
-    UINT m_raytracingOutputResourceUAVDescriptorHeapIndex;
+    UINT m_raytracingOutputResourceUAVDescriptorHeapIndex = -1;
     XMFLOAT2 window_size_;
 
     // Shader tables
@@ -81,6 +83,7 @@ private:
 
     DX::DeviceResources* device_resources_;
     HonoursApplication* application_;
+    Computer* computer_;
     //ID3D12Device5* device_ = nullptr;
     //ID3D12GraphicsCommandList4* command_list_ = nullptr;
 };

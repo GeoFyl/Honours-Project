@@ -37,6 +37,15 @@
     <Filter Include="Header Files\RayTracing">
       <UniqueIdentifier>{f3672757-8b90-418f-9918-482120dc732a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Compute">
+      <UniqueIdentifier>{5a9bbddf-c911-451a-bc63-dec6a15231b6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assets\Shaders\RayTracing">
+      <UniqueIdentifier>{2acd62a2-982f-4db6-9f6f-367168646409}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assets\Shaders\Compute">
+      <UniqueIdentifier>{b720020e-4bfb-4dba-846f-8ca0ec766d4c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DXSample.h">
@@ -118,6 +127,12 @@
     <ClInclude Include="FPCamera.h">
       <Filter>Header Files\Framework</Filter>
     </ClInclude>
+    <ClInclude Include="Computer.h">
+      <Filter>Header Files\Compute</Filter>
+    </ClInclude>
+    <ClInclude Include="ComputeStructs.h">
+      <Filter>Header Files\Compute</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="HonoursApplication.cpp">
@@ -190,13 +205,31 @@
     <ClCompile Include="FPCamera.cpp">
       <Filter>Source Files\Framework</Filter>
     </ClCompile>
+    <ClCompile Include="Computer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="shaders.hlsl">
       <Filter>Assets\Shaders</Filter>
     </CustomBuild>
+    <CustomBuild Include="RayHelpers.hlsli">
+      <Filter>Assets\Shaders\RayTracing</Filter>
+    </CustomBuild>
     <CustomBuild Include="RayTracing.hlsl">
-      <Filter>Assets\Shaders</Filter>
+      <Filter>Assets\Shaders\RayTracing</Filter>
+    </CustomBuild>
+    <CustomBuild Include="RayTracingCommon.hlsli">
+      <Filter>Assets\Shaders\RayTracing</Filter>
+    </CustomBuild>
+    <CustomBuild Include="SdfHelpers.hlsli">
+      <Filter>Assets\Shaders\RayTracing</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Compute.hlsl">
+      <Filter>Assets\Shaders\Compute</Filter>
+    </CustomBuild>
+    <CustomBuild Include="ComputeCommon.hlsli">
+      <Filter>Assets\Shaders\Compute</Filter>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>

@@ -144,13 +144,16 @@ void HonoursApplication::LoadPipeline()
 
         // Describe and create a descriptor heap to hold constant buffer, shader resource, and unordered access views (CBV/SRV/UAV)
         D3D12_DESCRIPTOR_HEAP_DESC srv_heap_desc = {};
-        srv_heap_desc.NumDescriptors = 2;
+        srv_heap_desc.NumDescriptors = 4;
         srv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
         srv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
         ThrowIfFailed(device_resources_->GetD3DDevice()->CreateDescriptorHeap(&srv_heap_desc, IID_PPV_ARGS(&descriptor_heap_)));
 
+        // Create computer
+       // computer_ = std::make_unique<Computer>(device_resources_.get(), this);
+
     // Create ray tracer
-        ray_tracer_ = std::make_unique<RayTracer>(device_resources_.get(), this);
+        ray_tracer_ = std::make_unique<RayTracer>(device_resources_.get(), this, computer_.get());
 
     // Create frame resources.
     //{
@@ -280,7 +283,10 @@ void HonoursApplication::OnUpdate()
     if (camera_->move(timer_.GetDeltaTime())) {
         RayTracingCB buff;
         buff.camera_pos_ = camera_->getPosition();
-        buff.inv_view_proj_ = XMMatrixTranspose(XMMatrixInverse(nullptr, XMMatrixMultiply(camera_->getViewMatrix(), projection_matrix_)));
+        buff.view_proj_ = XMMatrixMultiply(camera_->getViewMatrix(), projection_matrix_);
+        buff.inv_view_proj_ = XMMatrixTranspose(XMMatrixInverse(nullptr, buff.view_proj_));
+
+        buff.view_proj_ = XMMatrixTranspose(buff.view_proj_);
      
         ray_tracing_cb_->CopyData(0, buff);
     }
@@ -310,6 +316,8 @@ void HonoursApplication::OnRender()
 
     // Record all the commands we need to render the scene into the command list.
     //PopulateCommandList();
+
+    //computer_->Compute();
 
     ray_tracer_->RayTracing();
     CopyRaytracingOutputToBackbuffer();
@@ -445,6 +453,7 @@ void HonoursApplication::OnSizeChanged(UINT width, UINT height, bool minimized)
     projection_matrix_ = XMMatrixPerspectiveFovLH((float)XM_PI / 4.0f, m_aspectRatio, 0.01f, 100.f);
 
     // todo: resize raytracing output  
+    ray_tracer_->CreateRaytracingOutputResource();
 }
 
 void HonoursApplication::OnDeviceLost()
