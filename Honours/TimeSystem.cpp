@@ -30,6 +30,8 @@ double TimeSystem::Update()
 		}
 	}
 
+	elapsed_time_ += delta_time_;
+
 	// Return the dt since last frame
 	return delta_time_;
 }

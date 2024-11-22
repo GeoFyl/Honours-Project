@@ -3,19 +3,18 @@
 
 #include "ComputeCommon.hlsli"
 
-ConsumeStructuredBuffer<ParticlePosition> particle_pos_input_ : register(u0);
-AppendStructuredBuffer<ParticlePosition> particle_pos_output_ : register(u1);
-
-[numthreads(32, 1, 1)]
+[numthreads(256, 1, 1)]
 void CSMain(int3 dispatch_ID : SV_DispatchThreadID)
 {
-    ParticlePosition pos = particle_pos_input_.Consume();
-    if (pos.position_.x == 0 && pos.position_.y == 0 && pos.position_.z == 0 && pos.speed == 0)
+    if (dispatch_ID.x >= NUM_PARTICLES)
     {
-        // Consumed past end of buffer, nothing to do
+        //ID overshoots end of buffer - nothing to do here.
         return;
     }
-    particle_pos_output_.Append(pos);
+    
+    particle_positions_[dispatch_ID.x].position_.y = particle_positions_[dispatch_ID.x].start_y_ + (0.2 * sin(0.5 * constant_buffer_.time_ * particle_positions_[dispatch_ID.x].speed_));
+    //particle_positions_[dispatch_ID.x].position_.y = 0.f;
+    
     return;
 }
 

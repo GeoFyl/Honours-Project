@@ -8,9 +8,7 @@ template<typename T>
 class UploadBuffer
 {
 public:
-    UploadBuffer(ID3D12Device* device, UINT elementCount, bool isConstantBuffer) : 
-        mIsConstantBuffer(isConstantBuffer)
-    {
+    UploadBuffer(ID3D12Device* device, UINT elementCount, bool isConstantBuffer) {
         mElementByteSize = sizeof(T);
 
         // Constant buffer elements need to be multiples of 256 bytes.
@@ -65,5 +63,4 @@ private:
     BYTE* mMappedData = nullptr;
 
     UINT mElementByteSize = 0;
-    bool mIsConstantBuffer = false;
 };

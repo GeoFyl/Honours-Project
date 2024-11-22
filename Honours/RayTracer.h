@@ -10,7 +10,7 @@ namespace GlobalRTRootSignatureParams {
         OutputViewSlot = 0,
         AccelerationStructureSlot,
         ConstantBufferSlot,
-        //ParticlePositionsBufferSlot,
+        ParticlePositionsBufferSlot,
         Count
     };
 }

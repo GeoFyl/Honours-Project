@@ -161,6 +161,7 @@
     <ClCompile Include="DeviceResources.cpp" />
     <ClCompile Include="FPCamera.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="HonoursApplication.cpp" />
     <ClCompile Include="imGUI\imgui.cpp">
@@ -193,6 +194,7 @@
     </ClCompile>
     <ClCompile Include="Input.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="RayTracer.cpp" />

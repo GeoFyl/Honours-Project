@@ -34,11 +34,11 @@ ComPtr<ID3D12Resource> Utilities::CreateDefaultBuffer(ID3D12Device* device, ID3D
 	data_desc.SlicePitch = data_desc.RowPitch;
 
 	// Schedule copy - must keep upload buffer alive till copy has been executed!
-	command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(default_buffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST));
+	command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(default_buffer.Get(), initial_state, D3D12_RESOURCE_STATE_COPY_DEST));
 
 	UpdateSubresources<1>(command_list, default_buffer.Get(), upload_buffer.Get(), 0, 0, 1, &data_desc);
 
-	command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(default_buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ));
+	command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(default_buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, initial_state));
 
 	return default_buffer;
 }

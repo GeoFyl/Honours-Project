@@ -42,7 +42,7 @@ void RayTracer::RayTracing()
     commandList->SetDescriptorHeaps(1, &heap);
     commandList->SetComputeRootDescriptorTable(GlobalRTRootSignatureParams::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
     commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::AccelerationStructureSlot, m_topLevelAccelerationStructure->GetGPUVirtualAddress());
-    //commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::ParticlePositionsBufferSlot, computer_->GetOutputBuffer()->GetGPUVirtualAddress());
+    commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::ParticlePositionsBufferSlot, computer_->GetOutputBuffer()->GetGPUVirtualAddress());
     commandList->SetComputeRootConstantBufferView(GlobalRTRootSignatureParams::ConstantBufferSlot, application_->GetRaytracingCB()->GetGPUVirtualAddress());
 
     // Since each shader table has only one shader record, the stride is same as the size.
@@ -60,6 +60,8 @@ void RayTracer::RayTracing()
     dispatchDesc.Depth = 1;
     commandList->SetPipelineState1(rt_state_object_.Get());
     commandList->DispatchRays(&dispatchDesc);
+
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(computer_->GetOutputBuffer(),D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 }
 
 void RayTracer::CheckRayTracingSupport(ID3D12Device5* device)
@@ -81,7 +83,7 @@ void RayTracer::CreateRootSignatures()
         CD3DX12_ROOT_PARAMETER rootParameters[GlobalRTRootSignatureParams::Count];
         rootParameters[GlobalRTRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &UAVDescriptor);
         rootParameters[GlobalRTRootSignatureParams::AccelerationStructureSlot].InitAsShaderResourceView(0);
-       // rootParameters[GlobalRTRootSignatureParams::ParticlePositionsBufferSlot].InitAsShaderResourceView(1);
+        rootParameters[GlobalRTRootSignatureParams::ParticlePositionsBufferSlot].InitAsShaderResourceView(1);
         rootParameters[GlobalRTRootSignatureParams::ConstantBufferSlot].InitAsConstantBufferView(0);
         CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
         SerializeAndCreateRaytracingRootSignature(globalRootSignatureDesc, &rt_global_root_signature_);

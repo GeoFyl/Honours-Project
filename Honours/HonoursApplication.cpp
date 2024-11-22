@@ -57,8 +57,7 @@ void HonoursApplication::OnInit()
     //camera_.setRotation(0, -30, 0);
     LoadPipeline();
    // LoadAssets();
-    // Create constant buffers
-    ray_tracing_cb_ = std::make_unique<UploadBuffer<RayTracingCB>>(device_resources_->GetD3DDevice(), 1, true);
+
     InitGUI();
     timer_.Start();
 }
@@ -150,7 +149,7 @@ void HonoursApplication::LoadPipeline()
         ThrowIfFailed(device_resources_->GetD3DDevice()->CreateDescriptorHeap(&srv_heap_desc, IID_PPV_ARGS(&descriptor_heap_)));
 
         // Create computer
-       // computer_ = std::make_unique<Computer>(device_resources_.get(), this);
+        computer_ = std::make_unique<Computer>(device_resources_.get(), this);
 
     // Create ray tracer
         ray_tracer_ = std::make_unique<RayTracer>(device_resources_.get(), this, computer_.get());
@@ -169,6 +168,11 @@ void HonoursApplication::LoadPipeline()
     //        ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocators[n])));
     //    }
     //}
+
+        // Create constant buffers
+        ray_tracing_cb_ = std::make_unique<UploadBuffer<RayTracingCB>>(device_resources_->GetD3DDevice(), 1, true);
+
+        compute_cb_ = std::make_unique<UploadBuffer<ComputeCB>>(device_resources_->GetD3DDevice(), 1, true);
 }
 
 void HonoursApplication::InitGUI()
@@ -242,7 +246,7 @@ void HonoursApplication::LoadAssets()
     // Create meshes
     //triangle_ = std::make_unique<TriangleMesh>(m_device.Get(), m_commandList.Get());
     device_resources_->GetCommandList()->Reset(device_resources_->GetCommandAllocator(), m_pipelineState.Get());
-    cube_ = std::make_unique<CubeMesh>(device_resources_->GetD3DDevice(), device_resources_->GetCommandList());
+    //cube_ = std::make_unique<CubeMesh>(device_resources_->GetD3DDevice(), device_resources_->GetCommandList());
 
     // Execute command list and wait until assets have been uploaded to the GPU.
     device_resources_->ExecuteCommandList();
@@ -271,7 +275,7 @@ void HonoursApplication::LoadAssets()
 
         // Release mesh upload heaps
         //triangle_->ReleaseUploaders();
-        cube_->ReleaseUploaders();
+        //cube_->ReleaseUploaders();
     //}
 }
 
@@ -280,16 +284,23 @@ void HonoursApplication::OnUpdate()
 {
     timer_.Update();
 
-    if (camera_->move(timer_.GetDeltaTime())) {
-        RayTracingCB buff;
-        buff.camera_pos_ = camera_->getPosition();
-        buff.view_proj_ = XMMatrixMultiply(camera_->getViewMatrix(), projection_matrix_);
-        buff.inv_view_proj_ = XMMatrixTranspose(XMMatrixInverse(nullptr, buff.view_proj_));
+    camera_->move(timer_.GetDeltaTime());
 
-        buff.view_proj_ = XMMatrixTranspose(buff.view_proj_);
-     
-        ray_tracing_cb_->CopyData(0, buff);
-    }
+    // Update constant buffers
+    RayTracingCB buff;
+    buff.camera_pos_ = camera_->getPosition();
+    buff.view_proj_ = XMMatrixMultiply(camera_->getViewMatrix(), projection_matrix_);
+    buff.inv_view_proj_ = XMMatrixTranspose(XMMatrixInverse(nullptr, buff.view_proj_));
+    buff.view_proj_ = XMMatrixTranspose(buff.view_proj_);
+
+    if (visualize_particles_) buff.rendering_flags_ |= RENDERING_FLAG_VISUALIZE_PARTICLES;
+    else buff.rendering_flags_ = 0;
+        
+    ray_tracing_cb_->CopyData(0, buff);
+    
+    ComputeCB compute_buffer_data;
+    compute_buffer_data.time_ = timer_.GetElapsedTime();
+    compute_cb_->CopyData(0, compute_buffer_data);
 }
 
 // Render the scene.
@@ -317,7 +328,7 @@ void HonoursApplication::OnRender()
     // Record all the commands we need to render the scene into the command list.
     //PopulateCommandList();
 
-    //computer_->Compute();
+    computer_->Compute();
 
     ray_tracer_->RayTracing();
     CopyRaytracingOutputToBackbuffer();
@@ -370,8 +381,8 @@ void HonoursApplication::PopulateCommandList()
 
     // Set root views to the ones for current object and draw
     resources_->SetRootViews(command_list);
-    cube_->SendData(command_list);
-    cube_->Draw(command_list);
+    //cube_->SendData(command_list);
+    //cube_->Draw(command_list);
 
     // Record commands for drawing GUI
     DrawGUI();
@@ -423,6 +434,8 @@ void HonoursApplication::DrawGUI()
     //ImGui::ShowDemoWindow();
 
     ImGui::Text("FPS: %.2f", timer_.GetCurrentFPS());
+
+    ImGui::Checkbox("Visualize particles", &visualize_particles_);
 
     ImGui::Render();
     ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), device_resources_->GetCommandList());

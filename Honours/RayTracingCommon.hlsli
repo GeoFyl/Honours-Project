@@ -5,6 +5,12 @@
 #define MAX_SPHERE_TRACING_STEPS 512
 #define MAX_SPHERE_TRACING_THRESHOLD 0.001f
 
+#define NUM_PARTICLES 50
+
+// Rendering flags
+#define RENDERING_FLAG_NONE 0
+#define RENDERING_FLAG_VISUALIZE_PARTICLES 1
+
 struct Ray
 {
     float3 origin_;
@@ -26,12 +32,14 @@ struct RayTracingCB
     float4x4 view_proj_;
     float4x4 inv_view_proj_;
     float3 camera_pos_;
+    uint rendering_flags_;
 };
 
 struct ParticlePosition
 {
     float3 position_;
     float speed;
+    float start_y;
 };
 
 RaytracingAccelerationStructure scene_ : register(t0);

@@ -80,4 +80,27 @@ bool RayAABBIntersectionTest(Ray ray, float3 aabb[2], out float tmin, out float 
     return tmax > tmin && tmax >= RayTMin() && tmin <= RayTCurrent();
 }
 
+bool RenderParticlesVisualized()
+{
+    [unroll]
+    for (int x = 0; x < NUM_PARTICLES; x++)
+    {
+        float2 xy = DispatchRaysIndex().xy + 0.5f; // center in the middle of the pixel.
+        //float2 screenPos = xy / DispatchRaysDimensions().xy * 2.0 - 1.0;
+        float2 screenPos = xy / DispatchRaysDimensions().xy * 2.0 - 1.0;
+
+        // Invert Y for DirectX-style coordinates.
+        screenPos.y = -screenPos.y;
+        
+        float4 particleScreenpos = mul(float4(particle_positions_[x].position_, 1), constant_buffer_.view_proj_);
+        particleScreenpos.xyz /= particleScreenpos.w;
+        
+        if (length(particleScreenpos.xy - screenPos) < 0.01)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 #endif
