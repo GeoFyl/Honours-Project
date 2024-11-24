@@ -1,8 +1,8 @@
 #pragma once
 #include <DirectXMath.h>
 
-#define NUM_PARTICLES 50
-#define TEXTURE_RESOLUTION 256
+#define NUM_PARTICLES 125 // Also in ComputeCommon.hlsli, RayTracingCommon.hlsli
+#define TEXTURE_RESOLUTION 256 // Also in ComputeCommon.hlsli
 
 using namespace DirectX;
 

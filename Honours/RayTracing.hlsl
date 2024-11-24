@@ -32,6 +32,7 @@ void IntersectionShader()
             RayIntersectionAttributes attributes;
             ReportHit(1, 0, attributes);            
         }
+        return;
     }
     else
     {
@@ -51,15 +52,25 @@ void IntersectionShader()
             while (i++ < MAX_SPHERE_TRACING_STEPS && t_min <= t_max)
             {
                 float3 position = ray.origin_ + max(t_min, 0) * ray.direction_;
+                float distance;
                 
-                //float distance = GetAnalyticalSignedDistance(position);
-                float distance = sdf_texture_.SampleLevel(sampler_, position, 0);
+                if (constant_buffer_.rendering_flags_ & RENDERING_FLAG_ANALYTICAL)
+                {
+                    // Find distance analytically
+                    distance = GetAnalyticalSignedDistance(position);
+                }
+                else
+                {
+                    // Sample the distance from the SDF texture
+                    distance = sdf_texture_.SampleLevel(sampler_, position, 0);                    
+                }
                 
                 // Has the ray intersected the primitive? 
                 if (distance <= MAX_SPHERE_TRACING_THRESHOLD)
                 {
                     RayIntersectionAttributes attributes;
                     ReportHit(max(t_min, RayTMin()), 0, attributes);
+                    return;
                 }
 
                 // Since distance is the minimum distance to the primitive, 

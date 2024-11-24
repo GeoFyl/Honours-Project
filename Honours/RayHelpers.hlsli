@@ -82,11 +82,11 @@ bool RayAABBIntersectionTest(Ray ray, float3 aabb[2], out float tmin, out float 
 
 bool RenderParticlesVisualized()
 {
+    float aspect_ratio = (float)DispatchRaysDimensions().x / (float)DispatchRaysDimensions().y;    
+    
     [unroll]
     for (int x = 0; x < NUM_PARTICLES; x++)
     {
-        float aspect_ratio = (float)DispatchRaysDimensions().x / (float)DispatchRaysDimensions().y;
-        
         float2 xy = DispatchRaysIndex().xy + 0.5f; // center in the middle of the pixel.
         float2 screenPos = xy / DispatchRaysDimensions().xy * 2.0 - 1.0;
 

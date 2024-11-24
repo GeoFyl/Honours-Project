@@ -3,13 +3,14 @@
 
 #define MAX_RECURSION_DEPTH 1 // Primary rays
 #define MAX_SPHERE_TRACING_STEPS 512
-#define MAX_SPHERE_TRACING_THRESHOLD 0.001f
+#define MAX_SPHERE_TRACING_THRESHOLD 0.01f
 
-#define NUM_PARTICLES 50
+#define NUM_PARTICLES 125 // Also in ComputeStructs.h, ComputeCommon.hlsli
 
 // Rendering flags
 #define RENDERING_FLAG_NONE 0
-#define RENDERING_FLAG_VISUALIZE_PARTICLES 1
+#define RENDERING_FLAG_VISUALIZE_PARTICLES 1 << 0
+#define RENDERING_FLAG_ANALYTICAL 1 << 1
 
 struct Ray
 {

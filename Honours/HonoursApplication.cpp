@@ -202,14 +202,16 @@ void HonoursApplication::OnUpdate()
     buff.inv_view_proj_ = XMMatrixTranspose(XMMatrixInverse(nullptr, buff.view_proj_));
     buff.view_proj_ = XMMatrixTranspose(buff.view_proj_);
 
-    if (visualize_particles_) buff.rendering_flags_ |= RENDERING_FLAG_VISUALIZE_PARTICLES;
-    else buff.rendering_flags_ = 0;
-        
+    if (debug_.visualize_particles_) buff.rendering_flags_ |= RENDERING_FLAG_VISUALIZE_PARTICLES;
+    if (debug_.render_analytical_) buff.rendering_flags_ |= RENDERING_FLAG_ANALYTICAL;
+
     ray_tracing_cb_->CopyData(0, buff);
-    
-    ComputeCB compute_buffer_data;
-    compute_buffer_data.time_ = timer_.GetElapsedTime();
-    compute_cb_->CopyData(0, compute_buffer_data);
+
+    if (!pause_positions_) {
+        ComputeCB compute_buffer_data;
+        compute_buffer_data.time_ = timer_.GetElapsedTime();
+        compute_cb_->CopyData(0, compute_buffer_data);
+    }
 }
 
 // Render the scene.
@@ -237,8 +239,8 @@ void HonoursApplication::OnRender()
     // Record all the commands we need to render the scene into the command list.
     //PopulateCommandList();
 
-    computer_->ComputePostitions();
-    computer_->ComputeSDFTexture();
+    if (!pause_positions_) computer_->ComputePostitions();
+    if (!(debug_.render_analytical_ || debug_.visualize_particles_)) computer_->ComputeSDFTexture();
 
     ray_tracer_->RayTracing();
     CopyRaytracingOutputToBackbuffer();
@@ -345,7 +347,9 @@ void HonoursApplication::DrawGUI()
 
     ImGui::Text("FPS: %.2f", timer_.GetCurrentFPS());
 
-    ImGui::Checkbox("Visualize particles", &visualize_particles_);
+    ImGui::Checkbox("Analytical distances", &debug_.render_analytical_);
+    ImGui::Checkbox("Visualize particles", &debug_.visualize_particles_);
+    ImGui::Checkbox("Freeze particles", &pause_positions_);
 
     ImGui::Render();
     ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), device_resources_->GetCommandList());

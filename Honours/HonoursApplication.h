@@ -32,6 +32,11 @@ using namespace DirectX;
 // An example of this can be found in the class method: OnDestroy().
 using Microsoft::WRL::ComPtr;
 
+struct DebugValues {
+    bool visualize_particles_ = false;
+    bool render_analytical_ = false; // If the SDF should be calculated analytically for each ray (without the texture)
+};
+
 class HonoursApplication : public DXSample
 {
 public:
@@ -46,6 +51,8 @@ public:
 
     inline ID3D12Resource* GetComputeCB() { return compute_cb_->Resource(); }
     inline ID3D12Resource* GetRaytracingCB() { return ray_tracing_cb_->Resource(); }
+
+    inline DebugValues& GetDebugValues() { return debug_; }
 
     // IDeviceNotify
     virtual void OnDeviceLost() override;
@@ -92,7 +99,8 @@ private:
     std::unique_ptr<UploadBuffer<RayTracingCB>> ray_tracing_cb_ = nullptr;
 
     // Debug
-    bool visualize_particles_ = false;
+    DebugValues debug_;
+    bool pause_positions_ = false;
 
     // Scene Resources
     Input input_;

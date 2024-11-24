@@ -125,6 +125,7 @@ void Computer::CreateBuffers()
     tex_creation_threadgroups_ = XMUINT3(std::ceil(TEXTURE_RESOLUTION / 32.f), std::ceil(TEXTURE_RESOLUTION / 32.f), TEXTURE_RESOLUTION);
 
     ParticlePosition positions[NUM_PARTICLES];
+
     for (int i = 0; i < NUM_PARTICLES; i++) {
         positions[i].position_.x = ((float)(rand() % 10) + 0.5f) / 10.f;
         positions[i].position_.y = ((float)(rand() % 10) + 0.5f) / 10.f;

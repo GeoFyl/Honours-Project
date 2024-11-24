@@ -63,7 +63,9 @@ void RayTracer::RayTracing()
     commandList->DispatchRays(&dispatchDesc);
 
     commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(computer_->GetPositionsBuffer(),D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(computer_->GetSDFTexture(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+    if (!(application_->GetDebugValues().render_analytical_ || application_->GetDebugValues().visualize_particles_)) {
+        commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(computer_->GetSDFTexture(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+    }
 }
 
 void RayTracer::CheckRayTracingSupport(ID3D12Device5* device)
