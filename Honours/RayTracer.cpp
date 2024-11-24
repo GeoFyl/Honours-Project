@@ -41,8 +41,9 @@ void RayTracer::RayTracing()
     ID3D12DescriptorHeap* heap = application_->GetDescriptorHeap();
     commandList->SetDescriptorHeaps(1, &heap);
     commandList->SetComputeRootDescriptorTable(GlobalRTRootSignatureParams::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
+    commandList->SetComputeRootDescriptorTable(GlobalRTRootSignatureParams::SDFTextureSlot, computer_->GetSDFTextureHandle());
     commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::AccelerationStructureSlot, m_topLevelAccelerationStructure->GetGPUVirtualAddress());
-    commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::ParticlePositionsBufferSlot, computer_->GetOutputBuffer()->GetGPUVirtualAddress());
+    commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::ParticlePositionsBufferSlot, computer_->GetPositionsBuffer()->GetGPUVirtualAddress());
     commandList->SetComputeRootConstantBufferView(GlobalRTRootSignatureParams::ConstantBufferSlot, application_->GetRaytracingCB()->GetGPUVirtualAddress());
 
     // Since each shader table has only one shader record, the stride is same as the size.
@@ -61,7 +62,8 @@ void RayTracer::RayTracing()
     commandList->SetPipelineState1(rt_state_object_.Get());
     commandList->DispatchRays(&dispatchDesc);
 
-    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(computer_->GetOutputBuffer(),D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(computer_->GetPositionsBuffer(),D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(computer_->GetSDFTexture(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 }
 
 void RayTracer::CheckRayTracingSupport(ID3D12Device5* device)
@@ -77,27 +79,29 @@ void RayTracer::CreateRootSignatures()
 {
     // Global Root Signature
     // This is a root signature that is shared across all raytracing shaders invoked during a DispatchRays() call.
-    {
-        CD3DX12_DESCRIPTOR_RANGE UAVDescriptor;
-        UAVDescriptor.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
-        CD3DX12_ROOT_PARAMETER rootParameters[GlobalRTRootSignatureParams::Count];
-        rootParameters[GlobalRTRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &UAVDescriptor);
-        rootParameters[GlobalRTRootSignatureParams::AccelerationStructureSlot].InitAsShaderResourceView(0);
-        rootParameters[GlobalRTRootSignatureParams::ParticlePositionsBufferSlot].InitAsShaderResourceView(1);
-        rootParameters[GlobalRTRootSignatureParams::ConstantBufferSlot].InitAsConstantBufferView(0);
-        CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
-        SerializeAndCreateRaytracingRootSignature(globalRootSignatureDesc, &rt_global_root_signature_);
-    }
 
-    // Local Root Signature
-    // This is a root signature that enables a shader to have unique arguments that come from shader tables.
-    /*{
-        CD3DX12_ROOT_PARAMETER rootParameters[LocalRootSignatureParams::Count];
-        rootParameters[LocalRootSignatureParams::ViewportConstantSlot].InitAsConstants(SizeOfInUint32(m_rayGenCB), 0, 0);
-        CD3DX12_ROOT_SIGNATURE_DESC localRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
-        localRootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE;
-        SerializeAndCreateRaytracingRootSignature(localRootSignatureDesc, &rt_local_root_signature_);
-    }*/
+    // (u)
+    CD3DX12_DESCRIPTOR_RANGE UAVDescriptor;
+    UAVDescriptor.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
+    CD3DX12_ROOT_PARAMETER rootParameters[GlobalRTRootSignatureParams::Count];
+    rootParameters[GlobalRTRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &UAVDescriptor);
+
+    // (t)
+    rootParameters[GlobalRTRootSignatureParams::AccelerationStructureSlot].InitAsShaderResourceView(0);
+    rootParameters[GlobalRTRootSignatureParams::ParticlePositionsBufferSlot].InitAsShaderResourceView(1);
+    CD3DX12_DESCRIPTOR_RANGE tex_descriptor;
+    tex_descriptor.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
+    rootParameters[GlobalRTRootSignatureParams::SDFTextureSlot].InitAsDescriptorTable(1, &tex_descriptor);
+
+    // (b)
+    rootParameters[GlobalRTRootSignatureParams::ConstantBufferSlot].InitAsConstantBufferView(0);
+
+    // Sampler
+    CD3DX12_STATIC_SAMPLER_DESC sampler(0, D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
+
+    CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters, 1, &sampler);
+    SerializeAndCreateRaytracingRootSignature(globalRootSignatureDesc, &rt_global_root_signature_);
+
 }
 
 void RayTracer::SerializeAndCreateRaytracingRootSignature(D3D12_ROOT_SIGNATURE_DESC& desc, ComPtr<ID3D12RootSignature>* rootSig)

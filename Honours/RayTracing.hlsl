@@ -50,13 +50,14 @@ void IntersectionShader()
             uint i = 0;
             while (i++ < MAX_SPHERE_TRACING_STEPS && t_min <= t_max)
             {
-                float3 position = ray.origin_ + t_min * ray.direction_;
-                float distance = GetAnalyticalSignedDistance(position);
-
+                float3 position = ray.origin_ + max(t_min, 0) * ray.direction_;
+                
+                //float distance = GetAnalyticalSignedDistance(position);
+                float distance = sdf_texture_.SampleLevel(sampler_, position, 0);
+                
                 // Has the ray intersected the primitive? 
                 if (distance <= MAX_SPHERE_TRACING_THRESHOLD)
                 {
-                    //float3 hitSurfaceNormal = sdCalculateNormal(position, sdPrimitive);
                     RayIntersectionAttributes attributes;
                     ReportHit(max(t_min, RayTMin()), 0, attributes);
                 }

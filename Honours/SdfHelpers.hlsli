@@ -1,7 +1,13 @@
 #ifndef SDF_HELPERS_HLSL
 #define SDF_HELPERS_HLSL
 
+#ifdef RAYTRACING_HLSL
 #include "RayTracingCommon.hlsli"
+#endif
+#ifdef COMPUTE_TEX_HLSL
+StructuredBuffer<ParticlePosition> particle_positions_ : register(t0);
+#endif
+
 
 // quadratic polynomial smooth minimum
 // (Evans, 2015, pp. 30) https://advances.realtimerendering.com/s2015/AlexEvans_SIGGRAPH-2015-sml.pdf 

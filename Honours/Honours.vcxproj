@@ -242,7 +242,12 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="Compute.hlsl">
+    <CustomBuild Include="ComputePositions.hlsl">
+      <FileType>Document</FileType>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="ComputeTexture.hlsl">
       <FileType>Document</FileType>
     </CustomBuild>
   </ItemGroup>

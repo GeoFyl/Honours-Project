@@ -85,17 +85,22 @@ bool RenderParticlesVisualized()
     [unroll]
     for (int x = 0; x < NUM_PARTICLES; x++)
     {
+        float aspect_ratio = (float)DispatchRaysDimensions().x / (float)DispatchRaysDimensions().y;
+        
         float2 xy = DispatchRaysIndex().xy + 0.5f; // center in the middle of the pixel.
-        //float2 screenPos = xy / DispatchRaysDimensions().xy * 2.0 - 1.0;
         float2 screenPos = xy / DispatchRaysDimensions().xy * 2.0 - 1.0;
 
-        // Invert Y for DirectX-style coordinates.
+        // Invert Y for DirectX-style coordinates and adjust for aspect ratio
         screenPos.y = -screenPos.y;
+        screenPos.x *= aspect_ratio;
         
+        // Project particle from world to screen space and adjust for aspect ratio
         float4 particleScreenpos = mul(float4(particle_positions_[x].position_, 1), constant_buffer_.view_proj_);
         particleScreenpos.xyz /= particleScreenpos.w;
+        particleScreenpos.x *= aspect_ratio;
         
-        if (length(particleScreenpos.xy - screenPos) < 0.01)
+        // Report hit in small radius around particle (draws circle)
+        if (length(particleScreenpos.xy - screenPos) < 0.015)
         {
             return true;
         }

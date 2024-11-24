@@ -2,6 +2,7 @@
 #include <DirectXMath.h>
 
 #define NUM_PARTICLES 50
+#define TEXTURE_RESOLUTION 256
 
 using namespace DirectX;
 

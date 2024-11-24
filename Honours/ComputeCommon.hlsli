@@ -2,6 +2,7 @@
 #define COMPUTE_COMMON_HLSL
 
 #define NUM_PARTICLES 50
+#define TEXTURE_RESOLUTION 256
 
 struct ParticlePosition
 {
@@ -14,8 +15,5 @@ struct ComputeCB
 {
     float time_;
 };
-
-RWStructuredBuffer<ParticlePosition> particle_positions_ : register(u0);
-ConstantBuffer<ComputeCB> constant_buffer_ : register(b0);
 
 #endif

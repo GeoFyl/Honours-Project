@@ -225,10 +225,13 @@
     <CustomBuild Include="SdfHelpers.hlsli">
       <Filter>Assets\Shaders\RayTracing</Filter>
     </CustomBuild>
-    <CustomBuild Include="Compute.hlsl">
+    <CustomBuild Include="ComputePositions.hlsl">
       <Filter>Assets\Shaders\Compute</Filter>
     </CustomBuild>
     <CustomBuild Include="ComputeCommon.hlsli">
+      <Filter>Assets\Shaders\Compute</Filter>
+    </CustomBuild>
+    <CustomBuild Include="ComputeTexture.hlsl">
       <Filter>Assets\Shaders\Compute</Filter>
     </CustomBuild>
   </ItemGroup>
