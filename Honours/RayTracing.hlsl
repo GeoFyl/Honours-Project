@@ -56,7 +56,7 @@ void IntersectionShader()
                 float distance = GetDistance(position);
 
                 // Has the ray intersected the primitive? 
-                if (distance <= MAX_SPHERE_TRACING_THRESHOLD)
+                if (distance <= SPHERE_TRACING_THRESHOLD)
                 {
                     RayIntersectionAttributes attributes; 
                     
@@ -82,14 +82,21 @@ void ClosestHitShader(inout RayPayload payload, in RayIntersectionAttributes att
     if (constant_buffer_.rendering_flags_ & RENDERING_FLAG_VISUALIZE_PARTICLES)
     {
         payload.colour_ = float4(0.306, 0.941, 0.933, 1);
+        return;
+    }    
+    
+    else if (constant_buffer_.rendering_flags_ & RENDERING_FLAG_NORMALS)
+    {
+        payload.colour_ = float4(attributes.normal_, 1.f);
+        return;        
     }
+
     else
     {
         float3 position = WorldRayOrigin() + RayTCurrent() * WorldRayDirection();
         float4 specular = float4(0.9f, 0.9f, 0.9f, 1);
-        payload.colour_ = float4(0.306, 0.941, 0.933, 1) * CalculateLighting(attributes.normal_, constant_buffer_.camera_pos_, position, specular) + specular;        
+        payload.colour_ = float4(0.306, 0.941, 0.933, 1) * CalculateLighting(attributes.normal_, constant_buffer_.camera_pos_, position, specular) + specular;              
     }
-
 }
 
 

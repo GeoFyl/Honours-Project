@@ -3,15 +3,16 @@
 
 #define MAX_RECURSION_DEPTH 1 // Primary rays
 #define MAX_SPHERE_TRACING_STEPS 512
-#define MAX_SPHERE_TRACING_THRESHOLD 0.01f
+#define SPHERE_TRACING_THRESHOLD 0.001f
 
 #define NUM_PARTICLES 125 // Also in ComputeStructs.h, ComputeCommon.hlsli
-#define TEXTURE_RESOLUTION 256 // Also in ComputeCommon.hlsli
+#define TEXTURE_RESOLUTION 256 // Also in ComputeStructs.h, ComputeCommon.hlsli
 
 // Rendering flags
-#define RENDERING_FLAG_NONE 0
-#define RENDERING_FLAG_VISUALIZE_PARTICLES 1 << 0
-#define RENDERING_FLAG_ANALYTICAL 1 << 1
+#define RENDERING_FLAG_NONE                     0
+#define RENDERING_FLAG_VISUALIZE_PARTICLES      1 << 0
+#define RENDERING_FLAG_ANALYTICAL               1 << 1
+#define RENDERING_FLAG_NORMALS                  1 << 2
 
 struct Ray
 {
@@ -34,6 +35,7 @@ struct RayTracingCB
     float4x4 view_proj_;
     float4x4 inv_view_proj_;
     float3 camera_pos_;
+    float uvw_step_;
     uint rendering_flags_;
 };
 

@@ -68,8 +68,8 @@ float GetDistance(float3 position)
     }
 }
 
-// Tetrahedron method: https://iquilezles.org/articles/normalsSDF/
-float3 CalculateNormal(in float3 position)
+// https://iquilezles.org/articles/normalsSDF/
+float3 CalculateNormal(float3 position)
 {
     float step;
     if (constant_buffer_.rendering_flags_ & RENDERING_FLAG_ANALYTICAL)
@@ -78,15 +78,13 @@ float3 CalculateNormal(in float3 position)
     }
     else
     {
-        step = 1.f / TEXTURE_RESOLUTION;
+        step = constant_buffer_.uvw_step_;
     }
     
-    float2 e = float2(1.0, -1.0) * step;
-    return normalize(
-        e.xyy * GetDistance(position + e.xyy) +
-        e.yyx * GetDistance(position + e.yyx) +
-        e.yxy * GetDistance(position + e.yxy) +
-        e.xxx * GetDistance(position + e.xxx));
+    const float2 h = float2(step, 0);
+    return normalize(float3(GetDistance(position + h.xyy) - GetDistance(position - h.xyy),
+                            GetDistance(position + h.yxy) - GetDistance(position - h.yxy),
+                            GetDistance(position + h.yyx) - GetDistance(position - h.yyx)));
 }
 
 float CalculateLighting(float3 normal, float3 cameraPos, float3 worldPosition, inout float4 specular)

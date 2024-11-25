@@ -201,9 +201,11 @@ void HonoursApplication::OnUpdate()
     buff.view_proj_ = XMMatrixMultiply(camera_->getViewMatrix(), projection_matrix_);
     buff.inv_view_proj_ = XMMatrixTranspose(XMMatrixInverse(nullptr, buff.view_proj_));
     buff.view_proj_ = XMMatrixTranspose(buff.view_proj_);
+    buff.uvw_step_ = uvw_normals_step_;
 
     if (debug_.visualize_particles_) buff.rendering_flags_ |= RENDERING_FLAG_VISUALIZE_PARTICLES;
     if (debug_.render_analytical_) buff.rendering_flags_ |= RENDERING_FLAG_ANALYTICAL;
+    if (render_normals_) buff.rendering_flags_ |= RENDERING_FLAG_NORMALS;
 
     ray_tracing_cb_->CopyData(0, buff);
 
@@ -350,6 +352,11 @@ void HonoursApplication::DrawGUI()
     ImGui::Checkbox("Analytical distances", &debug_.render_analytical_);
     ImGui::Checkbox("Visualize particles", &debug_.visualize_particles_);
     ImGui::Checkbox("Freeze particles", &pause_positions_);
+    ImGui::Checkbox("Debug normals", &render_normals_);
+    ImGui::Text("Normals uvw step (texture):");
+    ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.9f);
+    ImGui::SliderFloat("##", &uvw_normals_step_, 0.0001f, 0.1f, "%.5f");
+    ImGui::PopItemWidth();
 
     ImGui::Render();
     ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), device_resources_->GetCommandList());

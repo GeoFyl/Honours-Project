@@ -101,6 +101,8 @@ private:
     // Debug
     DebugValues debug_;
     bool pause_positions_ = false;
+    float uvw_normals_step_ = 1.f / TEXTURE_RESOLUTION;
+    bool render_normals_ = false;
 
     // Scene Resources
     Input input_;

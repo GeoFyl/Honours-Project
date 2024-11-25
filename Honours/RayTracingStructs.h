@@ -4,9 +4,10 @@
 #define MAX_RECURSION_DEPTH 1 // Primary rays
 
 // Rendering flags
-#define RENDERING_FLAG_NONE 0
-#define RENDERING_FLAG_VISUALIZE_PARTICLES 1 << 0
-#define RENDERING_FLAG_ANALYTICAL 1 << 1
+#define RENDERING_FLAG_NONE                     0
+#define RENDERING_FLAG_VISUALIZE_PARTICLES      1 << 0
+#define RENDERING_FLAG_ANALYTICAL               1 << 1
+#define RENDERING_FLAG_NORMALS                  1 << 2
 
 using namespace DirectX;
 
@@ -24,5 +25,6 @@ struct RayTracingCB {
     XMMATRIX view_proj_;
     XMMATRIX inv_view_proj_;
 	XMFLOAT3 camera_pos_;
+    float uvw_step_;
     UINT rendering_flags_ = 0;
 };
