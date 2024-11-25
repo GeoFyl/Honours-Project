@@ -8,6 +8,9 @@
 StructuredBuffer<ParticlePosition> particle_positions_ : register(t0);
 #endif
 
+#define LIGHT_DIRECTION -1.f, -1.f, 1.f
+#define SPECULAR_POWER 50.f
+#define AMBIENT 0.5f
 
 // quadratic polynomial smooth minimum
 // (Evans, 2015, pp. 30) https://advances.realtimerendering.com/s2015/AlexEvans_SIGGRAPH-2015-sml.pdf 
@@ -48,5 +51,58 @@ float GetAnalyticalSignedDistance(float3 position)
     
     return distance;
 }
+
+#ifndef COMPUTE_TEX_HLSL
+
+float GetDistance(float3 position)
+{
+    if (constant_buffer_.rendering_flags_ & RENDERING_FLAG_ANALYTICAL)
+    {
+        // Find distance analytically
+        return GetAnalyticalSignedDistance(position);
+    }
+    else
+    {
+        // Sample the distance from the SDF texture
+        return sdf_texture_.SampleLevel(sampler_, position, 0);
+    }
+}
+
+// Tetrahedron method: https://iquilezles.org/articles/normalsSDF/
+float3 CalculateNormal(in float3 position)
+{
+    float step;
+    if (constant_buffer_.rendering_flags_ & RENDERING_FLAG_ANALYTICAL)
+    {
+        step = 0.001f;
+    }
+    else
+    {
+        step = 1.f / TEXTURE_RESOLUTION;
+    }
+    
+    float2 e = float2(1.0, -1.0) * step;
+    return normalize(
+        e.xyy * GetDistance(position + e.xyy) +
+        e.yyx * GetDistance(position + e.yyx) +
+        e.yxy * GetDistance(position + e.yxy) +
+        e.xxx * GetDistance(position + e.xxx));
+}
+
+float CalculateLighting(float3 normal, float3 cameraPos, float3 worldPosition, inout float4 specular)
+{
+    float3 lightVector = -float3(LIGHT_DIRECTION);
+    
+    float diffuse = saturate(dot(normal, lightVector));
+    
+    // Blinn-phong specular calculation
+    float3 viewVector = normalize(cameraPos - worldPosition);
+    float3 halfway = normalize(lightVector + viewVector);
+    specular *= pow(max(dot(normal, halfway), 0.0), SPECULAR_POWER);
+    
+    return diffuse + AMBIENT;
+}
+
+#endif
 
 #endif

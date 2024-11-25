@@ -52,23 +52,15 @@ void IntersectionShader()
             while (i++ < MAX_SPHERE_TRACING_STEPS && t_min <= t_max)
             {
                 float3 position = ray.origin_ + max(t_min, 0) * ray.direction_;
-                float distance;
                 
-                if (constant_buffer_.rendering_flags_ & RENDERING_FLAG_ANALYTICAL)
-                {
-                    // Find distance analytically
-                    distance = GetAnalyticalSignedDistance(position);
-                }
-                else
-                {
-                    // Sample the distance from the SDF texture
-                    distance = sdf_texture_.SampleLevel(sampler_, position, 0);                    
-                }
-                
+                float distance = GetDistance(position);
+
                 // Has the ray intersected the primitive? 
                 if (distance <= MAX_SPHERE_TRACING_THRESHOLD)
                 {
-                    RayIntersectionAttributes attributes;
+                    RayIntersectionAttributes attributes; 
+                    
+                    attributes.normal_ = CalculateNormal(position);
                     ReportHit(max(t_min, RayTMin()), 0, attributes);
                     return;
                 }
@@ -87,8 +79,16 @@ void IntersectionShader()
 [shader("closesthit")]
 void ClosestHitShader(inout RayPayload payload, in RayIntersectionAttributes attributes)
 {
-
-    payload.colour_ = (float4(0.306, 0.941, 0.933, 1) * (length(WorldRayOrigin()) - RayTCurrent() + 0.6));
+    if (constant_buffer_.rendering_flags_ & RENDERING_FLAG_VISUALIZE_PARTICLES)
+    {
+        payload.colour_ = float4(0.306, 0.941, 0.933, 1);
+    }
+    else
+    {
+        float3 position = WorldRayOrigin() + RayTCurrent() * WorldRayDirection();
+        float4 specular = float4(0.9f, 0.9f, 0.9f, 1);
+        payload.colour_ = float4(0.306, 0.941, 0.933, 1) * CalculateLighting(attributes.normal_, constant_buffer_.camera_pos_, position, specular) + specular;        
+    }
 
 }
 

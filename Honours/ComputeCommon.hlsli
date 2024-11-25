@@ -2,7 +2,7 @@
 #define COMPUTE_COMMON_HLSL
 
 #define NUM_PARTICLES 125 // Also in ComputeStructs.h, RayTracingCommon.hlsli
-#define TEXTURE_RESOLUTION 256 // Also in ComputeStructs.h
+#define TEXTURE_RESOLUTION 256 // Also in ComputeStructs.h, RayTracingCommon.hlsli
 
 struct ParticlePosition
 {

@@ -17,7 +17,7 @@ struct RayPayload
 
 struct RayIntersectionAttributes
 {
-    float example;
+    XMFLOAT3 normal_;
 };
 
 struct RayTracingCB {
