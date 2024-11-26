@@ -234,6 +234,12 @@
     <CustomBuild Include="ComputeTexture.hlsl">
       <Filter>Assets\Shaders\Compute</Filter>
     </CustomBuild>
+    <CustomBuild Include="dxcompiler.dll">
+      <Filter>Assets</Filter>
+    </CustomBuild>
+    <CustomBuild Include="dxil.dll">
+      <Filter>Assets</Filter>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

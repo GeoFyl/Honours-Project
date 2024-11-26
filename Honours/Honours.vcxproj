@@ -221,6 +221,12 @@
     <CustomBuild Include="ComputeCommon.hlsli">
       <FileType>Document</FileType>
     </CustomBuild>
+    <CustomBuild Include="dxcompiler.dll">
+      <FileType>Document</FileType>
+    </CustomBuild>
+    <CustomBuild Include="dxil.dll">
+      <FileType>Document</FileType>
+    </CustomBuild>
     <None Include="packages.config" />
     <CustomBuild Include="RayTracingCommon.hlsli">
       <FileType>Document</FileType>

@@ -34,7 +34,7 @@ using Microsoft::WRL::ComPtr;
 
 struct DebugValues {
     bool visualize_particles_ = false;
-    bool render_analytical_ = false; // If the SDF should be calculated analytically for each ray (without the texture)
+    bool render_analytical_ = true; // If the SDF should be calculated analytically for each ray (without the texture)
 };
 
 class HonoursApplication : public DXSample
@@ -87,8 +87,6 @@ private:
 
     UINT descriptors_allocated_ = 1; // 0th descriptor for ImGui
 
-
-
     // idk what to call this
     std::unique_ptr<Resources> resources_ = nullptr;
     std::unique_ptr<RayTracer> ray_tracer_ = nullptr;
@@ -101,7 +99,8 @@ private:
     // Debug
     DebugValues debug_;
     bool pause_positions_ = false;
-    float uvw_normals_step_ = 1.f / TEXTURE_RESOLUTION;
+    //float uvw_normals_step_ = 1.f / TEXTURE_RESOLUTION;
+    float uvw_normals_step_ = 0.04f;
     bool render_normals_ = false;
 
     // Scene Resources
