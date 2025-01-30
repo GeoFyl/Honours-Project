@@ -16,12 +16,12 @@ namespace GlobalRTRootSignatureParams {
     };
 }
 
-//namespace LocalRootSignatureParams {
-//    enum Value {
-//        ViewportConstantSlot = 0,
-//        Count
-//    };
-//}
+namespace LocalRootSignatureParams {
+    enum Value {
+        AABBBufferSlot = 0,
+        Count
+    };
+}
 
 using Microsoft::WRL::ComPtr;
 
@@ -56,7 +56,7 @@ private:
 
     // Root signatures
     ComPtr<ID3D12RootSignature> rt_global_root_signature_;
-    //ComPtr<ID3D12RootSignature> rt_local_root_signature_;
+    ComPtr<ID3D12RootSignature> rt_hit_local_root_signature_;
 
     // Acceleration structure
     ComPtr<ID3D12Resource> m_accelerationStructure;

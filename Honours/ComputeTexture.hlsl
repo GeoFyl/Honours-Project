@@ -4,9 +4,6 @@
 #include "ComputeCommon.hlsli"
 #include "SdfHelpers.hlsli"
 
-#define WORLD_MIN float3(0,0,0)
-#define WORLD_MAX float3(1,1,1)
-
 //StructuredBuffer<ParticlePosition> particle_positions_ : register(t0);
 RWTexture3D<snorm float> output_texture_ : register(u0);
 

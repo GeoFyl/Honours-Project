@@ -28,3 +28,9 @@ struct RayTracingCB {
     float uvw_step_;
     UINT rendering_flags_ = 0;
 };
+
+struct AABB
+{
+    XMFLOAT3 min_;
+    XMFLOAT3 max_;
+};

@@ -29,9 +29,25 @@ void Computer::ComputePostitions()
     commandList->SetComputeRootUnorderedAccessView(ComputePositionsRootSignatureParams::ParticlePositionsBufferSlot, particle_pos_buffer_->GetGPUVirtualAddress());
     commandList->SetComputeRootConstantBufferView(ComputePositionsRootSignatureParams::ConstantBufferSlot, application_->GetComputeCB()->GetGPUVirtualAddress());
 
-    commandList->Dispatch(particle_pos_manip_threadgroups_, 1, 1);
+    commandList->Dispatch(particle_threadgroups_, 1, 1);
 
     commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(particle_pos_buffer_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
+}
+
+void Computer::ComputeGrid()
+{
+    auto commandList = device_resources_->GetCommandList();
+
+    commandList->SetPipelineState(compute_grid_state_object_.Get());
+    commandList->SetComputeRootSignature(compute_grid_root_signature_.Get());
+
+    commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::ParticlePositionsBufferSlot, particle_pos_buffer_->GetGPUVirtualAddress());
+    commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::CellsSlot, cells_buffer_->GetGPUVirtualAddress());
+    commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::BlocksSlot, blocks_buffer_->GetGPUVirtualAddress());
+
+    commandList->Dispatch(particle_threadgroups_, 1, 1);
+
+    //commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(particle_pos_buffer_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
 }
 
 void Computer::ComputeSDFTexture()
@@ -61,6 +77,14 @@ void Computer::CreateRootSignatures()
     CD3DX12_ROOT_SIGNATURE_DESC pos_root_signature_desc(ARRAYSIZE(pos_root_params), pos_root_params);
     SerializeAndCreateComputeRootSignature(pos_root_signature_desc, &compute_pos_root_signature_);
     
+    // Root signature used for shader which computes the grid
+    CD3DX12_ROOT_PARAMETER grid_root_params[ComputeGridRootSignatureParams::Count];
+    grid_root_params[ComputeGridRootSignatureParams::ParticlePositionsBufferSlot].InitAsUnorderedAccessView(0);
+    grid_root_params[ComputeGridRootSignatureParams::CellsSlot].InitAsUnorderedAccessView(1);
+    grid_root_params[ComputeGridRootSignatureParams::BlocksSlot].InitAsUnorderedAccessView(2);
+    CD3DX12_ROOT_SIGNATURE_DESC grid_root_signature_desc(ARRAYSIZE(grid_root_params), grid_root_params);
+    SerializeAndCreateComputeRootSignature(grid_root_signature_desc, &compute_grid_root_signature_);
+
     // Root signature used for shader which computes SDF texture
     CD3DX12_DESCRIPTOR_RANGE uav_descriptor;
     uav_descriptor.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
@@ -103,6 +127,16 @@ void Computer::CreateComputePipelineStateObjects()
     compute_pso.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
     ThrowIfFailed(device_resources_->GetD3DDevice()->CreateComputePipelineState(&compute_pso, IID_PPV_ARGS(&compute_pos_state_object_)));
 
+    // Compute grid shader
+    if (FAILED(D3DCompileFromFile(application_->GetAssetFullPath(L"ComputeGrid.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "CSTexMain", "cs_5_1", flags, 0, &compute_shader, &error_blob))) {
+        std::string errMsg((char*)error_blob->GetBufferPointer(), error_blob->GetBufferSize());
+        throw std::exception(errMsg.c_str());
+    }
+    
+    compute_pso.pRootSignature = compute_grid_root_signature_.Get();
+    compute_pso.CS = CD3DX12_SHADER_BYTECODE(compute_shader.Get());
+    ThrowIfFailed(device_resources_->GetD3DDevice()->CreateComputePipelineState(&compute_pso, IID_PPV_ARGS(&compute_grid_state_object_)));
+
     // Compute texture shader
     if (FAILED(D3DCompileFromFile(application_->GetAssetFullPath(L"ComputeTexture.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "CSTexMain", "cs_5_1", flags, 0, &compute_shader, &error_blob))) {
         std::string errMsg((char*)error_blob->GetBufferPointer(), error_blob->GetBufferSize());
@@ -112,6 +146,8 @@ void Computer::CreateComputePipelineStateObjects()
     compute_pso.pRootSignature = compute_tex_root_signature_.Get();
     compute_pso.CS = CD3DX12_SHADER_BYTECODE(compute_shader.Get());
     ThrowIfFailed(device_resources_->GetD3DDevice()->CreateComputePipelineState(&compute_pso, IID_PPV_ARGS(&compute_tex_state_object_)));
+
+
 }
 
 void Computer::CreateBuffers()
@@ -121,9 +157,10 @@ void Computer::CreateBuffers()
     UINT descriptor_size = device_resources_->GetD3DDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
     // Calculate threadgroup sizes
-    particle_pos_manip_threadgroups_ = std::ceil(NUM_PARTICLES / 1024.f);
+    particle_threadgroups_ = std::ceil(NUM_PARTICLES / 1024.f);
     tex_creation_threadgroups_ = XMUINT3(std::ceil(TEXTURE_RESOLUTION / 32.f), std::ceil(TEXTURE_RESOLUTION / 32.f), TEXTURE_RESOLUTION);
 
+    // Particle position buffer
     ParticlePosition positions[NUM_PARTICLES];
 
     for (int i = 0; i < NUM_PARTICLES; i++) {
@@ -137,6 +174,38 @@ void Computer::CreateBuffers()
     UINT64 byte_size = NUM_PARTICLES * sizeof(ParticlePosition);
 
     particle_pos_buffer_ = Utilities::CreateDefaultBuffer(device, command_list, &positions, byte_size, particle_pos_buffer_uploader_, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+
+    // Grid buffers
+    Utilities::AllocateDefaultBuffer(device, NUM_CELLS * sizeof(Cell), cells_buffer_.GetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+    Utilities::AllocateDefaultBuffer(device, NUM_BLOCKS * sizeof(Block), blocks_buffer_.GetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+
+    //// AABB buffer
+    //AABB aabbs[8];
+    //aabbs[0].max_ = XMFLOAT3(1.f, 1.f, 1.f);
+    //aabbs[0].min_ = XMFLOAT3(0.f, 0.f, 0.f);
+
+    //aabbs[1].max_ = XMFLOAT3(2.f, 1.f, 1.f);
+    //aabbs[1].min_ = XMFLOAT3(1.f, 0.f, 0.f);
+
+    //aabbs[2].max_ = XMFLOAT3(1.f, 1.f, 2.f);
+    //aabbs[2].min_ = XMFLOAT3(0.f, 0.f, 1.f);
+
+    //aabbs[3].max_ = XMFLOAT3(2.f, 1.f, 2.f);
+    //aabbs[3].min_ = XMFLOAT3(1.f, 1.f, 1.f);
+
+    //aabbs[4].max_ = XMFLOAT3(1.f, 2.f, 1.f);
+    //aabbs[4].min_ = XMFLOAT3(0.f, 1.f, 0.f);
+
+    //aabbs[5].max_ = XMFLOAT3(2.f, 2.f, 1.f);
+    //aabbs[5].min_ = XMFLOAT3(1.f, 1.f, 0.f);
+   
+    //aabbs[6].max_ = XMFLOAT3(1.f, 2.f, 2.f);
+    //aabbs[6].min_ = XMFLOAT3(0.f, 1.f, 1.f);
+
+    //aabbs[7].max_ = XMFLOAT3(2.f, 2.f, 2.f);
+    //aabbs[7].min_ = XMFLOAT3(1.f, 1.f, 1.f);
+
+    //aabb_buffer_ = Utilities::CreateDefaultBuffer(device, command_list, &aabbs, sizeof(aabbs), aabb_buffer_uploader_, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 }
 
 void Computer::CreateTexture3D()

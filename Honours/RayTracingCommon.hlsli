@@ -46,11 +46,23 @@ struct ParticlePosition
     float start_y;
 };
 
+struct AABB
+{
+    float3 min_;
+    float3 max_;
+};
+
+
+// Global arguments
+
 RaytracingAccelerationStructure scene_ : register(t0);
 StructuredBuffer<ParticlePosition> particle_positions_ : register(t1);
 Texture3D<snorm float> sdf_texture_ : register(t2);
 RWTexture2D<float4> render_target_ : register(u0);
 ConstantBuffer<RayTracingCB> constant_buffer_ : register(b0);
 SamplerState sampler_ : register(s0);
+
+// Local arguments
+//StructuredBuffer<AABB> AABBs_ : register(t0, space1);
 
 #endif

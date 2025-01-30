@@ -79,8 +79,7 @@ void RayTracer::CheckRayTracingSupport(ID3D12Device5* device)
 
 void RayTracer::CreateRootSignatures()
 {
-    // Global Root Signature
-    // This is a root signature that is shared across all raytracing shaders invoked during a DispatchRays() call.
+    // ---- Global Root Signature ----
 
     // (u)
     CD3DX12_DESCRIPTOR_RANGE UAVDescriptor;
@@ -104,6 +103,15 @@ void RayTracer::CreateRootSignatures()
     CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters, 1, &sampler);
     SerializeAndCreateRaytracingRootSignature(globalRootSignatureDesc, &rt_global_root_signature_);
 
+
+    // ---- Hit group local root signature ----
+
+    // (t)
+    CD3DX12_ROOT_PARAMETER local_root_params[LocalRootSignatureParams::Count];
+    local_root_params[LocalRootSignatureParams::AABBBufferSlot].InitAsShaderResourceView(0, 1);
+    CD3DX12_ROOT_SIGNATURE_DESC localRootSignatureDesc(ARRAYSIZE(local_root_params), local_root_params, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
+    SerializeAndCreateRaytracingRootSignature(localRootSignatureDesc, &rt_hit_local_root_signature_);
+
 }
 
 void RayTracer::SerializeAndCreateRaytracingRootSignature(D3D12_ROOT_SIGNATURE_DESC& desc, ComPtr<ID3D12RootSignature>* rootSig)
@@ -120,13 +128,7 @@ void RayTracer::SerializeAndCreateRaytracingRootSignature(D3D12_ROOT_SIGNATURE_D
 // with all configuration options resolved, such as local signatures and other state.
 void RayTracer::CreateRaytracingPipelineStateObject()
 {
-    // Create 7 subobjects that combine into a RTPSO:
-    // 1 - DXIL library
-    // 1 - Triangle hit group
-    // 1 - Shader config
-    // 2 - Local root signature and association - (not currently).
-    // 1 - Global root signature
-    // 1 - Pipeline config
+
     CD3DX12_STATE_OBJECT_DESC raytracingPipeline{ D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE };
 
     // DXIL library
@@ -149,6 +151,14 @@ void RayTracer::CreateRaytracingPipelineStateObject()
     hitGroup->SetClosestHitShaderImport(closest_hit_shader_name_);
     hitGroup->SetHitGroupExport(hit_group_name_);
     hitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_PROCEDURAL_PRIMITIVE);
+
+    // Create and associate the local root signature with the hit group
+    const auto localRootSig = raytracingPipeline.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
+    localRootSig->SetRootSignature(rt_hit_local_root_signature_.Get());
+
+    const auto localRootSigAssociation = raytracingPipeline.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
+    localRootSigAssociation->SetSubobjectToAssociate(*localRootSig);
+    localRootSigAssociation->AddExport(hit_group_name_);
 
     // Shader config
     // Defines the maximum sizes in bytes for the ray payload and attribute structure.
@@ -178,27 +188,76 @@ void RayTracer::BuildAccelerationStructures()
     ID3D12Device5* device = device_resources_->GetD3DDevice();
     ID3D12GraphicsCommandList4* command_list = device_resources_->GetCommandList();
 
-    // Create and upload the AABB
-    D3D12_RAYTRACING_AABB aabb;
-    aabb.MaxX = 1.f;
-    aabb.MaxY = 1.f;
-    aabb.MaxZ = 1.f;
-    aabb.MinX = 0.f;
-    aabb.MinY = 0.f;
-    aabb.MinZ = 0.f;
+    // Create and upload the AABBs
+    D3D12_RAYTRACING_AABB aabb[8];
+    aabb[0].MaxX = 1.f;
+    aabb[0].MaxY = 1.f;
+    aabb[0].MaxZ = 1.f;
+    aabb[0].MinX = 0.f;
+    aabb[0].MinY = 0.f;
+    aabb[0].MinZ = 0.f;
 
-    aabb_buffer_ = Utilities::CreateDefaultBuffer(device, command_list, &aabb, /*(size of aabb array * )*/ sizeof(D3D12_RAYTRACING_AABB), aabb_buffer_uploader_);
+    aabb[1].MaxX = 2.f;
+    aabb[1].MaxY = 1.f;
+    aabb[1].MaxZ = 1.f;
+    aabb[1].MinX = 1.f;
+    aabb[1].MinY = 0.f;
+    aabb[1].MinZ = 0.f;
+
+    aabb[2].MaxX = 1.f;
+    aabb[2].MaxY = 1.f;
+    aabb[2].MaxZ = 2.f;
+    aabb[2].MinX = 0.f;
+    aabb[2].MinY = 0.f;
+    aabb[2].MinZ = 1.f;
+
+    aabb[3].MaxX = 2.f;
+    aabb[3].MaxY = 1.f;
+    aabb[3].MaxZ = 2.f;
+    aabb[3].MinX = 1.f;
+    aabb[3].MinY = 1.f;
+    aabb[3].MinZ = 1.f;
+
+    aabb[4].MaxX = 1.f;
+    aabb[4].MaxY = 2.f;
+    aabb[4].MaxZ = 1.f;
+    aabb[4].MinX = 0.f;
+    aabb[4].MinY = 1.f;
+    aabb[4].MinZ = 0.f;
+
+    aabb[5].MaxX = 2.f;
+    aabb[5].MaxY = 2.f;
+    aabb[5].MaxZ = 1.f;
+    aabb[5].MinX = 1.f;
+    aabb[5].MinY = 1.f;
+    aabb[5].MinZ = 0.f;
+
+    aabb[6].MaxX = 1.f;
+    aabb[6].MaxY = 2.f;
+    aabb[6].MaxZ = 2.f;
+    aabb[6].MinX = 0.f;
+    aabb[6].MinY = 1.f;
+    aabb[6].MinZ = 1.f;
+
+    aabb[7].MaxX = 2.f;
+    aabb[7].MaxY = 2.f;
+    aabb[7].MaxZ = 2.f;
+    aabb[7].MinX = 1.f;
+    aabb[7].MinY = 1.f;
+    aabb[7].MinZ = 1.f;
+
+    aabb_buffer_ = Utilities::CreateDefaultBuffer(device, command_list, &aabb, /*(size of aabb array * )*/ sizeof(aabb), aabb_buffer_uploader_);
 
     // Build geometry description
     D3D12_RAYTRACING_GEOMETRY_DESC geometryDesc = {};
     geometryDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS;
     geometryDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
-    geometryDesc.AABBs.AABBCount = 1;
+    geometryDesc.AABBs.AABBCount = 8;
     geometryDesc.AABBs.AABBs.StartAddress = aabb_buffer_->GetGPUVirtualAddress();
     geometryDesc.AABBs.AABBs.StrideInBytes = sizeof(D3D12_RAYTRACING_AABB);
 
     // Get required sizes for an acceleration structure.
-    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE; // will change this later
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS topLevelInputs = {};
     topLevelInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
     topLevelInputs.Flags = buildFlags;

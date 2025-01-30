@@ -328,20 +328,6 @@ void HonoursApplication::CopyRaytracingOutputToBackbuffer()
     commandList->ResourceBarrier(ARRAYSIZE(postCopyBarriers), postCopyBarriers);
 }
 
-// Wait for pending GPU work to complete.
-//void HonoursApplication::WaitForGpu()
-//{
-//    // Schedule a Signal command in the queue.
-//    ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), m_fenceValues[m_frameIndex]));
-//
-//    // Wait until the fence has been processed.
-//    ThrowIfFailed(m_fence->SetEventOnCompletion(m_fenceValues[m_frameIndex], m_fenceEvent));
-//    WaitForSingleObjectEx(m_fenceEvent, INFINITE, FALSE);
-//
-//    // Increment the fence value for the current frame.
-//    m_fenceValues[m_frameIndex]++;
-//}
-
 // Records commands for drawing GUI
 void HonoursApplication::DrawGUI()
 {
@@ -411,24 +397,3 @@ UINT HonoursApplication::AllocateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE* cpuDesc
     *cpuDescriptor = CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptorHeapCpuBase, descriptorIndexToUse, descriptor_size);
     return descriptorIndexToUse;
 }
-
-// Prepare to render the next frame.
-//void HonoursApplication::MoveToNextFrame()
-//{
-//    // Schedule a Signal command in the queue.
-//    const UINT64 currentFenceValue = m_fenceValues[m_frameIndex];
-//    ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), currentFenceValue));
-//
-//    // Update the frame index.
-//    m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
-//
-//    // If the next frame is not ready to be rendered yet, wait until it is ready.
-//    if (m_fence->GetCompletedValue() < m_fenceValues[m_frameIndex])
-//    {
-//        ThrowIfFailed(m_fence->SetEventOnCompletion(m_fenceValues[m_frameIndex], m_fenceEvent));
-//        WaitForSingleObjectEx(m_fenceEvent, INFINITE, FALSE);
-//    }
-//
-//    // Set the fence value for the next frame.
-//    m_fenceValues[m_frameIndex] = currentFenceValue + 1;
-//}

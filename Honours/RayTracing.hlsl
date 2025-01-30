@@ -10,7 +10,7 @@
 void RayGenerationShader()
 {
 	Ray ray;
-    
+
     // Generate ray from camera into the scene
 	GenerateCameraRay(DispatchRaysIndex().xy, ray.origin_, ray.direction_);
 	RayPayload payload = TracePrimaryRay(ray, 0);
@@ -36,16 +36,19 @@ void IntersectionShader()
     }
     else
     {
+        //const AABB aabb = AABBs_[PrimitiveIndex()];
+        
+        // Construct ray, translated to origin
         Ray ray;
         ray.origin_ = WorldRayOrigin();
         ray.direction_ = WorldRayDirection();
     
-        float3 aabb[2];
-        aabb[0] = float3(0.0f, 0.0f, 0.0f);
-        aabb[1] = float3(1.f, 1.f, 1.f);
+        float3 unit_aabb[2];
+        unit_aabb[0] = float3(0.0f, 0.0f, 0.0f);
+        unit_aabb[1] = float3(1.f, 1.f, 1.f);
     
         float t_min, t_max;
-        if (RayAABBIntersectionTest(ray, aabb, t_min, t_max))
+        if (RayAABBIntersectionTest(ray, unit_aabb, t_min, t_max))
         {
             // Perform sphere tracing through the AABB.
             uint i = 0;

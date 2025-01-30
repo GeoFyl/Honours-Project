@@ -46,6 +46,9 @@
     <Filter Include="Assets\Shaders\Compute">
       <UniqueIdentifier>{b720020e-4bfb-4dba-846f-8ca0ec766d4c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Compute">
+      <UniqueIdentifier>{2ff12c70-eddd-44c3-8c47-625de93844bd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DXSample.h">
@@ -206,7 +209,7 @@
       <Filter>Source Files\Framework</Filter>
     </ClCompile>
     <ClCompile Include="Computer.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Compute</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
