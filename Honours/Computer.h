@@ -21,6 +21,8 @@ namespace ComputeGridRootSignatureParams {
         ParticlePositionsBufferSlot = 0,
         CellsSlot,
         BlocksSlot,
+        SurfaceBlocksSlot,
+        SurfaceCellsSlot,
         Count
     };
 }
@@ -72,6 +74,8 @@ private:
 
     ComPtr<ID3D12Resource> cells_buffer_;
     ComPtr<ID3D12Resource> blocks_buffer_;
+    ComPtr<ID3D12Resource> surface_blocks_buffer_;
+    ComPtr<ID3D12Resource> surface_cells_buffer_;
 
     //ComPtr<ID3D12Resource> aabb_buffer_uploader_;
     //ComPtr<ID3D12Resource> aabb_buffer_;

@@ -32,3 +32,14 @@ struct Block
 {
 	int non_empty_cell_count_;
 };
+
+struct SurfaceBlocks {
+	int count;
+	int indices[NUM_BLOCKS];
+};
+
+struct SurfaceCells {
+	int count;
+	int indices[NUM_CELLS];
+};
+

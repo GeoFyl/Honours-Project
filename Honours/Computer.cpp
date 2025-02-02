@@ -44,6 +44,8 @@ void Computer::ComputeGrid()
     commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::ParticlePositionsBufferSlot, particle_pos_buffer_->GetGPUVirtualAddress());
     commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::CellsSlot, cells_buffer_->GetGPUVirtualAddress());
     commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::BlocksSlot, blocks_buffer_->GetGPUVirtualAddress());
+    commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::SurfaceBlocksSlot, surface_blocks_buffer_->GetGPUVirtualAddress());
+    commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::SurfaceCellsSlot, surface_cells_buffer_->GetGPUVirtualAddress());
 
     commandList->Dispatch(particle_threadgroups_, 1, 1);
 
@@ -82,6 +84,8 @@ void Computer::CreateRootSignatures()
     grid_root_params[ComputeGridRootSignatureParams::ParticlePositionsBufferSlot].InitAsUnorderedAccessView(0);
     grid_root_params[ComputeGridRootSignatureParams::CellsSlot].InitAsUnorderedAccessView(1);
     grid_root_params[ComputeGridRootSignatureParams::BlocksSlot].InitAsUnorderedAccessView(2);
+    grid_root_params[ComputeGridRootSignatureParams::SurfaceBlocksSlot].InitAsUnorderedAccessView(3);
+    grid_root_params[ComputeGridRootSignatureParams::SurfaceCellsSlot].InitAsUnorderedAccessView(4);
     CD3DX12_ROOT_SIGNATURE_DESC grid_root_signature_desc(ARRAYSIZE(grid_root_params), grid_root_params);
     SerializeAndCreateComputeRootSignature(grid_root_signature_desc, &compute_grid_root_signature_);
 
@@ -128,7 +132,7 @@ void Computer::CreateComputePipelineStateObjects()
     ThrowIfFailed(device_resources_->GetD3DDevice()->CreateComputePipelineState(&compute_pso, IID_PPV_ARGS(&compute_pos_state_object_)));
 
     // Compute grid shader
-    if (FAILED(D3DCompileFromFile(application_->GetAssetFullPath(L"ComputeGrid.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "CSTexMain", "cs_5_1", flags, 0, &compute_shader, &error_blob))) {
+    if (FAILED(D3DCompileFromFile(application_->GetAssetFullPath(L"ComputeGrid.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "CSGridMain", "cs_5_1", flags, 0, &compute_shader, &error_blob))) {
         std::string errMsg((char*)error_blob->GetBufferPointer(), error_blob->GetBufferSize());
         throw std::exception(errMsg.c_str());
     }
@@ -178,6 +182,8 @@ void Computer::CreateBuffers()
     // Grid buffers
     Utilities::AllocateDefaultBuffer(device, NUM_CELLS * sizeof(Cell), cells_buffer_.GetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     Utilities::AllocateDefaultBuffer(device, NUM_BLOCKS * sizeof(Block), blocks_buffer_.GetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+    Utilities::AllocateDefaultBuffer(device, sizeof(SurfaceBlocks), surface_blocks_buffer_.GetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+    Utilities::AllocateDefaultBuffer(device, sizeof(SurfaceCells), surface_cells_buffer_.GetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
     //// AABB buffer
     //AABB aabbs[8];
