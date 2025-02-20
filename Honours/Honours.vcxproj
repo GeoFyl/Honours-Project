@@ -227,6 +227,7 @@
     <CustomBuild Include="dxil.dll">
       <FileType>Document</FileType>
     </CustomBuild>
+    <None Include="ComputeGridCommon.hlsli" />
     <None Include="packages.config" />
     <CustomBuild Include="RayTracingCommon.hlsli">
       <FileType>Document</FileType>
@@ -254,6 +255,16 @@
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="ComputeTexture.hlsl">
+      <FileType>Document</FileType>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="ComputeGrid.hlsl">
+      <FileType>Document</FileType>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="ComputeDispatchSurfaceCells.hlsl">
       <FileType>Document</FileType>
     </CustomBuild>
   </ItemGroup>

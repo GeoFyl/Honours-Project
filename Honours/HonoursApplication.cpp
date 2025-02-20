@@ -150,8 +150,6 @@ void HonoursApplication::LoadAssets()
     //ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocators[m_frameIndex].Get(), m_pipelineState.Get(), IID_PPV_ARGS(&m_commandList)));
     //ppCommandLists_[0] = m_commandList.Get();
 
-    
-
     // Create meshes
     //triangle_ = std::make_unique<TriangleMesh>(m_device.Get(), m_commandList.Get());
     device_resources_->GetCommandList()->Reset(device_resources_->GetCommandAllocator(), m_pipelineState.Get());
@@ -242,6 +240,7 @@ void HonoursApplication::OnRender()
     //PopulateCommandList();
 
     if (!pause_positions_) computer_->ComputePostitions();
+    computer_->ComputeGrid();
     if (!(debug_.render_analytical_ || debug_.visualize_particles_)) computer_->ComputeSDFTexture();
 
     ray_tracer_->RayTracing();

@@ -24,22 +24,27 @@ struct ComputeCB {
 // ---- Two-level Grid -----
 struct Cell
 {
-	int particle_count_;
-	int particle_indices_[CELL_MAX_PARTICLE_COUNT];
+	unsigned int particle_count_;
+	unsigned int particle_indices_[CELL_MAX_PARTICLE_COUNT];
 };
 
 struct Block
 {
-	int non_empty_cell_count_;
+	unsigned int non_empty_cell_count_;
 };
 
-struct SurfaceBlocks {
-	int count;
-	int indices[NUM_BLOCKS];
+struct GridSurfaceCounts {
+	unsigned int surface_blocks;
+	unsigned int surface_cells;
 };
 
-struct SurfaceCells {
-	int count;
-	int indices[NUM_CELLS];
-};
+//struct SurfaceBlocks {
+//	unsigned int count;
+//	unsigned int indices[NUM_BLOCKS];
+//};
+//
+//struct SurfaceCells {
+//	unsigned int count;
+//	unsigned int indices[NUM_CELLS];
+//};
 

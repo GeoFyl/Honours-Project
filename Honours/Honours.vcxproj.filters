@@ -243,8 +243,17 @@
     <CustomBuild Include="dxil.dll">
       <Filter>Assets</Filter>
     </CustomBuild>
+    <CustomBuild Include="ComputeGrid.hlsl">
+      <Filter>Assets\Shaders\Compute</Filter>
+    </CustomBuild>
+    <CustomBuild Include="ComputeDispatchSurfaceCells.hlsl">
+      <Filter>Assets\Shaders\Compute</Filter>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="ComputeGridCommon.hlsli">
+      <Filter>Assets\Shaders\Compute</Filter>
+    </None>
   </ItemGroup>
 </Project>
