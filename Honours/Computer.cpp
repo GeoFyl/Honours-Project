@@ -38,14 +38,8 @@ void Computer::ComputeGrid()
 {
     auto commandList = device_resources_->GetCommandList();
 
-    // ----============ need to clear counts and indices buffers here each frame ===========----------
-
-
-    // Build the grid structure
-
-    commandList->SetPipelineState(compute_grid_state_object_.Get());
+    // Bind resources
     commandList->SetComputeRootSignature(compute_grid_root_signature_.Get());
-
     commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::ParticlePositionsBufferSlot, particle_pos_buffer_->GetGPUVirtualAddress());
     commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::CellsSlot, cells_buffer_->GetGPUVirtualAddress());
     commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::BlocksSlot, blocks_buffer_->GetGPUVirtualAddress());
@@ -53,6 +47,12 @@ void Computer::ComputeGrid()
     commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::SurfaceCellsSlot, surface_cell_indices_buffer_->GetGPUVirtualAddress());
     commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::SurfaceCountsSlot, surface_counts_buffer_->GetGPUVirtualAddress());
 
+    // Clear counters
+    commandList->SetPipelineState(compute_clear_counts_state_object_.Get());
+    commandList->Dispatch(1, 1, 1);
+
+    // Build the grid structure
+    commandList->SetPipelineState(compute_grid_state_object_.Get());
     commandList->Dispatch(particle_threadgroups_, 1, 1);
 
     // Detect surface blocks
@@ -190,6 +190,15 @@ void Computer::CreateComputePipelineStateObjects()
     compute_pso.pRootSignature = compute_grid_root_signature_.Get();
     compute_pso.CS = CD3DX12_SHADER_BYTECODE(compute_shader.Get());
     ThrowIfFailed(device_resources_->GetD3DDevice()->CreateComputePipelineState(&compute_pso, IID_PPV_ARGS(&compute_grid_state_object_)));
+
+    // Shader to clear counters
+    if (FAILED(D3DCompileFromFile(application_->GetAssetFullPath(L"ComputeGrid.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "CSClearGridCounts", "cs_5_1", flags, 0, &compute_shader, &error_blob))) {
+        std::string errMsg((char*)error_blob->GetBufferPointer(), error_blob->GetBufferSize());
+        throw std::exception(errMsg.c_str());
+    }
+    
+    compute_pso.CS = CD3DX12_SHADER_BYTECODE(compute_shader.Get());
+    ThrowIfFailed(device_resources_->GetD3DDevice()->CreateComputePipelineState(&compute_pso, IID_PPV_ARGS(&compute_clear_counts_state_object_)));
 
     // Detect surface blocks shader
     if (FAILED(D3DCompileFromFile(application_->GetAssetFullPath(L"ComputeGrid.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "CSDetectSurfaceBlocksMain", "cs_5_1", flags, 0, &compute_shader, &error_blob))) {

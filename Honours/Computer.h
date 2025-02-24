@@ -69,6 +69,7 @@ private:
     // DXR attributes
     ComPtr<ID3D12PipelineState> compute_pos_state_object_;
     ComPtr<ID3D12PipelineState> compute_grid_state_object_;
+    ComPtr<ID3D12PipelineState> compute_clear_counts_state_object_;
     ComPtr<ID3D12PipelineState> compute_surface_blocks_state_object_;
     ComPtr<ID3D12PipelineState> compute_dispatch_surface_cells_state_object_;
     ComPtr<ID3D12PipelineState> compute_surface_cells_state_object_;

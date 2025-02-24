@@ -64,6 +64,14 @@ int OffsetCellIndex(uint cell_index, uint3 offset)
 
 // --------------- SHADERS -------------------
 
+// Clears the count of surface blocks and cells
+[numthreads(1, 1, 1)]
+void CSClearGridCounts()
+{
+    surface_counts_[0].surface_blocks = 0;
+    surface_counts_[0].surface_cells = 0;
+}
+
 
 // Shader for building the grid
 [numthreads(1024, 1, 1)]
