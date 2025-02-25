@@ -212,6 +212,17 @@ void HonoursApplication::OnUpdate()
         compute_buffer_data.time_ = timer_.GetElapsedTime();
         compute_cb_->CopyData(0, compute_buffer_data);
     }
+
+    device_resources_->ResetCommandList();
+
+    if (!pause_positions_) computer_->ComputePostitions();
+    computer_->ComputeGrid();
+    computer_->ReadBackCellCount();
+
+    ////// Execute and wait for grid compute to finish 
+    device_resources_->ExecuteCommandList();
+    device_resources_->WaitForGpu();
+    //device_resources_->ResetCommandList();
 }
 
 // Render the scene.
@@ -227,6 +238,8 @@ void HonoursApplication::OnRender()
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
+    //device_resources_->ResetCommandList();
+
     // Prepare the command list and render target for rendering.
     device_resources_->Prepare(m_pipelineState.Get());
 
@@ -238,13 +251,14 @@ void HonoursApplication::OnRender()
 
     // Record all the commands we need to render the scene into the command list.
     //PopulateCommandList();
+    
 
-    if (!pause_positions_) computer_->ComputePostitions();
-    computer_->ComputeGrid();
     if (!(debug_.render_analytical_ || debug_.visualize_particles_)) computer_->ComputeSDFTexture();
 
     ray_tracer_->RayTracing();
     CopyRaytracingOutputToBackbuffer();
+
+
 
     // Record commands for drawing GUI
     DrawGUI();

@@ -49,7 +49,7 @@ void Computer::ComputeGrid()
 
     // Clear counters
     commandList->SetPipelineState(compute_clear_counts_state_object_.Get());
-    commandList->Dispatch(1, 1, 1);
+    commandList->Dispatch(clear_counts_threadgroups_, 1, 1);
 
     // Build the grid structure
     commandList->SetPipelineState(compute_grid_state_object_.Get());
@@ -84,6 +84,31 @@ void Computer::ComputeGrid()
     commandList->ExecuteIndirect(compute_surface_cells_command_signature_.Get(), 1, surface_cells_dispatch_buffer_.Get(), 0, nullptr, 0);
 }
 
+void Computer::ReadBackCellCount()
+{
+    auto commandList = device_resources_->GetCommandList();
+
+    // Schedule to copy the data to the default buffer to the readback buffer.
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_counts_buffer_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE));
+    commandList->CopyResource(surface_counts_readback_buffer_.Get(), surface_counts_buffer_.Get());
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_counts_buffer_.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+
+    // Execute and wait for grid compute to finish 
+    device_resources_->ExecuteCommandList();
+    device_resources_->WaitForGpu();
+    device_resources_->ResetCommandList();
+
+    // Map the data so we can read it on CPU.
+    GridSurfaceCounts* mapped_data = nullptr;
+    ThrowIfFailed(surface_counts_readback_buffer_->Map(0, nullptr, reinterpret_cast<void**>(&mapped_data)));
+
+    std::wstring count = std::to_wstring(mapped_data->surface_cells);
+    OutputDebugString(L"\ncount:");
+    OutputDebugString(count.c_str());
+
+    surface_counts_readback_buffer_->Unmap(0, nullptr);
+}
+
 void Computer::ComputeSDFTexture()
 {
     auto commandList = device_resources_->GetCommandList();
@@ -101,6 +126,7 @@ void Computer::ComputeSDFTexture()
 
     commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(sdf_3d_texture_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
 }
+
 
 void Computer::CreateRootSignatures()
 {
@@ -254,6 +280,7 @@ void Computer::CreateBuffers()
     // Calculate threadgroup sizes
     particle_threadgroups_ = std::ceil(NUM_PARTICLES / 1024.f);
     blocks_threadgroups_ = std::ceil(NUM_BLOCKS / 1024.f);
+    clear_counts_threadgroups_ = std::ceil(NUM_CELLS / 1024.f);
     tex_creation_threadgroups_ = XMUINT3(std::ceil(TEXTURE_RESOLUTION / 32.f), std::ceil(TEXTURE_RESOLUTION / 32.f), TEXTURE_RESOLUTION);
 
     // Particle position buffer
@@ -277,6 +304,15 @@ void Computer::CreateBuffers()
     Utilities::AllocateDefaultBuffer(device, NUM_CELLS * sizeof(unsigned int), surface_cell_indices_buffer_.GetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     Utilities::AllocateDefaultBuffer(device, NUM_BLOCKS * sizeof(unsigned int), surface_block_indices_buffer_.GetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     Utilities::AllocateDefaultBuffer(device, sizeof(GridSurfaceCounts), surface_counts_buffer_.GetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+
+    // Allocate buffer for reading back surface cell count
+    ThrowIfFailed(device->CreateCommittedResource(
+        &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK),
+        D3D12_HEAP_FLAG_NONE,
+        &CD3DX12_RESOURCE_DESC::Buffer(sizeof(GridSurfaceCounts)),
+        D3D12_RESOURCE_STATE_COPY_DEST,
+        nullptr,
+        IID_PPV_ARGS(&surface_counts_readback_buffer_)));
 
 
     // Indirect dispatch argument buffer for surface cell detection

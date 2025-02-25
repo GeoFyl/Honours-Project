@@ -12,6 +12,11 @@ RWStructuredBuffer<uint> surface_cell_indices_ : register(u4);
 RWStructuredBuffer<GridSurfaceCounts> surface_counts_ : register(u5);
 
 
+
+// Blocks: 4 x 4 x 4 total
+// Cells: 16 x 16 x 16 total, 4 x 4 x 4 per block
+
+
 // Based on http://www.gamedev.net/forums/topic/582945-find-grid-index-based-on-position/4709749/
 int GetCellIndex(float3 particle_pos)
 {
@@ -61,15 +66,48 @@ int OffsetCellIndex(uint cell_index, uint3 offset)
     return (z * 256) + (y * 16) + x;
 }
 
+bool IsBlockAtEdge(uint block_index)
+{
+     // Convert block index to its (bx, by, bz) block coordinates
+    uint bz = block_index / 16;
+    if (bz == 0 || bz == 3)
+    {
+        return true;        
+    }
+    uint by = (block_index % 16) / 4;
+    if (by == 0 || by == 3)
+    {
+        return true;
+    }
+    uint bx = block_index % 4;
+    if (bx == 0 || bx == 3)
+    {
+        return true;        
+    }
+    return false;
+}
 
 // --------------- SHADERS -------------------
 
 // Clears the count of surface blocks and cells
-[numthreads(1, 1, 1)]
-void CSClearGridCounts()
+[numthreads(1024, 1, 1)]
+void CSClearGridCounts(int3 dispatch_ID : SV_DispatchThreadID)
 {
-    surface_counts_[0].surface_blocks = 0;
-    surface_counts_[0].surface_cells = 0;
+    if (dispatch_ID.x == 0)
+    {
+        surface_counts_[0].surface_blocks = 0;
+        surface_counts_[0].surface_cells = 0;        
+    }
+    if (dispatch_ID.x <= NUM_CELLS)
+    {
+        cells_[dispatch_ID.x].particle_count_ = 0;
+        return;
+    }
+    if (dispatch_ID.x <= NUM_BLOCKS)
+    {
+        blocks_[dispatch_ID.x].non_empty_cell_count_ = 0;
+        return;
+    }
 }
 
 
@@ -117,8 +155,8 @@ void CSDetectSurfaceBlocksMain(int3 dispatch_ID : SV_DispatchThreadID)
     
     uint block_index = dispatch_ID.x;
     
-    // If the non-empty cell count is 0 or 64 (block contains 64 populated cells), the block is not a surface block
-    if (blocks_[block_index].non_empty_cell_count_ == 0 || blocks_[block_index].non_empty_cell_count_ == 64)
+    // If block is not at the edge and the non-empty cell count is 0 or 64 (block contains 64 populated cells), the block is not a surface block
+    if (!IsBlockAtEdge(block_index) && (blocks_[block_index].non_empty_cell_count_ == 0 || blocks_[block_index].non_empty_cell_count_ == 64))
     {
         return;
     }

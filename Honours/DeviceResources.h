@@ -70,6 +70,7 @@ namespace DX
 
         void Prepare(ID3D12PipelineState* pso = nullptr, D3D12_RESOURCE_STATES beforeState = D3D12_RESOURCE_STATE_PRESENT);
         void Present(D3D12_RESOURCE_STATES beforeState = D3D12_RESOURCE_STATE_RENDER_TARGET);
+        void ResetCommandList(ID3D12PipelineState* pso = NULL);
         void ExecuteCommandList();
         void WaitForGpu() noexcept;
 

@@ -48,6 +48,7 @@ public:
     void ComputePostitions();
     void ComputeGrid();
     void ComputeSDFTexture();
+    void ReadBackCellCount();
 
     inline ID3D12Resource* GetPositionsBuffer() { return particle_pos_buffer_.Get(); }
     //inline ID3D12Resource* GetAABBBuffer() { return aabb_buffer_.Get(); }
@@ -111,6 +112,7 @@ private:
     // threadgroup sizes
     UINT particle_threadgroups_; // for particle position manipulation shader
     UINT blocks_threadgroups_; // for surface block detection
+    UINT clear_counts_threadgroups_; // for clearing counters
     XMUINT3 tex_creation_threadgroups_; // for texture creation shader
 
     DX::DeviceResources* device_resources_;
