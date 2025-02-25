@@ -50,6 +50,8 @@ public:
     void ComputeSDFTexture();
     void ReadBackCellCount();
 
+    unsigned int GetSurfaceCellCount() { return surface_cell_count_; }
+
     inline ID3D12Resource* GetPositionsBuffer() { return particle_pos_buffer_.Get(); }
     //inline ID3D12Resource* GetAABBBuffer() { return aabb_buffer_.Get(); }
     inline ID3D12Resource* GetSDFTexture() { return sdf_3d_texture_.Get(); }
@@ -103,7 +105,8 @@ private:
     //ComPtr<ID3D12Resource> aabb_buffer_uploader_;
     //ComPtr<ID3D12Resource> aabb_buffer_;
 
-
+    // Values
+    unsigned int surface_cell_count_ = 1;
 
     // 3D texture
     ComPtr<ID3D12Resource> sdf_3d_texture_;
