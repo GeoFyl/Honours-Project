@@ -136,6 +136,9 @@
     <ClInclude Include="ComputeStructs.h">
       <Filter>Header Files\Compute</Filter>
     </ClInclude>
+    <ClInclude Include="AccelerationStructureManager.h">
+      <Filter>Header Files\RayTracing</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="HonoursApplication.cpp">
@@ -210,6 +213,9 @@
     </ClCompile>
     <ClCompile Include="Computer.cpp">
       <Filter>Source Files\Compute</Filter>
+    </ClCompile>
+    <ClCompile Include="AccelerationStructureManager.cpp">
+      <Filter>Source Files\RayTracing</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
