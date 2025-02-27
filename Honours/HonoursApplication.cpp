@@ -77,6 +77,7 @@ void HonoursApplication::LoadPipeline()
 
     // Create ray tracer
     ray_tracer_ = std::make_unique<RayTracer>(device_resources_.get(), this, computer_.get());
+    computer_->SetRayTracer(ray_tracer_.get());
 
     // Create constant buffers
     ray_tracing_cb_ = std::make_unique<UploadBuffer<RayTracingCB>>(device_resources_->GetD3DDevice(), 1, true);
@@ -217,11 +218,8 @@ void HonoursApplication::OnUpdate()
 
     if (!pause_positions_) computer_->ComputePostitions();
     computer_->ComputeGrid(); // execute indirect is causing the stall
-    ////computer_->ReadBackCellCount();
+    computer_->ComputeAABBs();
 
-    // Execute and wait for grid compute to finish 
-    device_resources_->ExecuteCommandList();
-    device_resources_->WaitForGpu();
 }
 
 // Render the scene.
@@ -241,6 +239,8 @@ void HonoursApplication::OnRender()
 
     // Prepare the command list and render target for rendering.
     device_resources_->Prepare(m_pipelineState.Get());
+
+
 
     /*ID3D12DescriptorHeap* srv_heaps[1] = { descriptor_heap_.Get() };
     device_resources_->GetCommandList()->SetDescriptorHeaps(1, srv_heaps);*/

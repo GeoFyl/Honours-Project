@@ -262,4 +262,9 @@
       <Filter>Assets\Shaders\Compute</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="ComputeBuildAABBs.hlsl">
+      <Filter>Assets\Shaders\Compute</Filter>
+    </FxCompile>
+  </ItemGroup>
 </Project>

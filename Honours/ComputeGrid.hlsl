@@ -56,14 +56,16 @@ int BlockIndexToCellIndex(uint block_index, uint3 cell_offset)
     return (z * 256) + (y * 16) + x;
 }
 
-// Finds a new cell index, given a current index and an offset
-int OffsetCellIndex(uint cell_index, uint3 offset)
+// Finds if a neighbour cell is empty, given a current index and an offset
+bool IsNeighbourEmpty(int cell_index, int3 offset)
 {
-    uint z = (cell_index / 256) + offset.z;
-    uint y = ((cell_index % 256) / 16) + offset.y;
-    uint x = (cell_index % 16) + offset.x;
+    int z = (cell_index / 256) + offset.z;
+    int y = ((cell_index % 256) / 16) + offset.y;
+    int x = (cell_index % 16) + offset.x;
     
-    return (z * 256) + (y * 16) + x;
+    int new_index = (z * 256) + (y * 16) + x;
+    if (new_index > -1 && new_index < NUM_CELLS) return (cells_[new_index].particle_count_ == 0);
+    return false;
 }
 
 bool IsBlockAtEdge(uint block_index)
@@ -177,14 +179,14 @@ void CSDetectSurfaceCellsMain(int3 group_index : SV_GroupID, int offset : SV_Gro
 {
     // Use the block index to find the cell index
     uint block_index = surface_block_indices_[group_index.x];
-    uint cell_index = BlockIndexToCellIndex(block_index, offset);
+    int cell_index = BlockIndexToCellIndex(block_index, offset);
     
     // To be a surface cell, the cell must not be empty
     if (cells_[cell_index].particle_count_ == 0)
     {
         return;
     }
-    
+
     [unroll]
     for (int i = -1; i < 2; i++)
     {
@@ -194,13 +196,14 @@ void CSDetectSurfaceCellsMain(int3 group_index : SV_GroupID, int offset : SV_Gro
             [unroll]
             for (int k = -1; k < 2; k++)
             {
+
                 if (i == 0 && j == 0 && k == 0)
                 {
                     continue;
                 }
                 
                 // To be a surface cell, at least one neighbouring cell must be empty
-                if (cells_[OffsetCellIndex(cell_index, uint3(i, j, k))].particle_count_ == 0)
+                if (IsNeighbourEmpty(cell_index, int3(i, j, k)))
                 {
                     // The cell is a surface cell. Increment the count of surface cells and store the index.
                     uint surface_cells_array_index;

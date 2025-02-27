@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "Computer.h"
 #include "HonoursApplication.h"
+#include "RayTracer.h"
 
 Computer::Computer(DX::DeviceResources* device_resources, HonoursApplication* app) :
 	device_resources_(device_resources), application_(app)
@@ -84,6 +85,19 @@ void Computer::ComputeGrid()
     commandList->ExecuteIndirect(compute_surface_cells_command_signature_.Get(), 1, surface_cells_dispatch_buffer_.Get(), 0, nullptr, 0);
 }
 
+void Computer::ComputeAABBs()
+{
+    // Read back new count of surface cells
+    ReadBackCellCount();
+
+    // If necessary, resize the buffer for AABBs
+    ray_tracer_->GetAccelerationStructure()->AllocateAABBBuffer(surface_cell_count_);
+
+    // Fill AABB buffer with AABBs
+    device_resources_->ResetCommandList();
+
+}
+
 void Computer::ReadBackCellCount()
 {
     auto commandList = device_resources_->GetCommandList();
@@ -96,13 +110,12 @@ void Computer::ReadBackCellCount()
     // Execute and wait for grid compute to finish 
     device_resources_->ExecuteCommandList();
     device_resources_->WaitForGpu();
-    device_resources_->ResetCommandList();
 
     // Map the data so we can read it on CPU.
     GridSurfaceCounts* mapped_data = nullptr;
     ThrowIfFailed(surface_counts_readback_buffer_->Map(0, nullptr, reinterpret_cast<void**>(&mapped_data)));
 
-   /* std::wstring count = std::to_wstring(mapped_data->surface_cells);
+    /*std::wstring count = std::to_wstring(mapped_data->surface_cells);
     OutputDebugString(L"\ncount:");
     OutputDebugString(count.c_str());*/
 
@@ -128,7 +141,6 @@ void Computer::ComputeSDFTexture()
 
     commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(sdf_3d_texture_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
 }
-
 
 void Computer::CreateRootSignatures()
 {
@@ -249,7 +261,7 @@ void Computer::CreateComputePipelineStateObjects()
     ThrowIfFailed(device_resources_->GetD3DDevice()->CreateComputePipelineState(&compute_pso, IID_PPV_ARGS(&compute_surface_cells_state_object_)));
 
 
-    // Compute texture shader
+    // Set dispatch args for cell detection
     if (FAILED(D3DCompileFromFile(application_->GetAssetFullPath(L"ComputeDispatchSurfaceCells.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "CSDispatchSurfaceCellDetection", "cs_5_1", flags, 0, &compute_shader, &error_blob))) {
         std::string errMsg((char*)error_blob->GetBufferPointer(), error_blob->GetBufferSize());
         throw std::exception(errMsg.c_str());

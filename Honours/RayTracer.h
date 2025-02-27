@@ -3,6 +3,7 @@
 #include "DeviceResources.h"
 #include "ShaderTable.h"
 #include "Computer.h"
+#include "AccelerationStructureManager.h"
 #include <dxcapi.h>
 
 namespace GlobalRTRootSignatureParams {
@@ -35,6 +36,8 @@ public:
     void RayTracing();
 
     void CreateRaytracingOutputResource();
+
+    inline AccelerationStructureManager* GetAccelerationStructure() { return acceleration_structure_.get(); }
 
     inline ID3D12Resource* GetRaytracingOutput() { return m_raytracingOutput.Get(); }
     inline void ReleaseUploaders() { aabb_buffer_uploader_.Reset(); }
@@ -82,6 +85,8 @@ private:
     std::unique_ptr<ShaderTable> m_hitGroupShaderTable;
     std::unique_ptr<ShaderTable> m_rayGenShaderTable;
 
+    //Application stuff
+    std::unique_ptr<AccelerationStructureManager> acceleration_structure_ = nullptr;
     DX::DeviceResources* device_resources_;
     HonoursApplication* application_;
     Computer* computer_;

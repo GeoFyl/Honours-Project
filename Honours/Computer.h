@@ -39,21 +39,22 @@ namespace ComputeDispatchCellsRootSignatureParams {
 using Microsoft::WRL::ComPtr;
 
 class HonoursApplication;
+class RayTracer;
 
 class Computer
 {
 public: 
     Computer(DX::DeviceResources* device_resources, HonoursApplication* app);
+    void SetRayTracer(RayTracer* ray_tracer) { ray_tracer_ = ray_tracer; }
 
     void ComputePostitions();
     void ComputeGrid();
     void ComputeSDFTexture();
-    void ReadBackCellCount();
+    void ComputeAABBs();
 
     unsigned int GetSurfaceCellCount() { return surface_cell_count_; }
 
     inline ID3D12Resource* GetPositionsBuffer() { return particle_pos_buffer_.Get(); }
-    //inline ID3D12Resource* GetAABBBuffer() { return aabb_buffer_.Get(); }
     inline ID3D12Resource* GetSDFTexture() { return sdf_3d_texture_.Get(); }
     inline D3D12_GPU_DESCRIPTOR_HANDLE GetSDFTextureHandle() { return sdf_3d_texture_gpu_handle_; }
 
@@ -68,6 +69,8 @@ private:
     void CreateComputePipelineStateObjects();
     void CreateBuffers();
     void CreateTexture3D();
+    void ReadBackCellCount();
+
 
     // DXR attributes
     ComPtr<ID3D12PipelineState> compute_pos_state_object_;
@@ -102,9 +105,6 @@ private:
     ComPtr<ID3D12Resource> surface_cells_dispatch_buffer_uploader_;
     ComPtr<ID3D12Resource> surface_cells_dispatch_buffer_;
 
-    //ComPtr<ID3D12Resource> aabb_buffer_uploader_;
-    //ComPtr<ID3D12Resource> aabb_buffer_;
-
     // Values
     unsigned int surface_cell_count_ = 1;
 
@@ -120,5 +120,6 @@ private:
 
     DX::DeviceResources* device_resources_;
     HonoursApplication* application_;
+    RayTracer* ray_tracer_;
 };
 

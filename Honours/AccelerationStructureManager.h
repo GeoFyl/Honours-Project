@@ -1,12 +1,16 @@
 #pragma once
 #include <comdef.h>
 #include <d3d12.h>
+#include "DeviceResources.h"
 
 using Microsoft::WRL::ComPtr;
 
 class AccelerationStructureManager
 {
 public:
+    AccelerationStructureManager(DX::DeviceResources* device_resources);
+    void AllocateAABBBuffer(int new_aabb_count);
+    ComPtr<ID3D12Resource>* GetAABBBuffer() { return &aabb_buffer_; }
 
 private:
 
@@ -18,6 +22,10 @@ private:
     // Buffer for AABBs used for BLAS construction
     ComPtr<ID3D12Resource> aabb_buffer_uploader_;
     ComPtr<ID3D12Resource> aabb_buffer_;
+
+    unsigned int aabb_count_ = 0;
+
+    DX::DeviceResources* device_resources_;
 };
 
 // What needs to happen:

@@ -18,9 +18,11 @@ RayTracer::RayTracer(DX::DeviceResources* device_resources, HonoursApplication* 
 {
     device_resources_->GetCommandList()->Reset(device_resources_->GetCommandAllocator(), nullptr);
 
+    acceleration_structure_ = std::make_unique<AccelerationStructureManager>(device_resources);
+
     CreateRootSignatures();
     CreateRaytracingPipelineStateObject();
-    BuildAccelerationStructures();
+    //BuildAccelerationStructures();
 
     device_resources_->GetCommandList()->Reset(device_resources_->GetCommandAllocator(), nullptr);
     BuildShaderTables();
