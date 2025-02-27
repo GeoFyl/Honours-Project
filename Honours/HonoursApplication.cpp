@@ -216,13 +216,12 @@ void HonoursApplication::OnUpdate()
     device_resources_->ResetCommandList();
 
     if (!pause_positions_) computer_->ComputePostitions();
-    computer_->ComputeGrid();
-    computer_->ReadBackCellCount();
+    computer_->ComputeGrid(); // execute indirect is causing the stall
+    ////computer_->ReadBackCellCount();
 
-    ////// Execute and wait for grid compute to finish 
+    // Execute and wait for grid compute to finish 
     device_resources_->ExecuteCommandList();
     device_resources_->WaitForGpu();
-    //device_resources_->ResetCommandList();
 }
 
 // Render the scene.
@@ -250,8 +249,7 @@ void HonoursApplication::OnRender()
     device_resources_->GetCommandList()->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
 
     // Record all the commands we need to render the scene into the command list.
-    //PopulateCommandList();
-    
+
 
     if (!(debug_.render_analytical_ || debug_.visualize_particles_)) computer_->ComputeSDFTexture();
 
