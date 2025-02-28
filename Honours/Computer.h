@@ -34,6 +34,14 @@ namespace ComputeDispatchCellsRootSignatureParams {
         Count
     };
 }
+namespace ComputeAABBsRootSignatureParams {
+    enum Value {
+        SurfaceCellIndicesSlot = 0,
+        SurfaceCountsSlot,
+        AABBBufferSlot,
+        Count
+    };
+}
 
 
 using Microsoft::WRL::ComPtr;
@@ -79,12 +87,14 @@ private:
     ComPtr<ID3D12PipelineState> compute_surface_blocks_state_object_;
     ComPtr<ID3D12PipelineState> compute_dispatch_surface_cells_state_object_;
     ComPtr<ID3D12PipelineState> compute_surface_cells_state_object_;
+    ComPtr<ID3D12PipelineState> compute_AABBs_state_object_;
     ComPtr<ID3D12PipelineState> compute_tex_state_object_;
 
     // Root signatures
     ComPtr<ID3D12RootSignature> compute_pos_root_signature_;
     ComPtr<ID3D12RootSignature> compute_grid_root_signature_;
     ComPtr<ID3D12RootSignature> compute_dispatch_surface_cells_root_signature_;
+    ComPtr<ID3D12RootSignature> compute_AABBs_root_signature_;
     //ComPtr<ID3D12RootSignature> compute_surface_blocks_root_signature_;
     //ComPtr<ID3D12RootSignature> compute_surface_cells_root_signature_;
     ComPtr<ID3D12RootSignature> compute_tex_root_signature_;

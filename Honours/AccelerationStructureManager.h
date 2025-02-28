@@ -10,20 +10,33 @@ class AccelerationStructureManager
 public:
     AccelerationStructureManager(DX::DeviceResources* device_resources);
     void AllocateAABBBuffer(int new_aabb_count);
-    ComPtr<ID3D12Resource>* GetAABBBuffer() { return &aabb_buffer_; }
+    ID3D12Resource* GetAABBBuffer() { return aabb_buffer_.Get(); }
+
+    void UpdateStructure();
+    ID3D12Resource* GetStructure() { return top_acceleration_structure_.Get(); }
 
 private:
+    void CalculatePreBuildInfo(D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& blas_inputs, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO& blas_prebuild_info);
+    void RebuildStructure(D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& blas_inputs, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO& blas_prebuild_info);
+    void BuildStructures(D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& blas_inputs, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO& blas_prebuild_info, bool update = false);
+
 
     // Acceleration buffers
-    ComPtr<ID3D12Resource> m_accelerationStructure;
-    ComPtr<ID3D12Resource> m_bottomLevelAccelerationStructure;
-    ComPtr<ID3D12Resource> m_topLevelAccelerationStructure;
+    ComPtr<ID3D12Resource> bottom_acceleration_structure_;
+    ComPtr<ID3D12Resource> top_acceleration_structure_;
+    ComPtr<ID3D12Resource> scratch_resource_;
+
+    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO top_level_prebuild_info_;
+    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS top_level_inputs_;
+    std::unique_ptr<UploadBuffer<D3D12_RAYTRACING_INSTANCE_DESC>> instance_desc_buffer;
 
     // Buffer for AABBs used for BLAS construction
     ComPtr<ID3D12Resource> aabb_buffer_uploader_;
     ComPtr<ID3D12Resource> aabb_buffer_;
 
+    // Misc
     unsigned int aabb_count_ = 0;
+    bool requires_rebuild_ = false;
 
     DX::DeviceResources* device_resources_;
 };

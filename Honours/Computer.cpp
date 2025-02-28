@@ -87,6 +87,8 @@ void Computer::ComputeGrid()
 
 void Computer::ComputeAABBs()
 {
+    auto commandList = device_resources_->GetCommandList();
+
     // Read back new count of surface cells
     ReadBackCellCount();
 
@@ -96,6 +98,24 @@ void Computer::ComputeAABBs()
     // Fill AABB buffer with AABBs
     device_resources_->ResetCommandList();
 
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_counts_buffer_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_cell_indices_buffer_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(ray_tracer_->GetAccelerationStructure()->GetAABBBuffer(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+
+    commandList->SetPipelineState(compute_AABBs_state_object_.Get());
+    commandList->SetComputeRootSignature(compute_AABBs_root_signature_.Get());
+    commandList->SetComputeRootShaderResourceView(ComputeAABBsRootSignatureParams::SurfaceCellIndicesSlot, surface_cell_indices_buffer_->GetGPUVirtualAddress());
+    commandList->SetComputeRootShaderResourceView(ComputeAABBsRootSignatureParams::SurfaceCountsSlot, surface_counts_buffer_->GetGPUVirtualAddress());
+    commandList->SetComputeRootUnorderedAccessView(ComputeAABBsRootSignatureParams::AABBBufferSlot, ray_tracer_->GetAccelerationStructure()->GetAABBBuffer()->GetGPUVirtualAddress());
+    commandList->Dispatch(std::ceil(surface_cell_count_ / 1024.f), 1, 1);
+
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_counts_buffer_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_cell_indices_buffer_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(ray_tracer_->GetAccelerationStructure()->GetAABBBuffer(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
+
+    // Execute and wait for work to finish 
+    device_resources_->ExecuteCommandList();
+    device_resources_->WaitForGpu();
 }
 
 void Computer::ReadBackCellCount()
@@ -168,6 +188,14 @@ void Computer::CreateRootSignatures()
     cell_dispatch_root_params[ComputeDispatchCellsRootSignatureParams::DispatchArgsSlot].InitAsUnorderedAccessView(0);
     CD3DX12_ROOT_SIGNATURE_DESC cell_dispatch_signature_desc(ARRAYSIZE(cell_dispatch_root_params), cell_dispatch_root_params);
     SerializeAndCreateComputeRootSignature(cell_dispatch_signature_desc, &compute_dispatch_surface_cells_root_signature_);
+
+    // Root signature used for building AABB buffer for acceleration structure
+    CD3DX12_ROOT_PARAMETER build_AABBs_root_params[ComputeAABBsRootSignatureParams::Count];
+    build_AABBs_root_params[ComputeAABBsRootSignatureParams::SurfaceCellIndicesSlot].InitAsShaderResourceView(0);
+    build_AABBs_root_params[ComputeAABBsRootSignatureParams::SurfaceCountsSlot].InitAsShaderResourceView(1);
+    build_AABBs_root_params[ComputeAABBsRootSignatureParams::AABBBufferSlot].InitAsUnorderedAccessView(0);
+    CD3DX12_ROOT_SIGNATURE_DESC build_AABBs_signature_desc(ARRAYSIZE(build_AABBs_root_params), build_AABBs_root_params);
+    SerializeAndCreateComputeRootSignature(build_AABBs_signature_desc, &compute_AABBs_root_signature_);
 
     // Root signature used for shader which computes SDF texture
     CD3DX12_DESCRIPTOR_RANGE uav_descriptor;
@@ -270,6 +298,17 @@ void Computer::CreateComputePipelineStateObjects()
     compute_pso.pRootSignature = compute_dispatch_surface_cells_root_signature_.Get();
     compute_pso.CS = CD3DX12_SHADER_BYTECODE(compute_shader.Get());
     ThrowIfFailed(device_resources_->GetD3DDevice()->CreateComputePipelineState(&compute_pso, IID_PPV_ARGS(&compute_dispatch_surface_cells_state_object_)));
+
+    // Build AABB buffer
+    if (FAILED(D3DCompileFromFile(application_->GetAssetFullPath(L"ComputeBuildAABBs.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "CSBuildAABBs", "cs_5_1", flags, 0, &compute_shader, &error_blob))) {
+        std::string errMsg((char*)error_blob->GetBufferPointer(), error_blob->GetBufferSize());
+        throw std::exception(errMsg.c_str());
+    }
+    
+    compute_pso.pRootSignature = compute_AABBs_root_signature_.Get();
+    compute_pso.CS = CD3DX12_SHADER_BYTECODE(compute_shader.Get());
+    ThrowIfFailed(device_resources_->GetD3DDevice()->CreateComputePipelineState(&compute_pso, IID_PPV_ARGS(&compute_AABBs_state_object_)));
+
 
     // Compute texture shader
     if (FAILED(D3DCompileFromFile(application_->GetAssetFullPath(L"ComputeTexture.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "CSTexMain", "cs_5_1", flags, 0, &compute_shader, &error_blob))) {

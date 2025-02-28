@@ -62,9 +62,9 @@ private:
     ComPtr<ID3D12RootSignature> rt_hit_local_root_signature_;
 
     // Acceleration structure
-    ComPtr<ID3D12Resource> m_accelerationStructure;
+    /*ComPtr<ID3D12Resource> m_accelerationStructure;
     ComPtr<ID3D12Resource> m_bottomLevelAccelerationStructure;
-    ComPtr<ID3D12Resource> m_topLevelAccelerationStructure;
+    ComPtr<ID3D12Resource> m_topLevelAccelerationStructure;*/
 
     ComPtr<ID3D12Resource> aabb_buffer_uploader_;
     ComPtr<ID3D12Resource> aabb_buffer_;

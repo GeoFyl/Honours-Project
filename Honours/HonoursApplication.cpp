@@ -220,6 +220,8 @@ void HonoursApplication::OnUpdate()
     computer_->ComputeGrid(); // execute indirect is causing the stall
     computer_->ComputeAABBs();
 
+    ray_tracer_->GetAccelerationStructure()->UpdateStructure();
+
 }
 
 // Render the scene.
