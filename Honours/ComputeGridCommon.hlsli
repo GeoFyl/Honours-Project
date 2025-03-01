@@ -42,7 +42,8 @@ int GetCellIndex(float3 particle_pos)
 
 uint3 CellIndexTo3DCoords(uint cell_index)
 {
-    uint3 coords;
+    uint3 coords = uint3(0,0,0);
+    
     coords.z = cell_index / 256;
     coords.y = (cell_index % 256) / 16;
     coords.z = cell_index % 16;

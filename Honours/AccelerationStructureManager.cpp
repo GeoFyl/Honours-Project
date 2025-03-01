@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "AccelerationStructureManager.h"
 #include "Utilities.h"
-#include "UploadBuffer.h"
+
 
 AccelerationStructureManager::AccelerationStructureManager(DX::DeviceResources* device_resources) :
 	device_resources_(device_resources)
@@ -15,6 +15,11 @@ AccelerationStructureManager::AccelerationStructureManager(DX::DeviceResources* 
 	top_level_inputs_.NumDescs = 1;
 	top_level_inputs_.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
 	device->GetRaytracingAccelerationStructurePrebuildInfo(&top_level_inputs_, &top_level_prebuild_info_);
+
+	// Set constant values in geometry description
+	geometry_desc_.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS;
+	geometry_desc_.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE; // change later
+	geometry_desc_.AABBs.AABBs.StrideInBytes = sizeof(D3D12_RAYTRACING_AABB);
 
 	// Allocate resource for TLAS
 	Utilities::AllocateDefaultBuffer(device, top_level_prebuild_info_.ResultDataMaxSizeInBytes, &top_acceleration_structure_, D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
@@ -40,7 +45,7 @@ void AccelerationStructureManager::AllocateAABBBuffer(int new_aabb_count)
 		aabb_count_ = new_aabb_count;
 
 		aabb_buffer_.Reset();
-		Utilities::AllocateDefaultBuffer(device, aabb_count_ * sizeof(D3D12_RAYTRACING_AABB), &aabb_buffer_, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+		Utilities::AllocateDefaultBuffer(device, aabb_count_ * sizeof(D3D12_RAYTRACING_AABB), &aabb_buffer_, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 	}
 }
 
@@ -67,17 +72,13 @@ void AccelerationStructureManager::UpdateStructure()
 void AccelerationStructureManager::CalculatePreBuildInfo(D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& blas_inputs, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO& blas_prebuild_info)
 {
 	// Build geometry description
-	D3D12_RAYTRACING_GEOMETRY_DESC geometryDesc = {};
-	geometryDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS;
-	geometryDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE; // change later
-	geometryDesc.AABBs.AABBCount = aabb_count_;
-	geometryDesc.AABBs.AABBs.StartAddress = aabb_buffer_->GetGPUVirtualAddress();
-	geometryDesc.AABBs.AABBs.StrideInBytes = sizeof(D3D12_RAYTRACING_AABB);
+	geometry_desc_.AABBs.AABBCount = aabb_count_;
+	geometry_desc_.AABBs.AABBs.StartAddress = aabb_buffer_->GetGPUVirtualAddress();
 
 	// Get prebuild info for BLAS
 	blas_inputs = top_level_inputs_;
 	blas_inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
-	blas_inputs.pGeometryDescs = &geometryDesc;
+	blas_inputs.pGeometryDescs = &geometry_desc_;
 	device_resources_->GetD3DDevice()->GetRaytracingAccelerationStructurePrebuildInfo(&blas_inputs, &blas_prebuild_info);
 }
 
@@ -86,7 +87,7 @@ void AccelerationStructureManager::RebuildStructure(D3D12_BUILD_RAYTRACING_ACCEL
 	ID3D12Device5* device = device_resources_->GetD3DDevice();
 
 	// If required BLAS size has increased, will need to reallocate
-	UINT64 current_blas_width = bottom_acceleration_structure_->GetDesc().Width;
+	UINT64 current_blas_width = bottom_acceleration_structure_ ? bottom_acceleration_structure_->GetDesc().Width : 0;
 	if (blas_prebuild_info.ResultDataMaxSizeInBytes > current_blas_width) {
 		// Release previous resource
 		bottom_acceleration_structure_.Reset();
@@ -102,7 +103,7 @@ void AccelerationStructureManager::RebuildStructure(D3D12_BUILD_RAYTRACING_ACCEL
 		instance_desc_buffer->CopyData(0, instanceDesc);
 	}
 	// If required scratch size has increased, will need to reallocate
-	UINT64 current_scratch_width = scratch_resource_->GetDesc().Width;
+	UINT64 current_scratch_width = scratch_resource_ ? scratch_resource_->GetDesc().Width : 0;
 	if (blas_prebuild_info.ScratchDataSizeInBytes > current_scratch_width) {
 		// Release previous resource
 		scratch_resource_.Reset();

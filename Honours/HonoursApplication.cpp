@@ -101,91 +101,91 @@ void HonoursApplication::InitGUI()
         descriptor_heap_->GetGPUDescriptorHandleForHeapStart());
 }
 
-// Load the sample assets.
-void HonoursApplication::LoadAssets()
-{
-    // Create buffers and root signatures
-    resources_ = std::make_unique<Resources>(device_resources_->GetD3DDevice());
-
-    // Create the pipeline state, which includes compiling and loading shaders.
-    {
-        ComPtr<ID3DBlob> vertexShader;
-        ComPtr<ID3DBlob> pixelShader;
-
-#if defined(_DEBUG)
-        // Enable better shader debugging with the graphics debugging tools.
-        UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-#else
-        UINT compileFlags = 0;
-#endif
-
-        ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"shaders.hlsl").c_str(), nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr));
-        ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"shaders.hlsl").c_str(), nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr));
-
-        // Define the vertex input layout.
-        D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
-        {
-            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-        };
-
-        // Describe and create the graphics pipeline state object (PSO).
-        D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-        psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
-        psoDesc.pRootSignature = resources_->GetRootSignature();
-        psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());
-        psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
-        psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-        psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-        psoDesc.DepthStencilState.DepthEnable = FALSE;
-        psoDesc.DepthStencilState.StencilEnable = FALSE;
-        psoDesc.SampleMask = UINT_MAX;
-        psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-        psoDesc.NumRenderTargets = 1;
-        psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-        psoDesc.SampleDesc.Count = 1;
-        ThrowIfFailed(device_resources_->GetD3DDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
-    }
-
-    //// Create the command list.
-    //ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocators[m_frameIndex].Get(), m_pipelineState.Get(), IID_PPV_ARGS(&m_commandList)));
-    //ppCommandLists_[0] = m_commandList.Get();
-
-    // Create meshes
-    //triangle_ = std::make_unique<TriangleMesh>(m_device.Get(), m_commandList.Get());
-    device_resources_->GetCommandList()->Reset(device_resources_->GetCommandAllocator(), m_pipelineState.Get());
-    //cube_ = std::make_unique<CubeMesh>(device_resources_->GetD3DDevice(), device_resources_->GetCommandList());
-
-    // Execute command list and wait until assets have been uploaded to the GPU.
-    device_resources_->ExecuteCommandList();
-    device_resources_->WaitForGpu();
-
-    //// Close and execute command list.
-    //ThrowIfFailed(m_commandList->Close());
-    //m_commandQueue->ExecuteCommandLists(1, ppCommandLists_);
-
-    //// Create synchronization objects and wait until assets have been uploaded to the GPU.
-    //{
-    //    ThrowIfFailed(m_device->CreateFence(m_fenceValues[m_frameIndex], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
-    //    m_fenceValues[m_frameIndex]++;
-
-    //    // Create an event handle to use for frame synchronization.
-    //    m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-    //    if (m_fenceEvent == nullptr)
-    //    {
-    //        ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
-    //    }
-
-    //    // Wait for the command list to execute; we are reusing the same command 
-    //    // list in our main loop but for now, we just want to wait for setup to 
-    //    // complete before continuing.
-    //    WaitForGpu();
-
-        // Release mesh upload heaps
-        //triangle_->ReleaseUploaders();
-        //cube_->ReleaseUploaders();
-    //}
-}
+//// Load the sample assets.
+//void HonoursApplication::LoadAssets()
+//{
+//    // Create buffers and root signatures
+//    resources_ = std::make_unique<Resources>(device_resources_->GetD3DDevice());
+//
+//    // Create the pipeline state, which includes compiling and loading shaders.
+//    {
+//        ComPtr<ID3DBlob> vertexShader;
+//        ComPtr<ID3DBlob> pixelShader;
+//
+//#if defined(_DEBUG)
+//        // Enable better shader debugging with the graphics debugging tools.
+//        UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+//#else
+//        UINT compileFlags = 0;
+//#endif
+//
+//        ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"shaders.hlsl").c_str(), nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr));
+//        ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"shaders.hlsl").c_str(), nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr));
+//
+//        // Define the vertex input layout.
+//        D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
+//        {
+//            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+//            { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+//        };
+//
+//        // Describe and create the graphics pipeline state object (PSO).
+//        D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+//        psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
+//        psoDesc.pRootSignature = resources_->GetRootSignature();
+//        psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());
+//        psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
+//        psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+//        psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+//        psoDesc.DepthStencilState.DepthEnable = FALSE;
+//        psoDesc.DepthStencilState.StencilEnable = FALSE;
+//        psoDesc.SampleMask = UINT_MAX;
+//        psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+//        psoDesc.NumRenderTargets = 1;
+//        psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+//        psoDesc.SampleDesc.Count = 1;
+//        ThrowIfFailed(device_resources_->GetD3DDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+//    }
+//
+//    //// Create the command list.
+//    //ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocators[m_frameIndex].Get(), m_pipelineState.Get(), IID_PPV_ARGS(&m_commandList)));
+//    //ppCommandLists_[0] = m_commandList.Get();
+//
+//    // Create meshes
+//    //triangle_ = std::make_unique<TriangleMesh>(m_device.Get(), m_commandList.Get());
+//    device_resources_->GetCommandList()->Reset(device_resources_->GetCommandAllocator(), m_pipelineState.Get());
+//    //cube_ = std::make_unique<CubeMesh>(device_resources_->GetD3DDevice(), device_resources_->GetCommandList());
+//
+//    // Execute command list and wait until assets have been uploaded to the GPU.
+//    device_resources_->ExecuteCommandList();
+//    device_resources_->WaitForGpu();
+//
+//    //// Close and execute command list.
+//    //ThrowIfFailed(m_commandList->Close());
+//    //m_commandQueue->ExecuteCommandLists(1, ppCommandLists_);
+//
+//    //// Create synchronization objects and wait until assets have been uploaded to the GPU.
+//    //{
+//    //    ThrowIfFailed(m_device->CreateFence(m_fenceValues[m_frameIndex], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
+//    //    m_fenceValues[m_frameIndex]++;
+//
+//    //    // Create an event handle to use for frame synchronization.
+//    //    m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+//    //    if (m_fenceEvent == nullptr)
+//    //    {
+//    //        ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
+//    //    }
+//
+//    //    // Wait for the command list to execute; we are reusing the same command 
+//    //    // list in our main loop but for now, we just want to wait for setup to 
+//    //    // complete before continuing.
+//    //    WaitForGpu();
+//
+//        // Release mesh upload heaps
+//        //triangle_->ReleaseUploaders();
+//        //cube_->ReleaseUploaders();
+//    //}
+//}
 
 // Update frame-based values.
 void HonoursApplication::OnUpdate()
@@ -200,15 +200,16 @@ void HonoursApplication::OnUpdate()
     buff.view_proj_ = XMMatrixMultiply(camera_->getViewMatrix(), projection_matrix_);
     buff.inv_view_proj_ = XMMatrixTranspose(XMMatrixInverse(nullptr, buff.view_proj_));
     buff.view_proj_ = XMMatrixTranspose(buff.view_proj_);
-    buff.uvw_step_ = uvw_normals_step_;
+    buff.uvw_step_ = debug_.uvw_normals_step_;
 
     if (debug_.visualize_particles_) buff.rendering_flags_ |= RENDERING_FLAG_VISUALIZE_PARTICLES;
     if (debug_.render_analytical_) buff.rendering_flags_ |= RENDERING_FLAG_ANALYTICAL;
-    if (render_normals_) buff.rendering_flags_ |= RENDERING_FLAG_NORMALS;
+    if (debug_.render_normals_) buff.rendering_flags_ |= RENDERING_FLAG_NORMALS;
+    if (debug_.visualize_aabbs_) buff.rendering_flags_ |= RENDERING_FLAG_VISUALIZE_AABBS;
 
     ray_tracing_cb_->CopyData(0, buff);
 
-    if (!pause_positions_) {
+    if (!debug_.pause_positions_) {
         ComputeCB compute_buffer_data;
         compute_buffer_data.time_ = timer_.GetElapsedTime();
         compute_cb_->CopyData(0, compute_buffer_data);
@@ -216,7 +217,7 @@ void HonoursApplication::OnUpdate()
 
     device_resources_->ResetCommandList();
 
-    if (!pause_positions_) computer_->ComputePostitions();
+    if (!debug_.pause_positions_) computer_->ComputePostitions();
     computer_->ComputeGrid(); // execute indirect is causing the stall
     computer_->ComputeAABBs();
 
@@ -350,12 +351,13 @@ void HonoursApplication::DrawGUI()
 
     ImGui::Checkbox("Analytical distances", &debug_.render_analytical_);
     ImGui::Checkbox("Visualize particles", &debug_.visualize_particles_);
-    ImGui::Checkbox("Freeze particles", &pause_positions_);
-    ImGui::Checkbox("Debug normals", &render_normals_);
+    ImGui::Checkbox("Freeze particles", &debug_.pause_positions_);
+    ImGui::Checkbox("Debug normals", &debug_.render_normals_);
     ImGui::Text("Normals uvw step (texture):");
     ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.9f);
-    ImGui::SliderFloat("##", &uvw_normals_step_, 0.0001f, 0.1f, "%.5f");
+    ImGui::SliderFloat("##", &debug_.uvw_normals_step_, 0.0001f, 0.1f, "%.5f");
     ImGui::PopItemWidth();
+    ImGui::Checkbox("Visualize AABBs", &debug_.visualize_aabbs_);
 
     ImGui::Render();
     ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), device_resources_->GetCommandList());

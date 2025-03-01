@@ -24,7 +24,7 @@ RayTracer::RayTracer(DX::DeviceResources* device_resources, HonoursApplication* 
     CreateRaytracingPipelineStateObject();
     //BuildAccelerationStructures();
 
-    device_resources_->GetCommandList()->Reset(device_resources_->GetCommandAllocator(), nullptr);
+    //device_resources_->GetCommandList()->Reset(device_resources_->GetCommandAllocator(), nullptr);
     BuildShaderTables();
     CreateRaytracingOutputResource();
 
@@ -248,14 +248,14 @@ void RayTracer::BuildAccelerationStructures()
     aabb[7].MinY = 1.f;
     aabb[7].MinZ = 1.f;
 
-    aabb_buffer_ = Utilities::CreateDefaultBuffer(device, command_list, &aabb, /*(size of aabb array * )*/ sizeof(aabb), aabb_buffer_uploader_);
+    //aabb_buffer_ = Utilities::CreateDefaultBuffer(device, command_list, &aabb, /*(size of aabb array * )*/ sizeof(aabb), aabb_buffer_uploader_);
 
     // Build geometry description
     D3D12_RAYTRACING_GEOMETRY_DESC geometryDesc = {};
     geometryDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS;
     geometryDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE; // change later
     geometryDesc.AABBs.AABBCount = 8;
-    geometryDesc.AABBs.AABBs.StartAddress = aabb_buffer_->GetGPUVirtualAddress();
+    //geometryDesc.AABBs.AABBs.StartAddress = aabb_buffer_->GetGPUVirtualAddress();
     geometryDesc.AABBs.AABBs.StrideInBytes = sizeof(D3D12_RAYTRACING_AABB);
 
     // Get required sizes for an acceleration structure.
@@ -338,7 +338,7 @@ void RayTracer::BuildAccelerationStructures()
     // Wait for GPU to finish as the locally created temporary GPU resources will get released once we go out of scope.
     device_resources_->WaitForGpu();
 
-    ReleaseUploaders();
+   // ReleaseUploaders();
 }
 
 // Build shader tables.

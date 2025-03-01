@@ -255,16 +255,14 @@
     <CustomBuild Include="ComputeDispatchSurfaceCells.hlsl">
       <Filter>Assets\Shaders\Compute</Filter>
     </CustomBuild>
+    <CustomBuild Include="ComputeBuildAABBs.hlsl">
+      <Filter>Assets\Shaders\Compute</Filter>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
     <None Include="ComputeGridCommon.hlsli">
       <Filter>Assets\Shaders\Compute</Filter>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="ComputeBuildAABBs.hlsl">
-      <Filter>Assets\Shaders\Compute</Filter>
-    </FxCompile>
   </ItemGroup>
 </Project>

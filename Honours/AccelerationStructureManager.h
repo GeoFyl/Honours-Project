@@ -2,6 +2,7 @@
 #include <comdef.h>
 #include <d3d12.h>
 #include "DeviceResources.h"
+#include "UploadBuffer.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -26,9 +27,11 @@ private:
     ComPtr<ID3D12Resource> top_acceleration_structure_;
     ComPtr<ID3D12Resource> scratch_resource_;
 
+    // Info used in aceceleration structure construction
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO top_level_prebuild_info_;
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS top_level_inputs_;
     std::unique_ptr<UploadBuffer<D3D12_RAYTRACING_INSTANCE_DESC>> instance_desc_buffer;
+    D3D12_RAYTRACING_GEOMETRY_DESC geometry_desc_;
 
     // Buffer for AABBs used for BLAS construction
     ComPtr<ID3D12Resource> aabb_buffer_uploader_;

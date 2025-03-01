@@ -8,6 +8,7 @@
 #define RENDERING_FLAG_VISUALIZE_PARTICLES      1 << 0
 #define RENDERING_FLAG_ANALYTICAL               1 << 1
 #define RENDERING_FLAG_NORMALS                  1 << 2
+#define RENDERING_FLAG_VISUALIZE_AABBS          1 << 3
 
 using namespace DirectX;
 

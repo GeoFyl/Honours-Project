@@ -25,7 +25,13 @@ void RayGenerationShader()
 [shader("intersection")]
 void IntersectionShader()
 {
-    if (constant_buffer_.rendering_flags_ & RENDERING_FLAG_VISUALIZE_PARTICLES)
+    if (constant_buffer_.rendering_flags_ & RENDERING_FLAG_VISUALIZE_AABBS)
+    {
+        RayIntersectionAttributes attributes;
+        ReportHit(1, 0, attributes);
+        return;
+    }
+    else if (constant_buffer_.rendering_flags_ & RENDERING_FLAG_VISUALIZE_PARTICLES)
     {
         if (RenderParticlesVisualized())
         {
@@ -82,7 +88,13 @@ void IntersectionShader()
 [shader("closesthit")]
 void ClosestHitShader(inout RayPayload payload, in RayIntersectionAttributes attributes)
 {
-    if (constant_buffer_.rendering_flags_ & RENDERING_FLAG_VISUALIZE_PARTICLES)
+    if (constant_buffer_.rendering_flags_ & RENDERING_FLAG_VISUALIZE_AABBS)
+    {
+        payload.colour_ = float4(1, 0.0, 0.0, 1);
+        return;
+    }
+    
+    else if (constant_buffer_.rendering_flags_ & RENDERING_FLAG_VISUALIZE_PARTICLES)
     {
         payload.colour_ = float4(0.306, 0.941, 0.933, 1);
         return;
