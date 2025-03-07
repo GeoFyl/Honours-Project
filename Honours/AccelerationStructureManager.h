@@ -16,7 +16,7 @@ public:
     void UpdateStructure();
     ID3D12Resource* GetTLAS() { return top_acceleration_structure_.Get(); }
     ID3D12Resource* GetBLAS() { return bottom_acceleration_structure_.Get(); }
-    bool IsStructureBuilt() { return (bottom_acceleration_structure_.Get() != nullptr && top_acceleration_structure_.Get() != nullptr); }
+    bool IsStructureBuilt() { return structure_built; }
 
 private:
     void CalculatePreBuildInfo(D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& blas_inputs, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO& blas_prebuild_info);
@@ -36,12 +36,14 @@ private:
     D3D12_RAYTRACING_GEOMETRY_DESC geometry_desc_;
 
     // Buffer for AABBs used for BLAS construction
-    ComPtr<ID3D12Resource> aabb_buffer_uploader_;
+   // ComPtr<ID3D12Resource> aabb_buffer_uploader_;
     ComPtr<ID3D12Resource> aabb_buffer_;
 
     // Misc
     unsigned int aabb_count_ = 0;
+    unsigned int max_aabb_count_ = 0;
     bool requires_rebuild_ = false;
+    bool structure_built = false;
 
     DX::DeviceResources* device_resources_;
 };

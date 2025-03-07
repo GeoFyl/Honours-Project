@@ -267,10 +267,12 @@ void HonoursApplication::OnRender()
     // Record commands for drawing GUI
     DrawGUI();
 
+   // OutputDebugString(L"\nPRESENTING\n");
+
     // Present the back buffer
     device_resources_->Present();
 
-    //OutputDebugString(L"\nPRESENTING\n:");
+
 }
 
 void HonoursApplication::PopulateCommandList()

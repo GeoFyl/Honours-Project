@@ -165,7 +165,7 @@ void Computer::ReadBackCellCount()
     GridSurfaceCounts* mapped_data = nullptr;
     ThrowIfFailed(surface_counts_readback_buffer_->Map(0, nullptr, reinterpret_cast<void**>(&mapped_data)));
 
-    /*std::wstring count = std::to_wstring(mapped_data->surface_cells);
+   /* std::wstring count = std::to_wstring(mapped_data->surface_cells);
     OutputDebugString(L"\ncell count:");
     OutputDebugString(count.c_str());*/
 

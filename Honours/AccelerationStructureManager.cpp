@@ -38,15 +38,17 @@ void AccelerationStructureManager::AllocateAABBBuffer(int new_aabb_count)
 	}
 
 	// Release and reallocate buffer for AABBs if required number has increased
-	if (new_aabb_count > aabb_count_) {
+	if (new_aabb_count > max_aabb_count_) {
+		max_aabb_count_ = new_aabb_count;
+
 		ID3D12Device5* device = device_resources_->GetD3DDevice();
 		ID3D12GraphicsCommandList4* command_list = device_resources_->GetCommandList();
 
-		aabb_count_ = new_aabb_count;
-
 		aabb_buffer_.Reset();
-		Utilities::AllocateDefaultBuffer(device, aabb_count_ * sizeof(D3D12_RAYTRACING_AABB), &aabb_buffer_, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+		Utilities::AllocateDefaultBuffer(device, max_aabb_count_ * sizeof(D3D12_RAYTRACING_AABB), &aabb_buffer_, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 	}
+
+	aabb_count_ = new_aabb_count;
 }
 
 // Updates or rebuilds acceleration structure
@@ -69,6 +71,8 @@ void AccelerationStructureManager::UpdateStructure()
 		device_resources_->ExecuteCommandList();
 		device_resources_->WaitForGpu();
 		//device_resources_->ResetCommandList();
+
+		structure_built = true;
 
 		//OutputDebugString(L"\nFINISHED BUILDING\n");
 	}
@@ -131,7 +135,7 @@ void AccelerationStructureManager::BuildStructures(D3D12_BUILD_RAYTRACING_ACCELE
 		bottomLevelBuildDesc.Inputs = blas_inputs;
 		bottomLevelBuildDesc.ScratchAccelerationStructureData = scratch_resource_->GetGPUVirtualAddress();
 		bottomLevelBuildDesc.DestAccelerationStructureData = bottom_acceleration_structure_->GetGPUVirtualAddress();
-		if (update) {
+		if (update && structure_built) {
 			bottomLevelBuildDesc.Inputs.Flags |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE;
 			bottomLevelBuildDesc.SourceAccelerationStructureData = bottom_acceleration_structure_->GetGPUVirtualAddress();
 		}
@@ -142,18 +146,22 @@ void AccelerationStructureManager::BuildStructures(D3D12_BUILD_RAYTRACING_ACCELE
 	{
 		top_level_inputs_.InstanceDescs = instance_desc_buffer->Resource()->GetGPUVirtualAddress();
 		topLevelBuildDesc.Inputs = top_level_inputs_;
-		topLevelBuildDesc.Inputs.Flags |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE;
-		topLevelBuildDesc.SourceAccelerationStructureData = top_acceleration_structure_->GetGPUVirtualAddress();
 		topLevelBuildDesc.DestAccelerationStructureData = top_acceleration_structure_->GetGPUVirtualAddress();
 		topLevelBuildDesc.ScratchAccelerationStructureData = scratch_resource_->GetGPUVirtualAddress();
+		if (structure_built) {
+			topLevelBuildDesc.Inputs.Flags |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE;
+			topLevelBuildDesc.SourceAccelerationStructureData = top_acceleration_structure_->GetGPUVirtualAddress();			
+		}
 	}
 
 	device_resources_->ResetCommandList();
 	//command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(bottom_acceleration_structure_.Get()));
 	command_list->BuildRaytracingAccelerationStructure(&bottomLevelBuildDesc, 0, nullptr);
+	//command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(scratch_resource_.Get()));
 	command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(bottom_acceleration_structure_.Get()));
 
 	//command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(top_acceleration_structure_.Get()));
 	command_list->BuildRaytracingAccelerationStructure(&topLevelBuildDesc, 0, nullptr);
+	//command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(scratch_resource_.Get()));
 	command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(top_acceleration_structure_.Get()));
 }
