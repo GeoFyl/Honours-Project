@@ -40,7 +40,9 @@ public:
     inline AccelerationStructureManager* GetAccelerationStructure() { return acceleration_structure_.get(); }
 
     inline ID3D12Resource* GetRaytracingOutput() { return m_raytracingOutput.Get(); }
-    //inline void ReleaseUploaders() { aabb_buffer_uploader_.Reset(); }
+    inline void ReleaseUploaders() { aabb_buffer_uploader_.Reset(); }
+
+    ID3D12Resource* GetAABBBuffer() { return aabb_buffer_.Get(); }
 
 	static void CheckRayTracingSupport(ID3D12Device5* device);
 
@@ -62,12 +64,12 @@ private:
     ComPtr<ID3D12RootSignature> rt_hit_local_root_signature_;
 
     // Acceleration structure
-    /*ComPtr<ID3D12Resource> m_accelerationStructure;
+    ComPtr<ID3D12Resource> m_accelerationStructure;
     ComPtr<ID3D12Resource> m_bottomLevelAccelerationStructure;
-    ComPtr<ID3D12Resource> m_topLevelAccelerationStructure;*/
+    ComPtr<ID3D12Resource> m_topLevelAccelerationStructure;
 
-    /*ComPtr<ID3D12Resource> aabb_buffer_uploader_;
-    ComPtr<ID3D12Resource> aabb_buffer_;*/
+    ComPtr<ID3D12Resource> aabb_buffer_uploader_;
+    ComPtr<ID3D12Resource> aabb_buffer_;
 
     // Raytracing output
     ComPtr<ID3D12Resource> m_raytracingOutput;

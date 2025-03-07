@@ -217,12 +217,17 @@ void HonoursApplication::OnUpdate()
 
     device_resources_->ResetCommandList();
 
+    //OutputDebugString(L"\nBEGIN\n:");
+
     if (!debug_.pause_positions_) computer_->ComputePostitions();
-    computer_->ComputeGrid(); // execute indirect is causing the stall
+    computer_->ComputeGrid();
     computer_->ComputeAABBs();
 
     ray_tracer_->GetAccelerationStructure()->UpdateStructure();
 
+    // Execute and wait for work to finish     need this when not calling ComputeAABBs and UpdateStructure
+   // device_resources_->ExecuteCommandList();
+   // device_resources_->WaitForGpu();
 }
 
 // Render the scene.
@@ -259,13 +264,13 @@ void HonoursApplication::OnRender()
     ray_tracer_->RayTracing();
     CopyRaytracingOutputToBackbuffer();
 
-
-
     // Record commands for drawing GUI
     DrawGUI();
 
     // Present the back buffer
     device_resources_->Present();
+
+    //OutputDebugString(L"\nPRESENTING\n:");
 }
 
 void HonoursApplication::PopulateCommandList()

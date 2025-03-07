@@ -22,9 +22,9 @@ RayTracer::RayTracer(DX::DeviceResources* device_resources, HonoursApplication* 
 
     CreateRootSignatures();
     CreateRaytracingPipelineStateObject();
-    //BuildAccelerationStructures();
+    BuildAccelerationStructures();
 
-    //device_resources_->GetCommandList()->Reset(device_resources_->GetCommandAllocator(), nullptr);
+    device_resources_->GetCommandList()->Reset(device_resources_->GetCommandAllocator(), nullptr);   // only need when using naive aabb
     BuildShaderTables();
     CreateRaytracingOutputResource();
 
@@ -44,7 +44,15 @@ void RayTracer::RayTracing()
     commandList->SetDescriptorHeaps(1, &heap);
     commandList->SetComputeRootDescriptorTable(GlobalRTRootSignatureParams::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
     commandList->SetComputeRootDescriptorTable(GlobalRTRootSignatureParams::SDFTextureSlot, computer_->GetSDFTextureHandle());
-    commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::AccelerationStructureSlot, acceleration_structure_->GetStructure()->GetGPUVirtualAddress());
+    //if (acceleration_structure_->IsStructureBuilt()) {
+    //    //OutputDebugString(L"\nSTRUCTURE BUILT\n:");
+    //    commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::AccelerationStructureSlot, acceleration_structure_->GetTLAS()->GetGPUVirtualAddress());
+    //}
+    //else {
+        //OutputDebugString(L"\nSTRUCTURE NOT BUILT\n:");
+        commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::AccelerationStructureSlot, m_topLevelAccelerationStructure->GetGPUVirtualAddress());
+    //}
+
     commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::ParticlePositionsBufferSlot, computer_->GetPositionsBuffer()->GetGPUVirtualAddress());
     commandList->SetComputeRootConstantBufferView(GlobalRTRootSignatureParams::ConstantBufferSlot, application_->GetRaytracingCB()->GetGPUVirtualAddress());
 
@@ -62,7 +70,13 @@ void RayTracer::RayTracing()
     dispatchDesc.Height = window_size_.y;
     dispatchDesc.Depth = 1;
     commandList->SetPipelineState1(rt_state_object_.Get());
+
+    /*commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(acceleration_structure_->GetBLAS()));
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(acceleration_structure_->GetTLAS()));*/
     commandList->DispatchRays(&dispatchDesc);
+    //commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(acceleration_structure_->GetBLAS()));
+    //commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(acceleration_structure_->GetTLAS()));
+
 
     commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(computer_->GetPositionsBuffer(),D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
     if (!(application_->GetDebugValues().render_analytical_ || application_->GetDebugValues().visualize_particles_)) {
@@ -217,7 +231,7 @@ void RayTracer::BuildAccelerationStructures()
     aabb[3].MaxY = 1.f;
     aabb[3].MaxZ = 2.f;
     aabb[3].MinX = 1.f;
-    aabb[3].MinY = 1.f;
+    aabb[3].MinY = 0.f;
     aabb[3].MinZ = 1.f;
 
     aabb[4].MaxX = 1.f;
@@ -248,14 +262,16 @@ void RayTracer::BuildAccelerationStructures()
     aabb[7].MinY = 1.f;
     aabb[7].MinZ = 1.f;
 
-    //aabb_buffer_ = Utilities::CreateDefaultBuffer(device, command_list, &aabb, /*(size of aabb array * )*/ sizeof(aabb), aabb_buffer_uploader_);
+    aabb_buffer_ = Utilities::CreateDefaultBuffer(device, command_list, &aabb, /*(size of aabb array * )*/ sizeof(aabb), aabb_buffer_uploader_);
+    aabb_buffer_.Get()->SetName(L"AABB buffer");
+    aabb_buffer_uploader_->SetName(L"AABB uploader");
 
     // Build geometry description
     D3D12_RAYTRACING_GEOMETRY_DESC geometryDesc = {};
     geometryDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS;
     geometryDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE; // change later
     geometryDesc.AABBs.AABBCount = 8;
-    //geometryDesc.AABBs.AABBs.StartAddress = aabb_buffer_->GetGPUVirtualAddress();
+    geometryDesc.AABBs.AABBs.StartAddress = aabb_buffer_->GetGPUVirtualAddress();
     geometryDesc.AABBs.AABBs.StrideInBytes = sizeof(D3D12_RAYTRACING_AABB);
 
     // Get required sizes for an acceleration structure.
@@ -290,27 +306,27 @@ void RayTracer::BuildAccelerationStructures()
     {
         D3D12_RESOURCE_STATES initialResourceState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
 
-       // Utilities::AllocateDefaultBuffer(device, bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes, &m_bottomLevelAccelerationStructure, initialResourceState, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-        //Utilities::AllocateDefaultBuffer(device, topLevelPrebuildInfo.ResultDataMaxSizeInBytes, &m_topLevelAccelerationStructure, initialResourceState, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+        Utilities::AllocateDefaultBuffer(device, bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes, &m_bottomLevelAccelerationStructure, initialResourceState, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+        Utilities::AllocateDefaultBuffer(device, topLevelPrebuildInfo.ResultDataMaxSizeInBytes, &m_topLevelAccelerationStructure, initialResourceState, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     }
 
     // Create an instance desc for the bottom-level acceleration structure.
-   // ComPtr<ID3D12Resource> instanceDescs;
+    //ComPtr<ID3D12Resource> instanceDescs;
     D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
     instanceDesc.Transform[0][0] = instanceDesc.Transform[1][1] = instanceDesc.Transform[2][2] = 1;
     instanceDesc.InstanceMask = 1;
-   // instanceDesc.AccelerationStructure = m_bottomLevelAccelerationStructure->GetGPUVirtualAddress();
+    instanceDesc.AccelerationStructure = m_bottomLevelAccelerationStructure->GetGPUVirtualAddress();
     UploadBuffer<D3D12_RAYTRACING_INSTANCE_DESC> instance_desc_buffer(device, 1, false);
     instance_desc_buffer.CopyData(0, instanceDesc);
 
-   // AllocateUploadBuffer(device, &instanceDesc, sizeof(instanceDesc), &instanceDescs, L"InstanceDescs");
+    //AllocateUploadBuffer(device, &instanceDesc, sizeof(instanceDesc), &instanceDescs, L"InstanceDescs");
 
     // Bottom Level Acceleration Structure desc
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelBuildDesc = {};
     {
         bottomLevelBuildDesc.Inputs = bottomLevelInputs;
         bottomLevelBuildDesc.ScratchAccelerationStructureData = scratchResource->GetGPUVirtualAddress();
-       // bottomLevelBuildDesc.DestAccelerationStructureData = m_bottomLevelAccelerationStructure->GetGPUVirtualAddress();
+        bottomLevelBuildDesc.DestAccelerationStructureData = m_bottomLevelAccelerationStructure->GetGPUVirtualAddress();
     }
 
     // Top Level Acceleration Structure desc
@@ -318,14 +334,14 @@ void RayTracer::BuildAccelerationStructures()
     {
         topLevelInputs.InstanceDescs = instance_desc_buffer.Resource()->GetGPUVirtualAddress();
         topLevelBuildDesc.Inputs = topLevelInputs;
-        //topLevelBuildDesc.DestAccelerationStructureData = m_topLevelAccelerationStructure->GetGPUVirtualAddress();
+        topLevelBuildDesc.DestAccelerationStructureData = m_topLevelAccelerationStructure->GetGPUVirtualAddress();
         topLevelBuildDesc.ScratchAccelerationStructureData = scratchResource->GetGPUVirtualAddress();
     }
 
     /*auto BuildAccelerationStructure = [&](auto* raytracingCommandList)
         {*/
             command_list->BuildRaytracingAccelerationStructure(&bottomLevelBuildDesc, 0, nullptr);
-            //command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(m_bottomLevelAccelerationStructure.Get()));
+            command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(m_bottomLevelAccelerationStructure.Get()));
             command_list->BuildRaytracingAccelerationStructure(&topLevelBuildDesc, 0, nullptr);
         //};
 
@@ -338,7 +354,7 @@ void RayTracer::BuildAccelerationStructures()
     // Wait for GPU to finish as the locally created temporary GPU resources will get released once we go out of scope.
     device_resources_->WaitForGpu();
 
-   // ReleaseUploaders();
+    ReleaseUploaders();
 }
 
 // Build shader tables.

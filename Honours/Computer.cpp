@@ -22,6 +22,7 @@ Computer::Computer(DX::DeviceResources* device_resources, HonoursApplication* ap
 
 void Computer::ComputePostitions()
 {
+   
     auto commandList = device_resources_->GetCommandList();
 
     commandList->SetPipelineState(compute_pos_state_object_.Get());
@@ -33,12 +34,14 @@ void Computer::ComputePostitions()
     commandList->Dispatch(particle_threadgroups_, 1, 1);
 
     commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(particle_pos_buffer_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
+    
 }
 
 void Computer::ComputeGrid()
 {
     auto commandList = device_resources_->GetCommandList();
 
+    
     // Bind resources
     commandList->SetComputeRootSignature(compute_grid_root_signature_.Get());
     commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::ParticlePositionsBufferSlot, particle_pos_buffer_->GetGPUVirtualAddress());
@@ -47,6 +50,7 @@ void Computer::ComputeGrid()
     commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::SurfaceBlocksSlot, surface_block_indices_buffer_->GetGPUVirtualAddress());
     commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::SurfaceCellsSlot, surface_cell_indices_buffer_->GetGPUVirtualAddress());
     commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::SurfaceCountsSlot, surface_counts_buffer_->GetGPUVirtualAddress());
+
 
     // Clear counters
     commandList->SetPipelineState(compute_clear_counts_state_object_.Get());
@@ -59,30 +63,44 @@ void Computer::ComputeGrid()
     // Detect surface blocks
     commandList->SetPipelineState(compute_surface_blocks_state_object_.Get());
     commandList->Dispatch(blocks_threadgroups_, 1, 1);
+    
 
-    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_counts_buffer_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
+    //commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_counts_buffer_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
+
+    ReadBackBlocksCount();
 
     // Set dispatch threadgroups for surface cell detection
-    commandList->SetPipelineState(compute_dispatch_surface_cells_state_object_.Get());
+   /* commandList->SetPipelineState(compute_dispatch_surface_cells_state_object_.Get());
     commandList->SetComputeRootSignature(compute_dispatch_surface_cells_root_signature_.Get());
     commandList->SetComputeRootShaderResourceView(ComputeDispatchCellsRootSignatureParams::SurfaceCountsSlot, surface_counts_buffer_->GetGPUVirtualAddress());
     commandList->SetComputeRootUnorderedAccessView(ComputeDispatchCellsRootSignatureParams::DispatchArgsSlot, surface_cells_dispatch_buffer_->GetGPUVirtualAddress());
 
     commandList->Dispatch(1, 1, 1);
 
-    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_counts_buffer_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_cells_dispatch_buffer_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT));
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_counts_buffer_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));*/
 
-    // Detect surface cells
-    commandList->SetPipelineState(compute_surface_cells_state_object_.Get());
-    commandList->SetComputeRootSignature(compute_grid_root_signature_.Get());
 
-    commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::ParticlePositionsBufferSlot, particle_pos_buffer_->GetGPUVirtualAddress());
-    commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::CellsSlot, cells_buffer_->GetGPUVirtualAddress());
-    commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::BlocksSlot, blocks_buffer_->GetGPUVirtualAddress());
-    commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::SurfaceBlocksSlot, surface_block_indices_buffer_->GetGPUVirtualAddress());
-    commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::SurfaceCellsSlot, surface_cell_indices_buffer_->GetGPUVirtualAddress());
-    commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::SurfaceCountsSlot, surface_counts_buffer_->GetGPUVirtualAddress());
-    commandList->ExecuteIndirect(compute_surface_cells_command_signature_.Get(), 1, surface_cells_dispatch_buffer_.Get(), 0, nullptr, 0);
+    if (surface_blocks_count_ > 0) {
+        // Detect surface cells
+        commandList->SetPipelineState(compute_surface_cells_state_object_.Get());
+        commandList->SetComputeRootSignature(compute_grid_root_signature_.Get());
+
+        commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::ParticlePositionsBufferSlot, particle_pos_buffer_->GetGPUVirtualAddress());
+        commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::CellsSlot, cells_buffer_->GetGPUVirtualAddress());
+        commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::BlocksSlot, blocks_buffer_->GetGPUVirtualAddress());
+        commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::SurfaceBlocksSlot, surface_block_indices_buffer_->GetGPUVirtualAddress());
+        commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::SurfaceCellsSlot, surface_cell_indices_buffer_->GetGPUVirtualAddress());
+        commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::SurfaceCountsSlot, surface_counts_buffer_->GetGPUVirtualAddress());
+        commandList->Dispatch(surface_blocks_count_, 1, 1);
+    }
+    
+
+
+
+   // commandList->ExecuteIndirect(compute_surface_cells_command_signature_.Get(), 1, surface_cells_dispatch_buffer_.Get(), 0, nullptr, 0);
+
+   // commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_cells_dispatch_buffer_.Get(), D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 }
 
 void Computer::ComputeAABBs()
@@ -92,34 +110,45 @@ void Computer::ComputeAABBs()
     // Read back new count of surface cells
     ReadBackCellCount();
 
-    // If necessary, resize the buffer for AABBs
-    ray_tracer_->GetAccelerationStructure()->AllocateAABBBuffer(surface_cell_count_);
+    if (surface_cell_count_ > 0) {
+         device_resources_->ResetCommandList();
 
-    // Fill AABB buffer with AABBs
-    device_resources_->ResetCommandList();
+        // If necessary, resize the buffer for AABBs
+        ray_tracer_->GetAccelerationStructure()->AllocateAABBBuffer(surface_cell_count_);
 
-    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_counts_buffer_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
-    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_cell_indices_buffer_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
-    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(ray_tracer_->GetAccelerationStructure()->GetAABBBuffer(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+        // Fill AABB buffer with AABBs
+        //device_resources_->ResetCommandList();
 
-    commandList->SetPipelineState(compute_AABBs_state_object_.Get());
-    commandList->SetComputeRootSignature(compute_AABBs_root_signature_.Get());
-    commandList->SetComputeRootShaderResourceView(ComputeAABBsRootSignatureParams::SurfaceCellIndicesSlot, surface_cell_indices_buffer_->GetGPUVirtualAddress());
-    commandList->SetComputeRootShaderResourceView(ComputeAABBsRootSignatureParams::SurfaceCountsSlot, surface_counts_buffer_->GetGPUVirtualAddress());
-    commandList->SetComputeRootUnorderedAccessView(ComputeAABBsRootSignatureParams::AABBBufferSlot, ray_tracer_->GetAccelerationStructure()->GetAABBBuffer()->GetGPUVirtualAddress());
-    commandList->Dispatch(std::ceil(surface_cell_count_ / 1024.f), 1, 1);
+        commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_counts_buffer_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
+        commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_cell_indices_buffer_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
+        commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(ray_tracer_->GetAccelerationStructure()->GetAABBBuffer(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 
-    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_counts_buffer_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_cell_indices_buffer_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(ray_tracer_->GetAccelerationStructure()->GetAABBBuffer(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
+        commandList->SetPipelineState(compute_AABBs_state_object_.Get());
+        commandList->SetComputeRootSignature(compute_AABBs_root_signature_.Get());
+        commandList->SetComputeRootShaderResourceView(ComputeAABBsRootSignatureParams::SurfaceCellIndicesSlot, surface_cell_indices_buffer_->GetGPUVirtualAddress());
+        commandList->SetComputeRootShaderResourceView(ComputeAABBsRootSignatureParams::SurfaceCountsSlot, surface_counts_buffer_->GetGPUVirtualAddress());
+        commandList->SetComputeRootUnorderedAccessView(ComputeAABBsRootSignatureParams::AABBBufferSlot, ray_tracer_->GetAccelerationStructure()->GetAABBBuffer()->GetGPUVirtualAddress());
+        commandList->Dispatch(std::ceil(surface_cell_count_ / 1024.f), 1, 1);
 
-    // Execute and wait for work to finish 
-    device_resources_->ExecuteCommandList();
-    device_resources_->WaitForGpu();
+        commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_counts_buffer_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+        commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_cell_indices_buffer_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+        commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(ray_tracer_->GetAccelerationStructure()->GetAABBBuffer(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
+
+        // Execute and wait for work to finish 
+        device_resources_->ExecuteCommandList();
+        device_resources_->WaitForGpu();
+    }
+
 }
 
 void Computer::ReadBackCellCount()
 {
+
+    // Execute and wait for grid compute to finish 
+    device_resources_->ExecuteCommandList();
+    device_resources_->WaitForGpu();
+    device_resources_->ResetCommandList();
+
     auto commandList = device_resources_->GetCommandList();
 
     // Schedule to copy the data to the default buffer to the readback buffer.
@@ -131,18 +160,59 @@ void Computer::ReadBackCellCount()
     device_resources_->ExecuteCommandList();
     device_resources_->WaitForGpu();
 
+
     // Map the data so we can read it on CPU.
     GridSurfaceCounts* mapped_data = nullptr;
     ThrowIfFailed(surface_counts_readback_buffer_->Map(0, nullptr, reinterpret_cast<void**>(&mapped_data)));
 
     /*std::wstring count = std::to_wstring(mapped_data->surface_cells);
-    OutputDebugString(L"\ncount:");
+    OutputDebugString(L"\ncell count:");
     OutputDebugString(count.c_str());*/
 
-    surface_cell_count_ = mapped_data->surface_cells;
+    //if (mapped_data->surface_cells > 0) {
+        surface_cell_count_ = mapped_data->surface_cells;
+    //}
 
     surface_counts_readback_buffer_->Unmap(0, nullptr);
 }
+
+void Computer::ReadBackBlocksCount()
+{
+    // Execute and wait for grid compute to finish 
+    device_resources_->ExecuteCommandList();
+    device_resources_->WaitForGpu();
+    device_resources_->ResetCommandList();
+
+    //OutputDebugString(L"\nCOMPLETED 1ST COMPUTE\n");
+    
+    auto commandList = device_resources_->GetCommandList();
+
+    // Schedule to copy the data to the default buffer to the readback buffer.
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_counts_buffer_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE));
+    commandList->CopyResource(surface_counts_readback_buffer_.Get(), surface_counts_buffer_.Get());
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_counts_buffer_.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+   
+    // Execute and wait for grid compute to finish 
+    device_resources_->ExecuteCommandList();
+    device_resources_->WaitForGpu();
+    device_resources_->ResetCommandList();
+
+
+    // Map the data so we can read it on CPU.
+    GridSurfaceCounts* mapped_data = nullptr;
+    ThrowIfFailed(surface_counts_readback_buffer_->Map(0, nullptr, reinterpret_cast<void**>(&mapped_data)));
+
+    /*std::wstring count = std::to_wstring(mapped_data->surface_blocks);
+    OutputDebugString(L"\nblocks count:");
+    OutputDebugString(count.c_str());*/
+
+    //if (mapped_data->surface_blocks > 0) {
+        surface_blocks_count_ = mapped_data->surface_blocks;
+    //}
+
+    surface_counts_readback_buffer_->Unmap(0, nullptr);
+}
+
 
 void Computer::ComputeSDFTexture()
 {
@@ -183,11 +253,11 @@ void Computer::CreateRootSignatures()
     SerializeAndCreateComputeRootSignature(grid_root_signature_desc, &compute_grid_root_signature_);
 
     // Root signature used for setting number of threadgroups to dispatch for surface cell detection
-    CD3DX12_ROOT_PARAMETER cell_dispatch_root_params[ComputeDispatchCellsRootSignatureParams::Count];
+    /*CD3DX12_ROOT_PARAMETER cell_dispatch_root_params[ComputeDispatchCellsRootSignatureParams::Count];
     cell_dispatch_root_params[ComputeDispatchCellsRootSignatureParams::SurfaceCountsSlot].InitAsShaderResourceView(0);
     cell_dispatch_root_params[ComputeDispatchCellsRootSignatureParams::DispatchArgsSlot].InitAsUnorderedAccessView(0);
     CD3DX12_ROOT_SIGNATURE_DESC cell_dispatch_signature_desc(ARRAYSIZE(cell_dispatch_root_params), cell_dispatch_root_params);
-    SerializeAndCreateComputeRootSignature(cell_dispatch_signature_desc, &compute_dispatch_surface_cells_root_signature_);
+    SerializeAndCreateComputeRootSignature(cell_dispatch_signature_desc, &compute_dispatch_surface_cells_root_signature_);*/
 
     // Root signature used for building AABB buffer for acceleration structure
     CD3DX12_ROOT_PARAMETER build_AABBs_root_params[ComputeAABBsRootSignatureParams::Count];
@@ -206,14 +276,14 @@ void Computer::CreateRootSignatures()
     CD3DX12_ROOT_SIGNATURE_DESC tex_root_signature_desc(ARRAYSIZE(tex_root_params), tex_root_params);
     SerializeAndCreateComputeRootSignature(tex_root_signature_desc, &compute_tex_root_signature_);
 
-    // Create dispatch command signature for indirect dispatch of surface cell detection
-    D3D12_COMMAND_SIGNATURE_DESC command_signature_desc = {};
-    command_signature_desc.ByteStride = sizeof(D3D12_DISPATCH_ARGUMENTS);
-    command_signature_desc.NumArgumentDescs = 1;
-    D3D12_INDIRECT_ARGUMENT_DESC argument_desc = {};
-    argument_desc.Type = D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH;
-    command_signature_desc.pArgumentDescs = &argument_desc;
-    device_resources_->GetD3DDevice()->CreateCommandSignature(&command_signature_desc, nullptr, IID_PPV_ARGS(&compute_surface_cells_command_signature_));
+    //// Create dispatch command signature for indirect dispatch of surface cell detection
+    //D3D12_COMMAND_SIGNATURE_DESC command_signature_desc = {};
+    //command_signature_desc.ByteStride = sizeof(D3D12_DISPATCH_ARGUMENTS);
+    //command_signature_desc.NumArgumentDescs = 1;
+    //D3D12_INDIRECT_ARGUMENT_DESC argument_desc = {};
+    //argument_desc.Type = D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH;
+    //command_signature_desc.pArgumentDescs = &argument_desc;
+    //device_resources_->GetD3DDevice()->CreateCommandSignature(&command_signature_desc, nullptr, IID_PPV_ARGS(&compute_surface_cells_command_signature_));
 
 }
 
@@ -230,12 +300,12 @@ void Computer::CreateComputePipelineStateObjects()
 {
     ComPtr<ID3DBlob> compute_shader;
     ComPtr<ID3DBlob> error_blob;
-#if defined(_DEBUG)
+//#if defined(_DEBUG)
     // Enable better shader debugging with the graphics debugging tools.
     UINT flags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-#else
-    UINT flags = 0;
-#endif
+//#else
+   // UINT flags = 0;
+//#endif
 
     // Compute positions shader
     if (FAILED(D3DCompileFromFile(application_->GetAssetFullPath(L"ComputePositions.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "CSPosMain", "cs_5_1", flags, 0, &compute_shader, &error_blob))) {
@@ -289,15 +359,15 @@ void Computer::CreateComputePipelineStateObjects()
     ThrowIfFailed(device_resources_->GetD3DDevice()->CreateComputePipelineState(&compute_pso, IID_PPV_ARGS(&compute_surface_cells_state_object_)));
 
 
-    // Set dispatch args for cell detection
-    if (FAILED(D3DCompileFromFile(application_->GetAssetFullPath(L"ComputeDispatchSurfaceCells.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "CSDispatchSurfaceCellDetection", "cs_5_1", flags, 0, &compute_shader, &error_blob))) {
-        std::string errMsg((char*)error_blob->GetBufferPointer(), error_blob->GetBufferSize());
-        throw std::exception(errMsg.c_str());
-    }
-    
-    compute_pso.pRootSignature = compute_dispatch_surface_cells_root_signature_.Get();
-    compute_pso.CS = CD3DX12_SHADER_BYTECODE(compute_shader.Get());
-    ThrowIfFailed(device_resources_->GetD3DDevice()->CreateComputePipelineState(&compute_pso, IID_PPV_ARGS(&compute_dispatch_surface_cells_state_object_)));
+    //// Set dispatch args for cell detection
+    //if (FAILED(D3DCompileFromFile(application_->GetAssetFullPath(L"ComputeDispatchSurfaceCells.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "CSDispatchSurfaceCellDetection", "cs_5_1", flags, 0, &compute_shader, &error_blob))) {
+    //    std::string errMsg((char*)error_blob->GetBufferPointer(), error_blob->GetBufferSize());
+    //    throw std::exception(errMsg.c_str());
+    //}
+    //
+    //compute_pso.pRootSignature = compute_dispatch_surface_cells_root_signature_.Get();
+    //compute_pso.CS = CD3DX12_SHADER_BYTECODE(compute_shader.Get());
+    //ThrowIfFailed(device_resources_->GetD3DDevice()->CreateComputePipelineState(&compute_pso, IID_PPV_ARGS(&compute_dispatch_surface_cells_state_object_)));
 
     // Build AABB buffer
     if (FAILED(D3DCompileFromFile(application_->GetAssetFullPath(L"ComputeBuildAABBs.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "CSBuildAABBs", "cs_5_1", flags, 0, &compute_shader, &error_blob))) {
@@ -368,9 +438,9 @@ void Computer::CreateBuffers()
         IID_PPV_ARGS(&surface_counts_readback_buffer_)));
 
 
-    // Indirect dispatch argument buffer for surface cell detection
-    D3D12_DISPATCH_ARGUMENTS dispatch_args = { 1, 1, 1 }; // By default dispatch (1, 1, 1) thread groups
-    surface_cells_dispatch_buffer_ = Utilities::CreateDefaultBuffer(device, command_list, &dispatch_args, sizeof(D3D12_DISPATCH_ARGUMENTS), surface_cells_dispatch_buffer_uploader_, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+    //// Indirect dispatch argument buffer for surface cell detection
+    //D3D12_DISPATCH_ARGUMENTS dispatch_args = { 1, 1, 1 }; // By default dispatch (1, 1, 1) thread groups
+    //surface_cells_dispatch_buffer_ = Utilities::CreateDefaultBuffer(device, command_list, &dispatch_args, sizeof(D3D12_DISPATCH_ARGUMENTS), surface_cells_dispatch_buffer_uploader_, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
 
 
@@ -428,3 +498,4 @@ void Computer::CreateTexture3D()
 
     sdf_3d_texture_gpu_handle_ = CD3DX12_GPU_DESCRIPTOR_HANDLE(application_->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart(), heap_index, descriptor_size);
 }
+

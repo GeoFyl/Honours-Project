@@ -58,6 +58,7 @@ public:
     void ComputePostitions();
     void ComputeGrid();
     void ComputeSDFTexture();
+    void ReadBackCellCount();
     void ComputeAABBs();
 
     unsigned int GetSurfaceCellCount() { return surface_cell_count_; }
@@ -77,7 +78,7 @@ private:
     void CreateComputePipelineStateObjects();
     void CreateBuffers();
     void CreateTexture3D();
-    void ReadBackCellCount();
+    void ReadBackBlocksCount();
 
 
     // DXR attributes
@@ -85,7 +86,7 @@ private:
     ComPtr<ID3D12PipelineState> compute_grid_state_object_;
     ComPtr<ID3D12PipelineState> compute_clear_counts_state_object_;
     ComPtr<ID3D12PipelineState> compute_surface_blocks_state_object_;
-    ComPtr<ID3D12PipelineState> compute_dispatch_surface_cells_state_object_;
+   // ComPtr<ID3D12PipelineState> compute_dispatch_surface_cells_state_object_;
     ComPtr<ID3D12PipelineState> compute_surface_cells_state_object_;
     ComPtr<ID3D12PipelineState> compute_AABBs_state_object_;
     ComPtr<ID3D12PipelineState> compute_tex_state_object_;
@@ -93,13 +94,13 @@ private:
     // Root signatures
     ComPtr<ID3D12RootSignature> compute_pos_root_signature_;
     ComPtr<ID3D12RootSignature> compute_grid_root_signature_;
-    ComPtr<ID3D12RootSignature> compute_dispatch_surface_cells_root_signature_;
+    //ComPtr<ID3D12RootSignature> compute_dispatch_surface_cells_root_signature_;
     ComPtr<ID3D12RootSignature> compute_AABBs_root_signature_;
     //ComPtr<ID3D12RootSignature> compute_surface_blocks_root_signature_;
     //ComPtr<ID3D12RootSignature> compute_surface_cells_root_signature_;
     ComPtr<ID3D12RootSignature> compute_tex_root_signature_;
     
-    ComPtr<ID3D12CommandSignature> compute_surface_cells_command_signature_;
+    //ComPtr<ID3D12CommandSignature> compute_surface_cells_command_signature_;
 
     // Buffers
     ComPtr<ID3D12Resource> particle_pos_buffer_uploader_;
@@ -112,11 +113,12 @@ private:
     ComPtr<ID3D12Resource> surface_counts_buffer_;
     ComPtr<ID3D12Resource> surface_counts_readback_buffer_;
 
-    ComPtr<ID3D12Resource> surface_cells_dispatch_buffer_uploader_;
-    ComPtr<ID3D12Resource> surface_cells_dispatch_buffer_;
+   // ComPtr<ID3D12Resource> surface_cells_dispatch_buffer_uploader_;
+  //  ComPtr<ID3D12Resource> surface_cells_dispatch_buffer_;
 
     // Values
-    unsigned int surface_cell_count_ = 1;
+    float surface_cell_count_ = 0;
+    float surface_blocks_count_ = 0;
 
     // 3D texture
     ComPtr<ID3D12Resource> sdf_3d_texture_;

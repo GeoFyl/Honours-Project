@@ -41,12 +41,10 @@ void CSClearGridCounts(int3 dispatch_ID : SV_DispatchThreadID)
     if (dispatch_ID.x <= NUM_CELLS)
     {
         cells_[dispatch_ID.x].particle_count_ = 0;
-        return;
     }
     if (dispatch_ID.x <= NUM_BLOCKS)
     {
         blocks_[dispatch_ID.x].non_empty_cell_count_ = 0;
-        return;
     }
 }
 
@@ -70,7 +68,10 @@ void CSGridMain(int3 dispatch_ID : SV_DispatchThreadID)
     InterlockedAdd(cells_[cell_index].particle_count_, 1, particle_intra_cell_index);
     
     // Add the particle's index to cell's particle list
-    cells_[cell_index].particle_indices_[particle_intra_cell_index] = dispatch_ID.x;
+    if (particle_intra_cell_index < CELL_MAX_PARTICLE_COUNT)
+    {
+        cells_[cell_index].particle_indices_[particle_intra_cell_index] = dispatch_ID.x;        
+    }
     
     // If this is the first particle in the cell, increment the blocks non empty cell counter
     if (particle_intra_cell_index == 0)
@@ -95,8 +96,9 @@ void CSDetectSurfaceBlocksMain(int3 dispatch_ID : SV_DispatchThreadID)
     
     uint block_index = dispatch_ID.x;
     
-    // If block is not at the edge and the non-empty cell count is 0 or 64 (block contains 64 populated cells), the block is not a surface block
-    if (!IsBlockAtEdge(block_index) && (blocks_[block_index].non_empty_cell_count_ == 0 || blocks_[block_index].non_empty_cell_count_ == 64))
+    // If the non-empty cell count is 0, or 64 and not at the edge, the block is not a surface block
+    // Technically a surface block could be full and not at the edge of the bounds, but hopefully this isnt common enough to cause artifacts
+    if (blocks_[block_index].non_empty_cell_count_ == 0 || (blocks_[block_index].non_empty_cell_count_ == 64 && !IsBlockAtEdge(block_index)))
     {
         return;
     }
@@ -105,15 +107,14 @@ void CSDetectSurfaceBlocksMain(int3 dispatch_ID : SV_DispatchThreadID)
     uint surface_block_array_index;
     InterlockedAdd(surface_counts_[0].surface_blocks, 1, surface_block_array_index);
     surface_block_indices_[surface_block_array_index] = block_index;
-    
-    
+
     
     return;
 }
 
 // Shader for detecting surface cells
 [numthreads(4, 4, 4)]
-void CSDetectSurfaceCellsMain(int3 group_index : SV_GroupID, int offset : SV_GroupThreadID)
+void CSDetectSurfaceCellsMain(int3 group_index : SV_GroupID, int3 offset : SV_GroupThreadID)
 {
     // Use the block index to find the cell index
     uint block_index = surface_block_indices_[group_index.x];

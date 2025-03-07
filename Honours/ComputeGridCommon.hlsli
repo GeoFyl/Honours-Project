@@ -35,7 +35,7 @@ int GetCellIndex(float3 particle_pos)
     // 16 x 16 x 16 cells
     float3 cell_size = WORLD_MAX / 16.f;
     
-    uint cell_ID = ((uint) particle_pos.x / cell_size.x) + (((uint) particle_pos.y / cell_size.y) * 16) + (((uint) particle_pos.z / cell_size.z) * 256);
+    uint cell_ID = (uint)(particle_pos.x / cell_size.x) + ((uint)(particle_pos.y / cell_size.y) * 16) + ((uint)(particle_pos.z / cell_size.z) * 256);
     
     return cell_ID;
 }
@@ -46,7 +46,7 @@ uint3 CellIndexTo3DCoords(uint cell_index)
     
     coords.z = cell_index / 256;
     coords.y = (cell_index % 256) / 16;
-    coords.z = cell_index % 16;
+    coords.x = cell_index % 16;
     
     return coords;
 }

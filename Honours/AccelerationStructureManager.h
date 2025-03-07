@@ -14,7 +14,9 @@ public:
     ID3D12Resource* GetAABBBuffer() { return aabb_buffer_.Get(); }
 
     void UpdateStructure();
-    ID3D12Resource* GetStructure() { return top_acceleration_structure_.Get(); }
+    ID3D12Resource* GetTLAS() { return top_acceleration_structure_.Get(); }
+    ID3D12Resource* GetBLAS() { return bottom_acceleration_structure_.Get(); }
+    bool IsStructureBuilt() { return (bottom_acceleration_structure_.Get() != nullptr && top_acceleration_structure_.Get() != nullptr); }
 
 private:
     void CalculatePreBuildInfo(D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& blas_inputs, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO& blas_prebuild_info);

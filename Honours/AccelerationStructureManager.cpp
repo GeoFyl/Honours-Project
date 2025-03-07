@@ -30,7 +30,7 @@ AccelerationStructureManager::AccelerationStructureManager(DX::DeviceResources* 
 
 void AccelerationStructureManager::AllocateAABBBuffer(int new_aabb_count)
 {
-	if (new_aabb_count != aabb_count_) {
+	if (aabb_buffer_ == nullptr || new_aabb_count != aabb_count_) {
 		requires_rebuild_ = true;
 	}
 	else {
@@ -52,21 +52,26 @@ void AccelerationStructureManager::AllocateAABBBuffer(int new_aabb_count)
 // Updates or rebuilds acceleration structure
 void AccelerationStructureManager::UpdateStructure()
 {
-	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO blas_prebuild_info;
-	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS blas_inputs;
-	CalculatePreBuildInfo(blas_inputs, blas_prebuild_info);
+	if (aabb_count_ > 0) {
+		D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO blas_prebuild_info;
+		D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS blas_inputs;
+		CalculatePreBuildInfo(blas_inputs, blas_prebuild_info);
 
-	// Fully rebuild if needed, otherwise update with new geometry
-	if (requires_rebuild_) {
-		RebuildStructure(blas_inputs, blas_prebuild_info);
-	}
-	else {
-		BuildStructures(blas_inputs, blas_prebuild_info, true);
-	}
+		// Fully rebuild if needed, otherwise update with new geometry
+		if (requires_rebuild_) {
+			RebuildStructure(blas_inputs, blas_prebuild_info);
+		}
+		else {
+			BuildStructures(blas_inputs, blas_prebuild_info, true);
+		}
 
-	// Execute and wait for work to finish 
-	device_resources_->ExecuteCommandList();
-	device_resources_->WaitForGpu();
+		// Execute and wait for work to finish 
+		device_resources_->ExecuteCommandList();
+		device_resources_->WaitForGpu();
+		//device_resources_->ResetCommandList();
+
+		//OutputDebugString(L"\nFINISHED BUILDING\n");
+	}
 }
 
 void AccelerationStructureManager::CalculatePreBuildInfo(D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& blas_inputs, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO& blas_prebuild_info)
@@ -144,7 +149,11 @@ void AccelerationStructureManager::BuildStructures(D3D12_BUILD_RAYTRACING_ACCELE
 	}
 
 	device_resources_->ResetCommandList();
+	//command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(bottom_acceleration_structure_.Get()));
 	command_list->BuildRaytracingAccelerationStructure(&bottomLevelBuildDesc, 0, nullptr);
 	command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(bottom_acceleration_structure_.Get()));
+
+	//command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(top_acceleration_structure_.Get()));
 	command_list->BuildRaytracingAccelerationStructure(&topLevelBuildDesc, 0, nullptr);
+	command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(top_acceleration_structure_.Get()));
 }
