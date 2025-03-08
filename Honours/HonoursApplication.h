@@ -39,6 +39,7 @@ struct DebugValues {
     float uvw_normals_step_ = 0.04f;
     bool render_normals_ = false;
     bool visualize_aabbs_ = false;
+    bool use_simple_aabb_ = false;
 };
 
 class HonoursApplication : public DXSample
@@ -78,7 +79,7 @@ private:
     void LoadPipeline();
     void InitGUI();
     //void LoadAssets();
-    void PopulateCommandList();
+   // void PopulateCommandList();
     void CopyRaytracingOutputToBackbuffer();
     void DrawGUI();
 
@@ -91,12 +92,12 @@ private:
 
     UINT descriptors_allocated_ = 1; // 0th descriptor for ImGui
 
-    // idk what to call this
+    // Application systems
     std::unique_ptr<Resources> resources_ = nullptr;
     std::unique_ptr<RayTracer> ray_tracer_ = nullptr;
     std::unique_ptr<Computer> computer_ = nullptr;
 
-
+    // Upload buffers
     std::unique_ptr<UploadBuffer<ComputeCB>> compute_cb_ = nullptr;
     std::unique_ptr<UploadBuffer<RayTracingCB>> ray_tracing_cb_ = nullptr;
 

@@ -220,14 +220,17 @@ void HonoursApplication::OnUpdate()
     //OutputDebugString(L"\nBEGIN\n:");
 
     if (!debug_.pause_positions_) computer_->ComputePostitions();
-    computer_->ComputeGrid();
-    computer_->ComputeAABBs();
 
-    ray_tracer_->GetAccelerationStructure()->UpdateStructure();
-
-    // Execute and wait for work to finish     need this when not calling ComputeAABBs and UpdateStructure
-   // device_resources_->ExecuteCommandList();
-   // device_resources_->WaitForGpu();
+    if (!(debug_.use_simple_aabb_ || debug_.visualize_particles_)) {
+        computer_->ComputeGrid();
+        computer_->ComputeAABBs();
+        ray_tracer_->GetAccelerationStructure()->UpdateStructure();       
+    }
+    else {
+         // Execute and wait for work to finish     need this when not calling ComputeAABBs and UpdateStructure
+         device_resources_->ExecuteCommandList();
+         device_resources_->WaitForGpu();
+    }
 }
 
 // Render the scene.
@@ -277,58 +280,58 @@ void HonoursApplication::OnRender()
 
 }
 
-void HonoursApplication::PopulateCommandList()
-{
-    //// Command list allocators can only be reset when the associated 
-    //// command lists have finished execution on the GPU; apps should use 
-    //// fences to determine GPU execution progress.
-    //ThrowIfFailed(m_commandAllocators[m_frameIndex]->Reset());
-
-    //// However, when ExecuteCommandList() is called on a particular command 
-    //// list, that command list can then be reset at any time and must be before 
-    //// re-recording.
-    //ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_frameIndex].Get(), m_pipelineState.Get()));
-
-    // Set necessary state.
-    ID3D12GraphicsCommandList4* command_list = device_resources_->GetCommandList();
-    command_list->SetGraphicsRootSignature(resources_->GetRootSignature());
-    command_list->RSSetViewports(1, &device_resources_->GetScreenViewport());
-    command_list->RSSetScissorRects(1, &device_resources_->GetScissorRect());
-    ID3D12DescriptorHeap* srv_heaps[1] = { descriptor_heap_.Get() };
-    command_list->SetDescriptorHeaps(1, srv_heaps);
-
-    // Indicate that the back buffer will be used as a render target.
-    //command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
-
-    /*CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_rtvDescriptorSize);
-    command_list->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);*/
-
-    CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle = device_resources_->GetRenderTargetView();
-    command_list->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
-
-    // Record commands.
-    XMMATRIX view_projection = XMMatrixMultiply(camera_->getViewMatrix(), projection_matrix_);
-
-    const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
-    command_list->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-
-    // Set world-view-projection matrix for current object
-    XMMATRIX world_view_proj = XMMatrixMultiplyTranspose(world_matrix_, view_projection);
-    resources_->SetWorldViewProj(world_view_proj);
-
-    // Set root views to the ones for current object and draw
-    resources_->SetRootViews(command_list);
-    //cube_->SendData(command_list);
-    //cube_->Draw(command_list);
-
-    // Record commands for drawing GUI
-    DrawGUI();
-
-    // Indicate that the back buffer will now be used to present.
-    //m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
-
-    //ThrowIfFailed(m_commandList->Close());
-}
+//void HonoursApplication::PopulateCommandList()
+//{
+//    //// Command list allocators can only be reset when the associated 
+//    //// command lists have finished execution on the GPU; apps should use 
+//    //// fences to determine GPU execution progress.
+//    //ThrowIfFailed(m_commandAllocators[m_frameIndex]->Reset());
+//
+//    //// However, when ExecuteCommandList() is called on a particular command 
+//    //// list, that command list can then be reset at any time and must be before 
+//    //// re-recording.
+//    //ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_frameIndex].Get(), m_pipelineState.Get()));
+//
+//    // Set necessary state.
+//    ID3D12GraphicsCommandList4* command_list = device_resources_->GetCommandList();
+//    command_list->SetGraphicsRootSignature(resources_->GetRootSignature());
+//    command_list->RSSetViewports(1, &device_resources_->GetScreenViewport());
+//    command_list->RSSetScissorRects(1, &device_resources_->GetScissorRect());
+//    ID3D12DescriptorHeap* srv_heaps[1] = { descriptor_heap_.Get() };
+//    command_list->SetDescriptorHeaps(1, srv_heaps);
+//
+//    // Indicate that the back buffer will be used as a render target.
+//    //command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+//
+//    /*CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_rtvDescriptorSize);
+//    command_list->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);*/
+//
+//    CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle = device_resources_->GetRenderTargetView();
+//    command_list->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+//
+//    // Record commands.
+//    XMMATRIX view_projection = XMMatrixMultiply(camera_->getViewMatrix(), projection_matrix_);
+//
+//    const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
+//    command_list->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+//
+//    // Set world-view-projection matrix for current object
+//    XMMATRIX world_view_proj = XMMatrixMultiplyTranspose(world_matrix_, view_projection);
+//    resources_->SetWorldViewProj(world_view_proj);
+//
+//    // Set root views to the ones for current object and draw
+//    resources_->SetRootViews(command_list);
+//    //cube_->SendData(command_list);
+//    //cube_->Draw(command_list);
+//
+//    // Record commands for drawing GUI
+//    DrawGUI();
+//
+//    // Indicate that the back buffer will now be used to present.
+//    //m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+//
+//    //ThrowIfFailed(m_commandList->Close());
+//}
 
 // Copy the raytracing output to the backbuffer.
 void HonoursApplication::CopyRaytracingOutputToBackbuffer()
@@ -358,15 +361,22 @@ void HonoursApplication::DrawGUI()
 
     ImGui::Text("FPS: %.2f", timer_.GetCurrentFPS());
 
-    ImGui::Checkbox("Analytical distances", &debug_.render_analytical_);
-    ImGui::Checkbox("Visualize particles", &debug_.visualize_particles_);
-    ImGui::Checkbox("Freeze particles", &debug_.pause_positions_);
-    ImGui::Checkbox("Debug normals", &debug_.render_normals_);
-    ImGui::Text("Normals uvw step (texture):");
-    ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.9f);
-    ImGui::SliderFloat("##", &debug_.uvw_normals_step_, 0.0001f, 0.1f, "%.5f");
-    ImGui::PopItemWidth();
-    ImGui::Checkbox("Visualize AABBs", &debug_.visualize_aabbs_);
+    if (ImGui::CollapsingHeader("Implementation")) {
+        ImGui::Checkbox("Analytical distances", &debug_.render_analytical_);
+        ImGui::Checkbox("Use simple bounding volume", &debug_.use_simple_aabb_);
+    }
+    if (ImGui::CollapsingHeader("Visualisation")) {
+        ImGui::Checkbox("Visualize bounding volumes", &debug_.visualize_aabbs_);
+        ImGui::Checkbox("Visualise particles", &debug_.visualize_particles_);
+        ImGui::Checkbox("Pause particles", &debug_.pause_positions_);    
+    }
+    if (ImGui::CollapsingHeader("Debug Normals")) {
+        ImGui::Checkbox("Debug normals", &debug_.render_normals_);
+        ImGui::Text("Normals uvw step (texture):");
+        ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.9f);
+        ImGui::SliderFloat("##", &debug_.uvw_normals_step_, 0.0001f, 0.1f, "%.5f");
+        ImGui::PopItemWidth();        
+    }
 
     ImGui::Render();
     ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), device_resources_->GetCommandList());

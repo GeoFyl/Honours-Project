@@ -22,7 +22,7 @@ RayTracer::RayTracer(DX::DeviceResources* device_resources, HonoursApplication* 
 
     CreateRootSignatures();
     CreateRaytracingPipelineStateObject();
-    BuildAccelerationStructures();
+    BuildSimpleAccelerationStructure();
 
     device_resources_->GetCommandList()->Reset(device_resources_->GetCommandAllocator(), nullptr);   // only need when using naive aabb
     BuildShaderTables();
@@ -44,20 +44,18 @@ void RayTracer::RayTracing()
     //commandList->SetDescriptorHeaps(1, &heap);
     commandList->SetComputeRootDescriptorTable(GlobalRTRootSignatureParams::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
     commandList->SetComputeRootDescriptorTable(GlobalRTRootSignatureParams::SDFTextureSlot, computer_->GetSDFTextureHandle());
-    //if (acceleration_structure_->IsStructureBuilt()) {
-        //OutputDebugString(L"\nSTRUCTURE BUILT\n:");
-        commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::AccelerationStructureSlot, acceleration_structure_->GetTLAS()->GetGPUVirtualAddress());
-   // }
-    //else {
-    //    //OutputDebugString(L"\nSTRUCTURE NOT BUILT\n:");
-    //    commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::AccelerationStructureSlot, m_topLevelAccelerationStructure->GetGPUVirtualAddress());
-    //}
-
     commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::ParticlePositionsBufferSlot, computer_->GetPositionsBuffer()->GetGPUVirtualAddress());
-    commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::AABBBufferSlot, acceleration_structure_->GetAABBBuffer()->GetGPUVirtualAddress());
     commandList->SetComputeRootConstantBufferView(GlobalRTRootSignatureParams::ConstantBufferSlot, application_->GetRaytracingCB()->GetGPUVirtualAddress());
 
-    
+    auto& debug_values = application_->GetDebugValues();
+    if (debug_values.use_simple_aabb_ || debug_values.visualize_particles_) {
+        commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::AccelerationStructureSlot, top_simple_acceleration_structure->GetGPUVirtualAddress());
+        commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::AABBBufferSlot, simple_aabb_buffer_->GetGPUVirtualAddress());
+    }
+    else {
+        commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::AccelerationStructureSlot, acceleration_structure_->GetTLAS()->GetGPUVirtualAddress());
+        commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::AABBBufferSlot, acceleration_structure_->GetAABBBuffer()->GetGPUVirtualAddress());
+    }
 
     // Since each shader table has only one shader record, the stride is same as the size.
     D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
@@ -203,79 +201,28 @@ void RayTracer::CreateRaytracingPipelineStateObject()
 }
 
 // Build acceleration structures needed for raytracing.
-void RayTracer::BuildAccelerationStructures()
+void RayTracer::BuildSimpleAccelerationStructure()
 {
     ID3D12Device5* device = device_resources_->GetD3DDevice();
     ID3D12GraphicsCommandList4* command_list = device_resources_->GetCommandList();
 
     // Create and upload the AABBs
-    D3D12_RAYTRACING_AABB aabb[8];
-    aabb[0].MaxX = 1.f;
-    aabb[0].MaxY = 1.f;
-    aabb[0].MaxZ = 1.f;
-    aabb[0].MinX = 0.f;
-    aabb[0].MinY = 0.f;
-    aabb[0].MinZ = 0.f;
+    D3D12_RAYTRACING_AABB aabb;
+    aabb.MaxX = 1.5f;
+    aabb.MaxY = 1.5f;
+    aabb.MaxZ = 1.5f;
+    aabb.MinX = -0.5f;
+    aabb.MinY = -0.5f;
+    aabb.MinZ = -0.5f;
 
-    aabb[1].MaxX = 2.f;
-    aabb[1].MaxY = 1.f;
-    aabb[1].MaxZ = 1.f;
-    aabb[1].MinX = 1.f;
-    aabb[1].MinY = 0.f;
-    aabb[1].MinZ = 0.f;
-
-    aabb[2].MaxX = 1.f;
-    aabb[2].MaxY = 1.f;
-    aabb[2].MaxZ = 2.f;
-    aabb[2].MinX = 0.f;
-    aabb[2].MinY = 0.f;
-    aabb[2].MinZ = 1.f;
-
-    aabb[3].MaxX = 2.f;
-    aabb[3].MaxY = 1.f;
-    aabb[3].MaxZ = 2.f;
-    aabb[3].MinX = 1.f;
-    aabb[3].MinY = 0.f;
-    aabb[3].MinZ = 1.f;
-
-    aabb[4].MaxX = 1.f;
-    aabb[4].MaxY = 2.f;
-    aabb[4].MaxZ = 1.f;
-    aabb[4].MinX = 0.f;
-    aabb[4].MinY = 1.f;
-    aabb[4].MinZ = 0.f;
-
-    aabb[5].MaxX = 2.f;
-    aabb[5].MaxY = 2.f;
-    aabb[5].MaxZ = 1.f;
-    aabb[5].MinX = 1.f;
-    aabb[5].MinY = 1.f;
-    aabb[5].MinZ = 0.f;
-
-    aabb[6].MaxX = 1.f;
-    aabb[6].MaxY = 2.f;
-    aabb[6].MaxZ = 2.f;
-    aabb[6].MinX = 0.f;
-    aabb[6].MinY = 1.f;
-    aabb[6].MinZ = 1.f;
-
-    aabb[7].MaxX = 2.f;
-    aabb[7].MaxY = 2.f;
-    aabb[7].MaxZ = 2.f;
-    aabb[7].MinX = 1.f;
-    aabb[7].MinY = 1.f;
-    aabb[7].MinZ = 1.f;
-
-    aabb_buffer_ = Utilities::CreateDefaultBuffer(device, command_list, &aabb, /*(size of aabb array * )*/ sizeof(aabb), aabb_buffer_uploader_);
-    aabb_buffer_.Get()->SetName(L"AABB buffer");
-    aabb_buffer_uploader_->SetName(L"AABB uploader");
+    simple_aabb_buffer_ = Utilities::CreateDefaultBuffer(device, command_list, &aabb, sizeof(aabb), aabb_buffer_uploader_);
 
     // Build geometry description
     D3D12_RAYTRACING_GEOMETRY_DESC geometryDesc = {};
     geometryDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS;
-    geometryDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE; // change later
-    geometryDesc.AABBs.AABBCount = 8;
-    geometryDesc.AABBs.AABBs.StartAddress = aabb_buffer_->GetGPUVirtualAddress();
+    geometryDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
+    geometryDesc.AABBs.AABBCount = 1;
+    geometryDesc.AABBs.AABBs.StartAddress = simple_aabb_buffer_->GetGPUVirtualAddress();
     geometryDesc.AABBs.AABBs.StrideInBytes = sizeof(D3D12_RAYTRACING_AABB);
 
     // Get required sizes for an acceleration structure.
@@ -288,14 +235,12 @@ void RayTracer::BuildAccelerationStructures()
 
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO topLevelPrebuildInfo = {};
     device->GetRaytracingAccelerationStructurePrebuildInfo(&topLevelInputs, &topLevelPrebuildInfo);
-    //ThrowIfFalse(topLevelPrebuildInfo.ResultDataMaxSizeInBytes > 0);
 
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO bottomLevelPrebuildInfo = {};
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS bottomLevelInputs = topLevelInputs;
     bottomLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
     bottomLevelInputs.pGeometryDescs = &geometryDesc;
     device->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelInputs, &bottomLevelPrebuildInfo);
-    //ThrowIfFalse(bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes > 0);
 
     ComPtr<ID3D12Resource> scratchResource;
     Utilities::AllocateDefaultBuffer(device, max(topLevelPrebuildInfo.ScratchDataSizeInBytes, bottomLevelPrebuildInfo.ScratchDataSizeInBytes), &scratchResource, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
@@ -310,27 +255,24 @@ void RayTracer::BuildAccelerationStructures()
     {
         D3D12_RESOURCE_STATES initialResourceState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
 
-        Utilities::AllocateDefaultBuffer(device, bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes, &m_bottomLevelAccelerationStructure, initialResourceState, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-        Utilities::AllocateDefaultBuffer(device, topLevelPrebuildInfo.ResultDataMaxSizeInBytes, &m_topLevelAccelerationStructure, initialResourceState, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+        Utilities::AllocateDefaultBuffer(device, bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes, &bottom_simple_acceleration_structure, initialResourceState, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+        Utilities::AllocateDefaultBuffer(device, topLevelPrebuildInfo.ResultDataMaxSizeInBytes, &top_simple_acceleration_structure, initialResourceState, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     }
 
     // Create an instance desc for the bottom-level acceleration structure.
-    //ComPtr<ID3D12Resource> instanceDescs;
     D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
     instanceDesc.Transform[0][0] = instanceDesc.Transform[1][1] = instanceDesc.Transform[2][2] = 1;
     instanceDesc.InstanceMask = 1;
-    instanceDesc.AccelerationStructure = m_bottomLevelAccelerationStructure->GetGPUVirtualAddress();
+    instanceDesc.AccelerationStructure = bottom_simple_acceleration_structure->GetGPUVirtualAddress();
     UploadBuffer<D3D12_RAYTRACING_INSTANCE_DESC> instance_desc_buffer(device, 1, false);
     instance_desc_buffer.CopyData(0, instanceDesc);
-
-    //AllocateUploadBuffer(device, &instanceDesc, sizeof(instanceDesc), &instanceDescs, L"InstanceDescs");
 
     // Bottom Level Acceleration Structure desc
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelBuildDesc = {};
     {
         bottomLevelBuildDesc.Inputs = bottomLevelInputs;
         bottomLevelBuildDesc.ScratchAccelerationStructureData = scratchResource->GetGPUVirtualAddress();
-        bottomLevelBuildDesc.DestAccelerationStructureData = m_bottomLevelAccelerationStructure->GetGPUVirtualAddress();
+        bottomLevelBuildDesc.DestAccelerationStructureData = bottom_simple_acceleration_structure->GetGPUVirtualAddress();
     }
 
     // Top Level Acceleration Structure desc
@@ -338,19 +280,13 @@ void RayTracer::BuildAccelerationStructures()
     {
         topLevelInputs.InstanceDescs = instance_desc_buffer.Resource()->GetGPUVirtualAddress();
         topLevelBuildDesc.Inputs = topLevelInputs;
-        topLevelBuildDesc.DestAccelerationStructureData = m_topLevelAccelerationStructure->GetGPUVirtualAddress();
+        topLevelBuildDesc.DestAccelerationStructureData = top_simple_acceleration_structure->GetGPUVirtualAddress();
         topLevelBuildDesc.ScratchAccelerationStructureData = scratchResource->GetGPUVirtualAddress();
     }
 
-    /*auto BuildAccelerationStructure = [&](auto* raytracingCommandList)
-        {*/
-            command_list->BuildRaytracingAccelerationStructure(&bottomLevelBuildDesc, 0, nullptr);
-            command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(m_bottomLevelAccelerationStructure.Get()));
-            command_list->BuildRaytracingAccelerationStructure(&topLevelBuildDesc, 0, nullptr);
-        //};
-
-    // Build acceleration structure.
-    //BuildAccelerationStructure(command_list_);
+    command_list->BuildRaytracingAccelerationStructure(&bottomLevelBuildDesc, 0, nullptr);
+    command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(bottom_simple_acceleration_structure.Get()));
+    command_list->BuildRaytracingAccelerationStructure(&topLevelBuildDesc, 0, nullptr);
 
     // Kick off acceleration structure construction.
     device_resources_->ExecuteCommandList();
