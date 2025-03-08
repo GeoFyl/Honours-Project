@@ -31,11 +31,9 @@ void CSBuildAABBs(int3 dispatch_ID : SV_DispatchThreadID)
     // Convert from grid-space cell coords to world-space
     float3 world_pos = lerp(WORLD_MIN, WORLD_MAX, coords_3d / float3(16.f, 16.f, 16.f));
     
-    float3 cell_size = WORLD_MAX / 16.f;
-    
     AABB aabb;
     aabb.min_ = world_pos;
-    aabb.max_ = world_pos + cell_size;
+    aabb.max_ = world_pos + CELL_SIZE;
 
     aabbs_[dispatch_ID.x] = aabb;
 }

@@ -258,6 +258,9 @@
     <CustomBuild Include="ComputeBuildAABBs.hlsl">
       <Filter>Assets\Shaders\Compute</Filter>
     </CustomBuild>
+    <CustomBuild Include="GlobalValues.hlsli">
+      <Filter>Assets\Shaders</Filter>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

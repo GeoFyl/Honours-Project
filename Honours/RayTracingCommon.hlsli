@@ -1,12 +1,11 @@
 #ifndef RAYTRACING_STRUCTS_HLSL
 #define RAYTRACING_STRUCTS_HLSL
 
+#include "GlobalValues.hlsli"
+
 #define MAX_RECURSION_DEPTH 1 // Primary rays
 #define MAX_SPHERE_TRACING_STEPS 512
 #define SPHERE_TRACING_THRESHOLD 0.001f
-
-#define NUM_PARTICLES 125 // Also in ComputeStructs.h, ComputeCommon.hlsli
-#define TEXTURE_RESOLUTION 256 // Also in ComputeStructs.h, ComputeCommon.hlsli
 
 // Rendering flags
 #define RENDERING_FLAG_NONE                     0
@@ -28,7 +27,7 @@ struct RayPayload
 
 struct RayIntersectionAttributes
 {
-    float3 normal_;
+    float3 float_3_; // Can be used for normals or uvw 
 };
 
 struct RayTracingCB

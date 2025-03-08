@@ -4,8 +4,6 @@
 #include "ComputeCommon.hlsli"
 
 #define CELL_MAX_PARTICLE_COUNT 8 // Also in ComputeStructs.h
-#define NUM_CELLS 4096 // Also in ComputeStructs.h
-#define NUM_BLOCKS 64 // Also in ComputeStructs.h
 
 // ---- Two-level Grid -----
 struct Cell

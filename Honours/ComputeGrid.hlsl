@@ -3,7 +3,7 @@
 
 #include "ComputeGridCommon.hlsli"
 
-RWStructuredBuffer<ParticlePosition> particle_positions_ : register(u0);
+StructuredBuffer<ParticlePosition> particle_positions_ : register(t0);
 RWStructuredBuffer<Cell> cells_ : register(u1);
 RWStructuredBuffer<Block> blocks_ : register(u2);
 RWStructuredBuffer<uint> surface_block_indices_ : register(u3);
