@@ -221,8 +221,8 @@ void Computer::ComputeSDFTexture()
     commandList->SetPipelineState(compute_tex_state_object_.Get());
     commandList->SetComputeRootSignature(compute_tex_root_signature_.Get());
 
-    ID3D12DescriptorHeap* heap = application_->GetDescriptorHeap();
-    commandList->SetDescriptorHeaps(1, &heap);
+    /*ID3D12DescriptorHeap* heap = application_->GetDescriptorHeap();
+    commandList->SetDescriptorHeaps(1, &heap);*/
 
     commandList->SetComputeRootShaderResourceView(ComputeTextureRootSignatureParams::ParticlePositionsBufferSlot, particle_pos_buffer_->GetGPUVirtualAddress());
     commandList->SetComputeRootDescriptorTable(ComputeTextureRootSignatureParams::TextureSlot, sdf_3d_texture_gpu_handle_);

@@ -250,8 +250,8 @@ void HonoursApplication::OnRender()
 
 
 
-    /*ID3D12DescriptorHeap* srv_heaps[1] = { descriptor_heap_.Get() };
-    device_resources_->GetCommandList()->SetDescriptorHeaps(1, srv_heaps);*/
+    ID3D12DescriptorHeap* srv_heaps[1] = { descriptor_heap_.Get() };
+    device_resources_->GetCommandList()->SetDescriptorHeaps(1, srv_heaps);
 
     CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle = device_resources_->GetRenderTargetView();
     device_resources_->GetCommandList()->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
@@ -261,8 +261,10 @@ void HonoursApplication::OnRender()
 
     if (!(debug_.render_analytical_ || debug_.visualize_particles_)) computer_->ComputeSDFTexture();
 
-    ray_tracer_->RayTracing();
-    CopyRaytracingOutputToBackbuffer();
+    if (ray_tracer_->GetAccelerationStructure()->IsStructureBuilt()) {
+        ray_tracer_->RayTracing();
+        CopyRaytracingOutputToBackbuffer();
+    }
 
     // Record commands for drawing GUI
     DrawGUI();

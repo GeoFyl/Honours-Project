@@ -40,21 +40,24 @@ void RayTracer::RayTracing()
     commandList->SetComputeRootSignature(rt_global_root_signature_.Get());
 
     // Bind the heaps, acceleration structure and dispatch rays.
-    ID3D12DescriptorHeap* heap = application_->GetDescriptorHeap();
-    commandList->SetDescriptorHeaps(1, &heap);
+    //ID3D12DescriptorHeap* heap = application_->GetDescriptorHeap();
+    //commandList->SetDescriptorHeaps(1, &heap);
     commandList->SetComputeRootDescriptorTable(GlobalRTRootSignatureParams::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
     commandList->SetComputeRootDescriptorTable(GlobalRTRootSignatureParams::SDFTextureSlot, computer_->GetSDFTextureHandle());
-    if (acceleration_structure_->IsStructureBuilt()) {
+    //if (acceleration_structure_->IsStructureBuilt()) {
         //OutputDebugString(L"\nSTRUCTURE BUILT\n:");
         commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::AccelerationStructureSlot, acceleration_structure_->GetTLAS()->GetGPUVirtualAddress());
-    }
-    else {
-        //OutputDebugString(L"\nSTRUCTURE NOT BUILT\n:");
-        commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::AccelerationStructureSlot, m_topLevelAccelerationStructure->GetGPUVirtualAddress());
-    }
+   // }
+    //else {
+    //    //OutputDebugString(L"\nSTRUCTURE NOT BUILT\n:");
+    //    commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::AccelerationStructureSlot, m_topLevelAccelerationStructure->GetGPUVirtualAddress());
+    //}
 
     commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::ParticlePositionsBufferSlot, computer_->GetPositionsBuffer()->GetGPUVirtualAddress());
+    commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::AABBBufferSlot, acceleration_structure_->GetAABBBuffer()->GetGPUVirtualAddress());
     commandList->SetComputeRootConstantBufferView(GlobalRTRootSignatureParams::ConstantBufferSlot, application_->GetRaytracingCB()->GetGPUVirtualAddress());
+
+    
 
     // Since each shader table has only one shader record, the stride is same as the size.
     D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
@@ -109,6 +112,7 @@ void RayTracer::CreateRootSignatures()
     CD3DX12_DESCRIPTOR_RANGE tex_descriptor;
     tex_descriptor.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
     rootParameters[GlobalRTRootSignatureParams::SDFTextureSlot].InitAsDescriptorTable(1, &tex_descriptor);
+    rootParameters[GlobalRTRootSignatureParams::AABBBufferSlot].InitAsShaderResourceView(3);
 
     // (b)
     rootParameters[GlobalRTRootSignatureParams::ConstantBufferSlot].InitAsConstantBufferView(0);
@@ -123,10 +127,10 @@ void RayTracer::CreateRootSignatures()
     // ---- Hit group local root signature ----
 
     // (t)
-    CD3DX12_ROOT_PARAMETER local_root_params[LocalRootSignatureParams::Count];
+   /* CD3DX12_ROOT_PARAMETER local_root_params[LocalRootSignatureParams::Count];
     local_root_params[LocalRootSignatureParams::AABBBufferSlot].InitAsShaderResourceView(0, 1);
     CD3DX12_ROOT_SIGNATURE_DESC localRootSignatureDesc(ARRAYSIZE(local_root_params), local_root_params, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
-    SerializeAndCreateRaytracingRootSignature(localRootSignatureDesc, &rt_hit_local_root_signature_);
+    SerializeAndCreateRaytracingRootSignature(localRootSignatureDesc, &rt_hit_local_root_signature_);*/
 
 }
 
@@ -168,13 +172,13 @@ void RayTracer::CreateRaytracingPipelineStateObject()
     hitGroup->SetHitGroupExport(hit_group_name_);
     hitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_PROCEDURAL_PRIMITIVE);
 
-    // Create and associate the local root signature with the hit group
-    const auto localRootSig = raytracingPipeline.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
-    localRootSig->SetRootSignature(rt_hit_local_root_signature_.Get());
+    //// Create and associate the local root signature with the hit group
+    //const auto localRootSig = raytracingPipeline.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
+    //localRootSig->SetRootSignature(rt_hit_local_root_signature_.Get());
 
-    const auto localRootSigAssociation = raytracingPipeline.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
-    localRootSigAssociation->SetSubobjectToAssociate(*localRootSig);
-    localRootSigAssociation->AddExport(hit_group_name_);
+    //const auto localRootSigAssociation = raytracingPipeline.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
+    //localRootSigAssociation->SetSubobjectToAssociate(*localRootSig);
+    //localRootSigAssociation->AddExport(hit_group_name_);
 
     // Shader config
     // Defines the maximum sizes in bytes for the ray payload and attribute structure.
