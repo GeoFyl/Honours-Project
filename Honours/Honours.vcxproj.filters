@@ -252,9 +252,6 @@
     <CustomBuild Include="ComputeGrid.hlsl">
       <Filter>Assets\Shaders\Compute</Filter>
     </CustomBuild>
-    <CustomBuild Include="ComputeDispatchSurfaceCells.hlsl">
-      <Filter>Assets\Shaders\Compute</Filter>
-    </CustomBuild>
     <CustomBuild Include="ComputeBuildAABBs.hlsl">
       <Filter>Assets\Shaders\Compute</Filter>
     </CustomBuild>

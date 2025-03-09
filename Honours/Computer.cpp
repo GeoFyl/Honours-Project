@@ -477,46 +477,11 @@ void Computer::CreateBuffers()
         D3D12_RESOURCE_STATE_COPY_DEST,
         nullptr,
         IID_PPV_ARGS(&surface_counts_readback_buffer_)));
-
-
-    //// Indirect dispatch argument buffer for surface cell detection
-    //D3D12_DISPATCH_ARGUMENTS dispatch_args = { 1, 1, 1 }; // By default dispatch (1, 1, 1) thread groups
-    //surface_cells_dispatch_buffer_ = Utilities::CreateDefaultBuffer(device, command_list, &dispatch_args, sizeof(D3D12_DISPATCH_ARGUMENTS), surface_cells_dispatch_buffer_uploader_, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-
-
-
-    //// AABB buffer
-    //AABB aabbs[8];
-    //aabbs[0].max_ = XMFLOAT3(1.f, 1.f, 1.f);
-    //aabbs[0].min_ = XMFLOAT3(0.f, 0.f, 0.f);
-
-    //aabbs[1].max_ = XMFLOAT3(2.f, 1.f, 1.f);
-    //aabbs[1].min_ = XMFLOAT3(1.f, 0.f, 0.f);
-
-    //aabbs[2].max_ = XMFLOAT3(1.f, 1.f, 2.f);
-    //aabbs[2].min_ = XMFLOAT3(0.f, 0.f, 1.f);
-
-    //aabbs[3].max_ = XMFLOAT3(2.f, 1.f, 2.f);
-    //aabbs[3].min_ = XMFLOAT3(1.f, 1.f, 1.f);
-
-    //aabbs[4].max_ = XMFLOAT3(1.f, 2.f, 1.f);
-    //aabbs[4].min_ = XMFLOAT3(0.f, 1.f, 0.f);
-
-    //aabbs[5].max_ = XMFLOAT3(2.f, 2.f, 1.f);
-    //aabbs[5].min_ = XMFLOAT3(1.f, 1.f, 0.f);
-   
-    //aabbs[6].max_ = XMFLOAT3(1.f, 2.f, 2.f);
-    //aabbs[6].min_ = XMFLOAT3(0.f, 1.f, 1.f);
-
-    //aabbs[7].max_ = XMFLOAT3(2.f, 2.f, 2.f);
-    //aabbs[7].min_ = XMFLOAT3(1.f, 1.f, 1.f);
-
-    //aabb_buffer_ = Utilities::CreateDefaultBuffer(device, command_list, &aabbs, sizeof(aabbs), aabb_buffer_uploader_, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 }
 
 void Computer::CreateTexture3D()
 {
-    // Create the output resource. The dimensions and format should match the swap-chain.
+    // Create the 3D texture 
     auto uavDesc = CD3DX12_RESOURCE_DESC::Tex3D(DXGI_FORMAT_R8_SNORM, TEXTURE_RESOLUTION, TEXTURE_RESOLUTION, TEXTURE_RESOLUTION, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
     auto defaultHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);

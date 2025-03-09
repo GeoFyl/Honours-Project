@@ -269,11 +269,6 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="ComputeDispatchSurfaceCells.hlsl">
-      <FileType>Document</FileType>
-    </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
     <CustomBuild Include="ComputeBuildAABBs.hlsl">
       <FileType>Document</FileType>
     </CustomBuild>

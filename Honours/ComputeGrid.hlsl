@@ -14,14 +14,14 @@ RWStructuredBuffer<GridSurfaceCounts> surface_counts_ : register(u5);
 // Blocks: 4 x 4 x 4 total
 // Cells: 16 x 16 x 16 total, 4 x 4 x 4 per block
 
-// Finds if a neighbour cell is empty, given a current index and an offset
+// Finds if a neighbouring cell is empty, given a current index and an offset
 bool IsNeighbourEmpty(int cell_index, int3 offset)
 {
-    int z = (cell_index / 256) + offset.z;
-    int y = ((cell_index % 256) / 16) + offset.y;
-    int x = (cell_index % 16) + offset.x;
+    uint3 cell_coords = CellIndexTo3DCoords(cell_index) + offset;
     
-    int new_index = (z * 256) + (y * 16) + x;
+    uint3 cells_per_axis = uint3(NUM_CELLS_PER_AXIS);
+    int new_index = (cell_coords.z * cells_per_axis.x * cells_per_axis.y) + (cell_coords.y * cells_per_axis.x) + cell_coords.x;
+    
     if (new_index > -1 && new_index < NUM_CELLS)
         return (cells_[new_index].particle_count_ == 0);
     return false;
@@ -98,7 +98,7 @@ void CSDetectSurfaceBlocksMain(int3 dispatch_ID : SV_DispatchThreadID)
     
     // If the non-empty cell count is 0, or 64 and not at the edge, the block is not a surface block
     // Technically a surface block could be full and not at the edge of the bounds, but hopefully this isnt common enough to cause artifacts
-    if (blocks_[block_index].non_empty_cell_count_ == 0 || (blocks_[block_index].non_empty_cell_count_ == 64 && !IsBlockAtEdge(block_index)))
+    if (blocks_[block_index].non_empty_cell_count_ == 0 || (blocks_[block_index].non_empty_cell_count_ == NUM_CELLS_PER_BLOCK && !IsBlockAtEdge(block_index)))
     {
         return;
     }
@@ -113,7 +113,7 @@ void CSDetectSurfaceBlocksMain(int3 dispatch_ID : SV_DispatchThreadID)
 }
 
 // Shader for detecting surface cells
-[numthreads(4, 4, 4)]
+[numthreads(NUM_CELLS_PER_AXIS_PER_BLOCK)]
 void CSDetectSurfaceCellsMain(int3 group_index : SV_GroupID, int3 offset : SV_GroupThreadID)
 {
     // Use the block index to find the cell index

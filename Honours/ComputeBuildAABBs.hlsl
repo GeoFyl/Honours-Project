@@ -29,7 +29,7 @@ void CSBuildAABBs(int3 dispatch_ID : SV_DispatchThreadID)
     float3 coords_3d = CellIndexTo3DCoords(cell_index);
     
     // Convert from grid-space cell coords to world-space
-    float3 world_pos = lerp(WORLD_MIN, WORLD_MAX, coords_3d / float3(16.f, 16.f, 16.f));
+    float3 world_pos = lerp(WORLD_MIN, WORLD_MAX, coords_3d / float3(NUM_CELLS_PER_AXIS));
     
     AABB aabb;
     aabb.min_ = world_pos;

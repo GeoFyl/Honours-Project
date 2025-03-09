@@ -48,7 +48,7 @@ void RayTracer::RayTracing()
     commandList->SetComputeRootConstantBufferView(GlobalRTRootSignatureParams::ConstantBufferSlot, application_->GetRaytracingCB()->GetGPUVirtualAddress());
 
     auto& debug_values = application_->GetDebugValues();
-    if (debug_values.use_simple_aabb_ || debug_values.visualize_particles_) {
+    if ((debug_values.use_simple_aabb_ || debug_values.visualize_particles_) && !(debug_values.visualize_particles_ && debug_values.visualize_aabbs_)) {
         commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::AccelerationStructureSlot, top_simple_acceleration_structure->GetGPUVirtualAddress());
         commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::AABBBufferSlot, simple_aabb_buffer_->GetGPUVirtualAddress());
     }
@@ -208,12 +208,12 @@ void RayTracer::BuildSimpleAccelerationStructure()
 
     // Create and upload the AABBs
     D3D12_RAYTRACING_AABB aabb;
-    aabb.MaxX = 1.5f;
-    aabb.MaxY = 1.5f;
-    aabb.MaxZ = 1.5f;
-    aabb.MinX = -0.5f;
-    aabb.MinY = -0.5f;
-    aabb.MinZ = -0.5f;
+    aabb.MaxX = 1.f;
+    aabb.MaxY = 1.f;
+    aabb.MaxZ = 1.f;
+    aabb.MinX = 0.f;
+    aabb.MinY = 0.f;
+    aabb.MinZ = 0.f;
 
     simple_aabb_buffer_ = Utilities::CreateDefaultBuffer(device, command_list, &aabb, sizeof(aabb), aabb_buffer_uploader_);
 

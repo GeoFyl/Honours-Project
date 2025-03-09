@@ -221,7 +221,7 @@ void HonoursApplication::OnUpdate()
 
     if (!debug_.pause_positions_) computer_->ComputePostitions();
 
-    if (!(debug_.use_simple_aabb_ || debug_.visualize_particles_)) {
+    if (!(debug_.use_simple_aabb_)) {
         computer_->ComputeGrid();
         computer_->ComputeAABBs();
         ray_tracer_->GetAccelerationStructure()->UpdateStructure();       

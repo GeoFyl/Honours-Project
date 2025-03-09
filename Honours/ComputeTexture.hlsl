@@ -1,10 +1,9 @@
-#ifndef COMPUTE_TEX_HLSL
-#define COMPUTE_TEX_HLSL
+#ifndef COMPUTE_TEX_SIMPLE_HLSL
+#define COMPUTE_TEX_SIMPLE_HLSL
 
 #include "ComputeCommon.hlsli"
 #include "SdfHelpers.hlsli"
 
-//StructuredBuffer<ParticlePosition> particle_positions_ : register(t0);
 RWTexture3D<snorm float> output_texture_ : register(u0);
 
 // Shader for creating SDF 3D texture 

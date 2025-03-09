@@ -4,7 +4,7 @@
 #ifdef RAYTRACING_HLSL
 #include "RayTracingCommon.hlsli"
 #endif
-#ifdef COMPUTE_TEX_HLSL
+#ifdef COMPUTE_TEX_SIMPLE_HLSL
 StructuredBuffer<ParticlePosition> particle_positions_ : register(t0);
 #endif
 
@@ -41,7 +41,7 @@ float GetAnalyticalSignedDistance(float3 position)
     return distance;
 }
 
-#ifndef COMPUTE_TEX_HLSL
+#ifndef COMPUTE_TEX_SIMPLE_HLSL
 
 float GetDistance(float3 position)
 {
@@ -53,7 +53,7 @@ float GetDistance(float3 position)
     else
     {
         // Sample the distance from the SDF texture
-        return sdf_texture_.SampleLevel(sampler_, position, 0);
+        return sdf_texture_.SampleLevel(sampler_, position / WORLD_MAX, 0);
     }
 }
 
