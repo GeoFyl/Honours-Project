@@ -11,11 +11,13 @@ Computer::Computer(DX::DeviceResources* device_resources, HonoursApplication* ap
 	CreateRootSignatures();
 	CreateComputePipelineStateObjects();
     CreateBuffers();
-    CreateTexture3D();
+    AllocateSimpleSDFTexture();
 
     // Execute command list and wait until assets have been uploaded to the GPU.
     device_resources_->ExecuteCommandList();
     device_resources_->WaitForGpu();
+
+    compute_cb_ = std::make_unique<UploadBuffer<ComputeCB>>(device_resources_->GetD3DDevice(), 1, true);
 
     ReleaseUploaders();
 }
@@ -31,7 +33,7 @@ void Computer::ComputePostitions()
     commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(particle_pos_buffer_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 
     commandList->SetComputeRootUnorderedAccessView(ComputePositionsRootSignatureParams::ParticlePositionsBufferSlot, particle_pos_buffer_->GetGPUVirtualAddress());
-    commandList->SetComputeRootConstantBufferView(ComputePositionsRootSignatureParams::ConstantBufferSlot, application_->GetComputeCB()->GetGPUVirtualAddress());
+    commandList->SetComputeRootConstantBufferView(ComputePositionsRootSignatureParams::ConstantBufferSlot, compute_cb_->Resource()->GetGPUVirtualAddress());
 
     commandList->Dispatch(particle_threadgroups_, 1, 1);
 
@@ -130,13 +132,13 @@ void Computer::ComputeAABBs()
     ReadBackCellCount();
 
     if (surface_cell_count_ > 0) {
-         device_resources_->ResetCommandList();
+        device_resources_->ResetCommandList();
 
-        // If necessary, resize the buffer for AABBs
+        // If necessary, reallocate the memory for AABBs and the brick pool texture
         ray_tracer_->GetAccelerationStructure()->AllocateAABBBuffer(surface_cell_count_);
+        AllocateBrickPoolTexture();
 
         // Fill AABB buffer with AABBs
-        //device_resources_->ResetCommandList();
 
         commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_counts_buffer_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
         commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_cell_indices_buffer_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
@@ -157,7 +159,6 @@ void Computer::ComputeAABBs()
         device_resources_->ExecuteCommandList();
         device_resources_->WaitForGpu();
     }
-
 }
 
 void Computer::ReadBackCellCount()
@@ -233,7 +234,12 @@ void Computer::ReadBackBlocksCount()
 }
 
 
-void Computer::ComputeSDFTexture()
+void Computer::ComputeBrickPoolTexture()
+{
+
+}
+
+void Computer::ComputeSimpleSDFTexture()
 {
     auto commandList = device_resources_->GetCommandList();
 
@@ -244,11 +250,11 @@ void Computer::ComputeSDFTexture()
     commandList->SetDescriptorHeaps(1, &heap);*/
 
     commandList->SetComputeRootShaderResourceView(ComputeTextureRootSignatureParams::ParticlePositionsBufferSlot, particle_pos_buffer_->GetGPUVirtualAddress());
-    commandList->SetComputeRootDescriptorTable(ComputeTextureRootSignatureParams::TextureSlot, sdf_3d_texture_gpu_handle_);
+    commandList->SetComputeRootDescriptorTable(ComputeTextureRootSignatureParams::TextureSlot, simple_sdf_3d_texture_gpu_handle_);
 
     commandList->Dispatch(tex_creation_threadgroups_.x, tex_creation_threadgroups_.y, tex_creation_threadgroups_.z);
 
-    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(sdf_3d_texture_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(simple_sdf_3d_texture_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
 }
 
 void Computer::CreateRootSignatures()
@@ -479,7 +485,64 @@ void Computer::CreateBuffers()
         IID_PPV_ARGS(&surface_counts_readback_buffer_)));
 }
 
-void Computer::CreateTexture3D()
+void Computer::AllocateBrickPoolTexture()
+{
+    // If count of surface cells is larger than max bricks the pool can store
+    if (surface_cell_count_ > max_bricks_count_) {
+        XMUINT3 dimensions;
+        max_bricks_count_ = FindOptimalBrickPoolDimensions(dimensions);
+
+        // Release the texture
+        brick_pool_3d_texture_.Reset();
+
+        // Create the 3D texture 
+        auto uavDesc = CD3DX12_RESOURCE_DESC::Tex3D(DXGI_FORMAT_R8_SNORM, dimensions.x, dimensions.y, dimensions.z, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+
+        auto defaultHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+        ThrowIfFailed(device_resources_->GetD3DDevice()->CreateCommittedResource(
+            &defaultHeapProperties,
+            D3D12_HEAP_FLAG_NONE,
+            &uavDesc,
+            D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+            nullptr, IID_PPV_ARGS(&brick_pool_3d_texture_)));
+
+        device_resources_->GetD3DDevice()->CreateUnorderedAccessView(brick_pool_3d_texture_.Get(), nullptr, nullptr, brick_pool_3d_texture_cpu_handle_);
+
+        // Upload dimensions for use in texture creation
+        compute_cb_->Values().brick_pool_dimensions_ = std::move(dimensions);
+        compute_cb_->CopyData(0);
+    }
+}
+
+// Approximates optimal dimensions for the brick pool
+unsigned int Computer::FindOptimalBrickPoolDimensions(XMUINT3& dimensions)
+{
+    // Greedily assign the smallest possible value, >= the cube root, to the x dimension
+    int cube_root = std::ceil(std::cbrt(surface_cell_count_)); 
+    dimensions.x = cube_root;
+
+    // Iteratively adjust dimensions till a suitable solution is found
+    while (dimensions.x > 0) {
+        int remaining = std::ceil((double)surface_cell_count_ / dimensions.x);
+        int y_approx = std::sqrt(remaining);
+        int z_approx = std::ceil((double)remaining / y_approx);
+
+        if (dimensions.x * y_approx * z_approx >= surface_cell_count_) {
+            dimensions.y = y_approx;
+            dimensions.z = z_approx;
+            return dimensions.x * dimensions.y * dimensions.z;
+        }
+
+        dimensions.x--;
+    }
+
+    // No solution found, allocate according to cube root
+    dimensions.x = dimensions.y = dimensions.z = cube_root;
+
+    return dimensions.x * dimensions.y * dimensions.z;
+}
+
+void Computer::AllocateSimpleSDFTexture()
 {
     // Create the 3D texture 
     auto uavDesc = CD3DX12_RESOURCE_DESC::Tex3D(DXGI_FORMAT_R8_SNORM, TEXTURE_RESOLUTION, TEXTURE_RESOLUTION, TEXTURE_RESOLUTION, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
@@ -490,18 +553,19 @@ void Computer::CreateTexture3D()
         D3D12_HEAP_FLAG_NONE,
         &uavDesc,
         D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-        nullptr, IID_PPV_ARGS(&sdf_3d_texture_)));
+        nullptr, IID_PPV_ARGS(&simple_sdf_3d_texture_)));
 
+    // Allocate descriptors
     D3D12_CPU_DESCRIPTOR_HANDLE uav_handle;
     UINT heap_index = application_->AllocateDescriptor(&uav_handle);
+    device_resources_->GetD3DDevice()->CreateUnorderedAccessView(simple_sdf_3d_texture_.Get(), nullptr, nullptr, uav_handle);
 
-    /*D3D12_UNORDERED_ACCESS_VIEW_DESC uav_desc = {};
-    uav_desc.Format = DXGI_FORMAT_R8_SNORM;
-    uav_desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;*/
-    device_resources_->GetD3DDevice()->CreateUnorderedAccessView(sdf_3d_texture_.Get(), nullptr, nullptr, uav_handle);
 
     UINT descriptor_size = device_resources_->GetD3DDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    simple_sdf_3d_texture_gpu_handle_ = CD3DX12_GPU_DESCRIPTOR_HANDLE(application_->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart(), heap_index, descriptor_size);
 
-    sdf_3d_texture_gpu_handle_ = CD3DX12_GPU_DESCRIPTOR_HANDLE(application_->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart(), heap_index, descriptor_size);
+    // Also allocate descriptors for the brick pool
+    heap_index = application_->AllocateDescriptor(&brick_pool_3d_texture_cpu_handle_);
+    brick_pool_3d_texture_gpu_handle_ = CD3DX12_GPU_DESCRIPTOR_HANDLE(application_->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart(), heap_index, descriptor_size);
 }
 

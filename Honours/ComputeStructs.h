@@ -1,13 +1,6 @@
 #pragma once
 #include <DirectXMath.h>
-
-#define NUM_PARTICLES 125 // Also in ComputeCommon.hlsli, RayTracingCommon.hlsli
-#define TEXTURE_RESOLUTION 256 // Also in ComputeCommon.hlsli, RayTracingCommon.hlsli
-
-
-#define CELL_MAX_PARTICLE_COUNT 8 // Also in ComputeGrid.hlsl
-#define NUM_CELLS 4096 // Also in ComputeGrid.hlsl
-#define NUM_BLOCKS 64 // Also in ComputeGrid.hlsl
+#include "GlobalValues.h"
 
 using namespace DirectX;
 
@@ -19,6 +12,7 @@ struct ParticlePosition {
 
 struct ComputeCB {
 	float time_ = 0;
+	XMUINT3 brick_pool_dimensions_;
 };
 
 // ---- Two-level Grid -----

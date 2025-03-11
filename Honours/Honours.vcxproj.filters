@@ -139,6 +139,9 @@
     <ClInclude Include="AccelerationStructureManager.h">
       <Filter>Header Files\RayTracing</Filter>
     </ClInclude>
+    <ClInclude Include="GlobalValues.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="HonoursApplication.cpp">

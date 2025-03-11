@@ -50,10 +50,17 @@ public:
         return mUploadBuffer.Get();
     }
 
+    T& Values() { return values_; }
+
+    void CopyData(int elementIndex)
+    {
+        memcpy(&mMappedData[elementIndex*mElementByteSize], &values_, sizeof(T));
+    }
     void CopyData(int elementIndex, const T& data)
     {
         memcpy(&mMappedData[elementIndex*mElementByteSize], &data, sizeof(T));
     }
+
 
     UINT GetCBByteSize() { return mElementByteSize; }
 
@@ -63,4 +70,6 @@ private:
     BYTE* mMappedData = nullptr;
 
     UINT mElementByteSize = 0;
+
+    T values_;
 };

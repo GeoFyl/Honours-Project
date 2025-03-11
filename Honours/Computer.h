@@ -1,6 +1,7 @@
 #pragma once
 #include "DeviceResources.h"
 #include "ComputeStructs.h"
+#include "UploadBuffer.h"
 
 namespace ComputePositionsRootSignatureParams {
     enum Value {
@@ -57,15 +58,18 @@ public:
 
     void ComputePostitions();
     void ComputeGrid();
-    void ComputeSDFTexture();
+    void ComputeSimpleSDFTexture();
     void ReadBackCellCount();
     void ComputeAABBs();
+    void ComputeBrickPoolTexture();
 
-    unsigned int GetSurfaceCellCount() { return surface_cell_count_; }
 
+    UINT GetSurfaceCellCount() { return surface_cell_count_; }
+
+    inline UploadBuffer<ComputeCB>* GetConstantBuffer() { return compute_cb_.get(); }
     inline ID3D12Resource* GetPositionsBuffer() { return particle_pos_buffer_.Get(); }
-    inline ID3D12Resource* GetSDFTexture() { return sdf_3d_texture_.Get(); }
-    inline D3D12_GPU_DESCRIPTOR_HANDLE GetSDFTextureHandle() { return sdf_3d_texture_gpu_handle_; }
+    inline ID3D12Resource* GetSimpleSDFTexture() { return simple_sdf_3d_texture_.Get(); }
+    inline D3D12_GPU_DESCRIPTOR_HANDLE GetSimpleSDFTextureHandle() { return simple_sdf_3d_texture_gpu_handle_; }
 
     inline void ReleaseUploaders() {
         particle_pos_buffer_uploader_.Reset();
@@ -77,16 +81,16 @@ private:
     void SerializeAndCreateComputeRootSignature(D3D12_ROOT_SIGNATURE_DESC& desc, ComPtr<ID3D12RootSignature>* rootSig);
     void CreateComputePipelineStateObjects();
     void CreateBuffers();
-    void CreateTexture3D();
+    void AllocateSimpleSDFTexture();
     void ReadBackBlocksCount();
-
+    void AllocateBrickPoolTexture();
+    UINT FindOptimalBrickPoolDimensions(XMUINT3& dimensions);
 
     // DXR attributes
     ComPtr<ID3D12PipelineState> compute_pos_state_object_;
     ComPtr<ID3D12PipelineState> compute_grid_state_object_;
     ComPtr<ID3D12PipelineState> compute_clear_counts_state_object_;
     ComPtr<ID3D12PipelineState> compute_surface_blocks_state_object_;
-   // ComPtr<ID3D12PipelineState> compute_dispatch_surface_cells_state_object_;
     ComPtr<ID3D12PipelineState> compute_surface_cells_state_object_;
     ComPtr<ID3D12PipelineState> compute_AABBs_state_object_;
     ComPtr<ID3D12PipelineState> compute_tex_state_object_;
@@ -94,13 +98,8 @@ private:
     // Root signatures
     ComPtr<ID3D12RootSignature> compute_pos_root_signature_;
     ComPtr<ID3D12RootSignature> compute_grid_root_signature_;
-    //ComPtr<ID3D12RootSignature> compute_dispatch_surface_cells_root_signature_;
     ComPtr<ID3D12RootSignature> compute_AABBs_root_signature_;
-    //ComPtr<ID3D12RootSignature> compute_surface_blocks_root_signature_;
-    //ComPtr<ID3D12RootSignature> compute_surface_cells_root_signature_;
     ComPtr<ID3D12RootSignature> compute_tex_root_signature_;
-    
-    //ComPtr<ID3D12CommandSignature> compute_surface_cells_command_signature_;
 
     // Buffers
     ComPtr<ID3D12Resource> particle_pos_buffer_uploader_;
@@ -113,16 +112,22 @@ private:
     ComPtr<ID3D12Resource> surface_counts_buffer_;
     ComPtr<ID3D12Resource> surface_counts_readback_buffer_;
 
-   // ComPtr<ID3D12Resource> surface_cells_dispatch_buffer_uploader_;
-  //  ComPtr<ID3D12Resource> surface_cells_dispatch_buffer_;
+    std::unique_ptr<UploadBuffer<ComputeCB>> compute_cb_ = nullptr;
 
     // Values
-    float surface_cell_count_ = 0;
-    float surface_blocks_count_ = 0;
+    UINT surface_cell_count_ = 0;
+    UINT surface_blocks_count_ = 0;
+    UINT max_bricks_count_ = 0;
+
 
     // 3D texture
-    ComPtr<ID3D12Resource> sdf_3d_texture_;
-    D3D12_GPU_DESCRIPTOR_HANDLE sdf_3d_texture_gpu_handle_;
+    ComPtr<ID3D12Resource> simple_sdf_3d_texture_;
+    D3D12_GPU_DESCRIPTOR_HANDLE simple_sdf_3d_texture_gpu_handle_;
+    ComPtr<ID3D12Resource> brick_pool_3d_texture_;
+    D3D12_GPU_DESCRIPTOR_HANDLE brick_pool_3d_texture_gpu_handle_;
+    D3D12_CPU_DESCRIPTOR_HANDLE brick_pool_3d_texture_cpu_handle_;
+   // UINT brick_pool_3d_texture_heap_index_;
+    //bool brick_pool_allocated_ = false;
 
     // threadgroup sizes
     UINT particle_threadgroups_; // for particle position manipulation shader

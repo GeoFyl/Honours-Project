@@ -131,6 +131,7 @@
     <ClInclude Include="CubeMesh.h" />
     <ClInclude Include="DeviceResources.h" />
     <ClInclude Include="FPCamera.h" />
+    <ClInclude Include="GlobalValues.h" />
     <ClInclude Include="HonoursApplication.h" />
     <ClInclude Include="imGUI\imconfig.h" />
     <ClInclude Include="imGUI\imgui.h" />

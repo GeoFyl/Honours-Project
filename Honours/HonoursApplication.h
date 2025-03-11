@@ -54,7 +54,7 @@ public:
     virtual void OnSizeChanged(UINT width, UINT height, bool minimized);
     virtual IDXGISwapChain* GetSwapchain() { return device_resources_->GetSwapChain(); }
 
-    inline ID3D12Resource* GetComputeCB() { return compute_cb_->Resource(); }
+    //inline ID3D12Resource* GetComputeCB() { return compute_cb_->Resource(); }
     inline ID3D12Resource* GetRaytracingCB() { return ray_tracing_cb_->Resource(); }
 
     inline DebugValues& GetDebugValues() { return debug_; }
@@ -98,7 +98,7 @@ private:
     std::unique_ptr<Computer> computer_ = nullptr;
 
     // Upload buffers
-    std::unique_ptr<UploadBuffer<ComputeCB>> compute_cb_ = nullptr;
+   // std::unique_ptr<UploadBuffer<ComputeCB>> compute_cb_ = nullptr;
     std::unique_ptr<UploadBuffer<RayTracingCB>> ray_tracing_cb_ = nullptr;
 
     // Debug

@@ -81,8 +81,6 @@ void HonoursApplication::LoadPipeline()
 
     // Create constant buffers
     ray_tracing_cb_ = std::make_unique<UploadBuffer<RayTracingCB>>(device_resources_->GetD3DDevice(), 1, true);
-
-    compute_cb_ = std::make_unique<UploadBuffer<ComputeCB>>(device_resources_->GetD3DDevice(), 1, true);
 }
 
 void HonoursApplication::InitGUI()
@@ -194,6 +192,8 @@ void HonoursApplication::OnUpdate()
 
     camera_->move(timer_.GetDeltaTime());
 
+    device_resources_->ResetCommandList();
+
     // Update constant buffers
     RayTracingCB buff;
     buff.camera_pos_ = camera_->getPosition();
@@ -210,16 +210,10 @@ void HonoursApplication::OnUpdate()
     ray_tracing_cb_->CopyData(0, buff);
 
     if (!debug_.pause_positions_) {
-        ComputeCB compute_buffer_data;
-        compute_buffer_data.time_ = timer_.GetElapsedTime();
-        compute_cb_->CopyData(0, compute_buffer_data);
+        computer_->GetConstantBuffer()->Values().time_ = timer_.GetElapsedTime();
+        computer_->GetConstantBuffer()->CopyData(0);
+        computer_->ComputePostitions();
     }
-
-    device_resources_->ResetCommandList();
-
-    //OutputDebugString(L"\nBEGIN\n:");
-
-    if (!debug_.pause_positions_) computer_->ComputePostitions();
 
     if (!(debug_.use_simple_aabb_)) {
         computer_->ComputeGrid();
@@ -262,7 +256,7 @@ void HonoursApplication::OnRender()
     // Record all the commands we need to render the scene into the command list.
 
 
-    if (!(debug_.render_analytical_ || debug_.visualize_particles_)) computer_->ComputeSDFTexture();
+    if (!(debug_.render_analytical_ || debug_.visualize_particles_)) computer_->ComputeSimpleSDFTexture();
 
     if (ray_tracer_->GetAccelerationStructure()->IsStructureBuilt()) {
         ray_tracer_->RayTracing();
