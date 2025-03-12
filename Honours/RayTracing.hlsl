@@ -53,7 +53,7 @@ void IntersectionShader()
             {
                 ray.origin_ -= aabb[0];
                 float3 aabb_uvw = ray.origin_ + max(t_min, 0) * ray.direction_;
-                aabb_uvw /= CELL_SIZE;
+                aabb_uvw /= BRICK_SIZE;
                 
                 RayIntersectionAttributes attributes;
                 attributes.float_3_ = aabb_uvw;

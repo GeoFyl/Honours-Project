@@ -64,7 +64,7 @@ public:
     void ComputeBrickPoolTexture();
 
 
-    UINT GetSurfaceCellCount() { return surface_cell_count_; }
+    //UINT GetSurfaceCellCount() { return surface_cell_count_; }
 
     inline UploadBuffer<ComputeCB>* GetConstantBuffer() { return compute_cb_.get(); }
     inline ID3D12Resource* GetPositionsBuffer() { return particle_pos_buffer_.Get(); }
@@ -115,8 +115,8 @@ private:
     std::unique_ptr<UploadBuffer<ComputeCB>> compute_cb_ = nullptr;
 
     // Values
-    UINT surface_cell_count_ = 0;
     UINT surface_blocks_count_ = 0;
+    UINT bricks_count_ = 0;
     UINT max_bricks_count_ = 0;
 
 

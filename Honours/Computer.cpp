@@ -131,11 +131,11 @@ void Computer::ComputeAABBs()
     // Read back new count of surface cells
     ReadBackCellCount();
 
-    if (surface_cell_count_ > 0) {
+    if (bricks_count_ > 0) {
         device_resources_->ResetCommandList();
 
         // If necessary, reallocate the memory for AABBs and the brick pool texture
-        ray_tracer_->GetAccelerationStructure()->AllocateAABBBuffer(surface_cell_count_);
+        ray_tracer_->GetAccelerationStructure()->AllocateAABBBuffer(bricks_count_);
         AllocateBrickPoolTexture();
 
         // Fill AABB buffer with AABBs
@@ -149,7 +149,7 @@ void Computer::ComputeAABBs()
         commandList->SetComputeRootShaderResourceView(ComputeAABBsRootSignatureParams::SurfaceCellIndicesSlot, surface_cell_indices_buffer_->GetGPUVirtualAddress());
         commandList->SetComputeRootShaderResourceView(ComputeAABBsRootSignatureParams::SurfaceCountsSlot, surface_counts_buffer_->GetGPUVirtualAddress());
         commandList->SetComputeRootUnorderedAccessView(ComputeAABBsRootSignatureParams::AABBBufferSlot, ray_tracer_->GetAccelerationStructure()->GetAABBBuffer()->GetGPUVirtualAddress());
-        commandList->Dispatch(std::ceil(surface_cell_count_ / 1024.f), 1, 1);
+        commandList->Dispatch(std::ceil(bricks_count_ / 1024.f), 1, 1);
 
         commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_counts_buffer_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
         commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_cell_indices_buffer_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
@@ -190,7 +190,7 @@ void Computer::ReadBackCellCount()
     OutputDebugString(count.c_str());*/
 
     //if (mapped_data->surface_cells > 0) {
-        surface_cell_count_ = mapped_data->surface_cells;
+        bricks_count_ = mapped_data->surface_cells * BRICKS_PER_CELL;
     //}
 
     surface_counts_readback_buffer_->Unmap(0, nullptr);
@@ -488,7 +488,7 @@ void Computer::CreateBuffers()
 void Computer::AllocateBrickPoolTexture()
 {
     // If count of surface cells is larger than max bricks the pool can store
-    if (surface_cell_count_ > max_bricks_count_) {
+    if (bricks_count_ > max_bricks_count_) {
         XMUINT3 dimensions;
         max_bricks_count_ = FindOptimalBrickPoolDimensions(dimensions);
 
@@ -496,7 +496,7 @@ void Computer::AllocateBrickPoolTexture()
         brick_pool_3d_texture_.Reset();
 
         // Create the 3D texture 
-        auto uavDesc = CD3DX12_RESOURCE_DESC::Tex3D(DXGI_FORMAT_R8_SNORM, dimensions.x, dimensions.y, dimensions.z, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+        auto uavDesc = CD3DX12_RESOURCE_DESC::Tex3D(DXGI_FORMAT_R8_SNORM, dimensions.x * VOXELS_PER_AXIS_PER_BRICK, dimensions.y * VOXELS_PER_AXIS_PER_BRICK, dimensions.z * VOXELS_PER_AXIS_PER_BRICK, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
         auto defaultHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
         ThrowIfFailed(device_resources_->GetD3DDevice()->CreateCommittedResource(
@@ -518,16 +518,16 @@ void Computer::AllocateBrickPoolTexture()
 unsigned int Computer::FindOptimalBrickPoolDimensions(XMUINT3& dimensions)
 {
     // Greedily assign the smallest possible value, >= the cube root, to the x dimension
-    int cube_root = std::ceil(std::cbrt(surface_cell_count_)); 
+    int cube_root = std::ceil(std::cbrt(bricks_count_)); 
     dimensions.x = cube_root;
 
     // Iteratively adjust dimensions till a suitable solution is found
     while (dimensions.x > 0) {
-        int remaining = std::ceil((double)surface_cell_count_ / dimensions.x);
+        int remaining = std::ceil((double)bricks_count_ / dimensions.x);
         int y_approx = std::sqrt(remaining);
         int z_approx = std::ceil((double)remaining / y_approx);
 
-        if (dimensions.x * y_approx * z_approx >= surface_cell_count_) {
+        if (dimensions.x * y_approx * z_approx >= bricks_count_) {
             dimensions.y = y_approx;
             dimensions.z = z_approx;
             return dimensions.x * dimensions.y * dimensions.z;
