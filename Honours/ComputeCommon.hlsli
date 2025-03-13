@@ -13,6 +13,7 @@ struct ParticlePosition
 struct ComputeCB
 {
     float time_;
+    uint3 brick_pool_dimensions_;
 };
 
 struct AABB

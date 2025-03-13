@@ -1,5 +1,5 @@
-#ifndef COMPUTE_TEX_SIMPLE_HLSL
-#define COMPUTE_TEX_SIMPLE_HLSL
+#ifndef COMPUTE_TEX_HLSL
+#define COMPUTE_TEX_HLSL
 
 #include "ComputeCommon.hlsli"
 #include "SdfHelpers.hlsli"

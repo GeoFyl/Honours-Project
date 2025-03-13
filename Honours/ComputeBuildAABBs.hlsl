@@ -50,25 +50,6 @@ void CSBuildAABBs(int3 dispatch_ID : SV_DispatchThreadID)
     aabb.max_ = aabb.min_ + BRICK_SIZE;
 
     aabbs_[dispatch_ID.x] = aabb;
-    
-    //int cells_count = surface_counts_[0].surface_cells;
-    //if (dispatch_ID.x >= cells_count)
-    //{
-    //    //Not enough cells
-    //    return;
-    //}
-    
-    //uint cell_index = surface_cell_indices_[dispatch_ID.x];
-    //float3 coords_3d = CellIndexTo3DCoords(cell_index);
-    
-    //// Convert from grid-space cell coords to world-space
-    //float3 world_pos = lerp(WORLD_MIN, WORLD_MAX, coords_3d / float3(NUM_CELLS_PER_AXIS));
-    
-    //AABB aabb;
-    //aabb.min_ = world_pos;
-    //aabb.max_ = world_pos + CELL_SIZE;
-
-    //aabbs_[dispatch_ID.x] = aabb;
 }
 
 #endif

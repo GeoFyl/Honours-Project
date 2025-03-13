@@ -236,18 +236,27 @@ void Computer::ReadBackBlocksCount()
 
 void Computer::ComputeBrickPoolTexture()
 {
+    auto commandList = device_resources_->GetCommandList();
 
+    commandList->SetPipelineState(compute_brickpool_state_object_.Get());
+    commandList->SetComputeRootSignature(compute_brickpool_root_signature_.Get());
+
+    commandList->SetComputeRootDescriptorTable(ComputeBrickPoolRootSignatureParams::TextureSlot, brick_pool_3d_texture_gpu_handle_);
+    commandList->SetComputeRootShaderResourceView(ComputeBrickPoolRootSignatureParams::ParticlePositionsBufferSlot, particle_pos_buffer_->GetGPUVirtualAddress());
+    commandList->SetComputeRootShaderResourceView(ComputeBrickPoolRootSignatureParams::AABBBufferSlot, ray_tracer_->GetAccelerationStructure()->GetAABBBuffer()->GetGPUVirtualAddress());
+    commandList->SetComputeRootConstantBufferView(ComputeBrickPoolRootSignatureParams::ConstantBufferSlot, compute_cb_->Resource()->GetGPUVirtualAddress());
+
+    commandList->Dispatch(std::ceil(bricks_count_ / 1024.f), 1, 1);
+
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(brick_pool_3d_texture_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
 }
 
 void Computer::ComputeSimpleSDFTexture()
 {
     auto commandList = device_resources_->GetCommandList();
 
-    commandList->SetPipelineState(compute_tex_state_object_.Get());
-    commandList->SetComputeRootSignature(compute_tex_root_signature_.Get());
-
-    /*ID3D12DescriptorHeap* heap = application_->GetDescriptorHeap();
-    commandList->SetDescriptorHeaps(1, &heap);*/
+    commandList->SetPipelineState(compute_simple_tex_state_object_.Get());
+    commandList->SetComputeRootSignature(compute_simple_tex_root_signature_.Get());
 
     commandList->SetComputeRootShaderResourceView(ComputeTextureRootSignatureParams::ParticlePositionsBufferSlot, particle_pos_buffer_->GetGPUVirtualAddress());
     commandList->SetComputeRootDescriptorTable(ComputeTextureRootSignatureParams::TextureSlot, simple_sdf_3d_texture_gpu_handle_);
@@ -293,13 +302,27 @@ void Computer::CreateRootSignatures()
     SerializeAndCreateComputeRootSignature(build_AABBs_signature_desc, &compute_AABBs_root_signature_);
 
     // Root signature used for shader which computes SDF texture
-    CD3DX12_DESCRIPTOR_RANGE uav_descriptor;
-    uav_descriptor.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
+    CD3DX12_DESCRIPTOR_RANGE tex_uav_descriptor;
+    tex_uav_descriptor.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
     CD3DX12_ROOT_PARAMETER tex_root_params[ComputeTextureRootSignatureParams::Count];
     tex_root_params[ComputeTextureRootSignatureParams::ParticlePositionsBufferSlot].InitAsShaderResourceView(0);
-    tex_root_params[ComputeTextureRootSignatureParams::TextureSlot].InitAsDescriptorTable(1, &uav_descriptor);
+    tex_root_params[ComputeTextureRootSignatureParams::TextureSlot].InitAsDescriptorTable(1, &tex_uav_descriptor);
     CD3DX12_ROOT_SIGNATURE_DESC tex_root_signature_desc(ARRAYSIZE(tex_root_params), tex_root_params);
-    SerializeAndCreateComputeRootSignature(tex_root_signature_desc, &compute_tex_root_signature_);
+    SerializeAndCreateComputeRootSignature(tex_root_signature_desc, &compute_simple_tex_root_signature_);
+
+    // Root signature used for shader which fills brick pool
+    CD3DX12_DESCRIPTOR_RANGE brickpool_uav_descriptor;
+    brickpool_uav_descriptor.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
+    CD3DX12_ROOT_PARAMETER brickpool_root_params[ComputeBrickPoolRootSignatureParams::Count];
+    brickpool_root_params[ComputeBrickPoolRootSignatureParams::TextureSlot].InitAsDescriptorTable(1, &brickpool_uav_descriptor);
+    brickpool_root_params[ComputeBrickPoolRootSignatureParams::ParticlePositionsBufferSlot].InitAsShaderResourceView(0);
+    brickpool_root_params[ComputeBrickPoolRootSignatureParams::AABBBufferSlot].InitAsShaderResourceView(1);
+    brickpool_root_params[ComputeBrickPoolRootSignatureParams::ConstantBufferSlot].InitAsConstantBufferView(0);
+
+    CD3DX12_ROOT_SIGNATURE_DESC brickpool_root_signature_desc(ARRAYSIZE(brickpool_root_params), brickpool_root_params);
+    SerializeAndCreateComputeRootSignature(brickpool_root_signature_desc, &compute_brickpool_root_signature_);
+
+
 
     //// Create dispatch command signature for indirect dispatch of surface cell detection
     //D3D12_COMMAND_SIGNATURE_DESC command_signature_desc = {};
@@ -411,9 +434,19 @@ void Computer::CreateComputePipelineStateObjects()
         throw std::exception(errMsg.c_str());
     }
     
-    compute_pso.pRootSignature = compute_tex_root_signature_.Get();
+    compute_pso.pRootSignature = compute_simple_tex_root_signature_.Get();
     compute_pso.CS = CD3DX12_SHADER_BYTECODE(compute_shader.Get());
-    ThrowIfFailed(device_resources_->GetD3DDevice()->CreateComputePipelineState(&compute_pso, IID_PPV_ARGS(&compute_tex_state_object_)));
+    ThrowIfFailed(device_resources_->GetD3DDevice()->CreateComputePipelineState(&compute_pso, IID_PPV_ARGS(&compute_simple_tex_state_object_)));
+
+     // Compute brick pool shader
+    if (FAILED(D3DCompileFromFile(application_->GetAssetFullPath(L"ComputeBrickPool.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "CSBrickPoolMain", "cs_5_1", flags, 0, &compute_shader, &error_blob))) {
+        std::string errMsg((char*)error_blob->GetBufferPointer(), error_blob->GetBufferSize());
+        throw std::exception(errMsg.c_str());
+    }
+    
+    compute_pso.pRootSignature = compute_brickpool_root_signature_.Get();
+    compute_pso.CS = CD3DX12_SHADER_BYTECODE(compute_shader.Get());
+    ThrowIfFailed(device_resources_->GetD3DDevice()->CreateComputePipelineState(&compute_pso, IID_PPV_ARGS(&compute_brickpool_state_object_)));
 
 
 
@@ -491,6 +524,8 @@ void Computer::AllocateBrickPoolTexture()
     if (bricks_count_ > max_bricks_count_) {
         XMUINT3 dimensions;
         max_bricks_count_ = FindOptimalBrickPoolDimensions(dimensions);
+
+       // dimensions = XMUINT3(dimensions.x * VOXELS_PER_AXIS_PER_BRICK, dimensions.y * VOXELS_PER_AXIS_PER_BRICK, dimensions.z * VOXELS_PER_AXIS_PER_BRICK);
 
         // Release the texture
         brick_pool_3d_texture_.Reset();

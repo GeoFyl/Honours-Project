@@ -4,7 +4,7 @@
 #ifdef RAYTRACING_HLSL
 #include "RayTracingCommon.hlsli"
 #endif
-#ifdef COMPUTE_TEX_SIMPLE_HLSL
+#ifdef COMPUTE_TEX_HLSL
 StructuredBuffer<ParticlePosition> particle_positions_ : register(t0);
 #endif
 
@@ -41,7 +41,7 @@ float GetAnalyticalSignedDistance(float3 position)
     return distance;
 }
 
-#ifndef COMPUTE_TEX_SIMPLE_HLSL
+#ifndef COMPUTE_TEX_HLSL
 
 float GetDistance(float3 position)
 {

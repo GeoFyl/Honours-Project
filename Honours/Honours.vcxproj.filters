@@ -261,6 +261,9 @@
     <CustomBuild Include="GlobalValues.hlsli">
       <Filter>Assets\Shaders</Filter>
     </CustomBuild>
+    <CustomBuild Include="ComputeBrickPool.hlsl">
+      <Filter>Assets\Shaders\Compute</Filter>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

@@ -112,12 +112,21 @@ void CSDetectSurfaceBlocksMain(int3 dispatch_ID : SV_DispatchThreadID)
     return;
 }
 
+groupshared uint block_index;
+
 // Shader for detecting surface cells
 [numthreads(NUM_CELLS_PER_AXIS_PER_BLOCK)]
-void CSDetectSurfaceCellsMain(int3 group_index : SV_GroupID, int3 offset : SV_GroupThreadID)
+void CSDetectSurfaceCellsMain(int3 group_index : SV_GroupID, int3 offset : SV_GroupThreadID, uint thread_index : SV_GroupIndex)
 {
+    
+    // Load block index into groupshared memory
+    if (thread_index == 0)
+    {
+        block_index = surface_block_indices_[group_index.x];
+    }
+    GroupMemoryBarrierWithGroupSync();
+    
     // Use the block index to find the cell index
-    uint block_index = surface_block_indices_[group_index.x];
     int cell_index = BlockIndexToCellIndex(block_index, offset);
     
     // To be a surface cell, the cell must not be empty

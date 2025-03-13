@@ -17,6 +17,15 @@ namespace ComputeTextureRootSignatureParams {
         Count
     };
 }
+namespace ComputeBrickPoolRootSignatureParams {
+    enum Value {
+        ParticlePositionsBufferSlot = 0,
+        TextureSlot,
+        AABBBufferSlot,
+        ConstantBufferSlot,
+        Count
+    };
+}
 namespace ComputeGridRootSignatureParams {
     enum Value {
         ParticlePositionsBufferSlot = 0,
@@ -70,6 +79,8 @@ public:
     inline ID3D12Resource* GetPositionsBuffer() { return particle_pos_buffer_.Get(); }
     inline ID3D12Resource* GetSimpleSDFTexture() { return simple_sdf_3d_texture_.Get(); }
     inline D3D12_GPU_DESCRIPTOR_HANDLE GetSimpleSDFTextureHandle() { return simple_sdf_3d_texture_gpu_handle_; }
+    inline ID3D12Resource* GetBrickPoolTexture() { return brick_pool_3d_texture_.Get(); }
+    inline D3D12_GPU_DESCRIPTOR_HANDLE GetBrickPoolTextureHandle() { return brick_pool_3d_texture_gpu_handle_; }
 
     inline void ReleaseUploaders() {
         particle_pos_buffer_uploader_.Reset();
@@ -93,13 +104,15 @@ private:
     ComPtr<ID3D12PipelineState> compute_surface_blocks_state_object_;
     ComPtr<ID3D12PipelineState> compute_surface_cells_state_object_;
     ComPtr<ID3D12PipelineState> compute_AABBs_state_object_;
-    ComPtr<ID3D12PipelineState> compute_tex_state_object_;
+    ComPtr<ID3D12PipelineState> compute_simple_tex_state_object_;
+    ComPtr<ID3D12PipelineState> compute_brickpool_state_object_;
 
     // Root signatures
     ComPtr<ID3D12RootSignature> compute_pos_root_signature_;
     ComPtr<ID3D12RootSignature> compute_grid_root_signature_;
     ComPtr<ID3D12RootSignature> compute_AABBs_root_signature_;
-    ComPtr<ID3D12RootSignature> compute_tex_root_signature_;
+    ComPtr<ID3D12RootSignature> compute_simple_tex_root_signature_;
+    ComPtr<ID3D12RootSignature> compute_brickpool_root_signature_;
 
     // Buffers
     ComPtr<ID3D12Resource> particle_pos_buffer_uploader_;
@@ -133,7 +146,8 @@ private:
     UINT particle_threadgroups_; // for particle position manipulation shader
     UINT blocks_threadgroups_; // for surface block detection
     UINT clear_counts_threadgroups_; // for clearing counters
-    XMUINT3 tex_creation_threadgroups_; // for texture creation shader
+    XMUINT3 tex_creation_threadgroups_; // for simple texture creation shader
+    XMUINT3 brickpool_creation_threadgroups_; // for brick pool texture creation shader
 
     DX::DeviceResources* device_resources_;
     HonoursApplication* application_;

@@ -43,7 +43,6 @@ void RayTracer::RayTracing()
     //ID3D12DescriptorHeap* heap = application_->GetDescriptorHeap();
     //commandList->SetDescriptorHeaps(1, &heap);
     commandList->SetComputeRootDescriptorTable(GlobalRTRootSignatureParams::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
-    commandList->SetComputeRootDescriptorTable(GlobalRTRootSignatureParams::SDFTextureSlot, computer_->GetSimpleSDFTextureHandle());
     commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::ParticlePositionsBufferSlot, computer_->GetPositionsBuffer()->GetGPUVirtualAddress());
     commandList->SetComputeRootConstantBufferView(GlobalRTRootSignatureParams::ConstantBufferSlot, application_->GetRaytracingCB()->GetGPUVirtualAddress());
 
@@ -56,6 +55,13 @@ void RayTracer::RayTracing()
         commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::AccelerationStructureSlot, acceleration_structure_->GetTLAS()->GetGPUVirtualAddress());
         commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::AABBBufferSlot, acceleration_structure_->GetAABBBuffer()->GetGPUVirtualAddress());
     }
+    if (debug_values.use_simple_aabb_) {
+        commandList->SetComputeRootDescriptorTable(GlobalRTRootSignatureParams::SDFTextureSlot, computer_->GetSimpleSDFTextureHandle());
+    }
+    else {
+        commandList->SetComputeRootDescriptorTable(GlobalRTRootSignatureParams::SDFTextureSlot, computer_->GetBrickPoolTextureHandle());
+    }
+
 
     // Since each shader table has only one shader record, the stride is same as the size.
     D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
