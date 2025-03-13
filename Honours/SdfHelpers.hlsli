@@ -45,7 +45,7 @@ float GetAnalyticalSignedDistance(float3 position)
 
 float GetDistance(float3 position)
 {
-    if (constant_buffer_.rendering_flags_ & RENDERING_FLAG_ANALYTICAL)
+    if (rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_ANALYTICAL)
     {
         // Find distance analytically
         return GetAnalyticalSignedDistance(position);
@@ -53,7 +53,7 @@ float GetDistance(float3 position)
     else
     {
         // Sample the distance from the SDF texture
-        return sdf_texture_.SampleLevel(sampler_, position / WORLD_MAX, 0);
+        return sdf_texture_.SampleLevel(sampler_, position, 0);
     }
 }
 
@@ -61,13 +61,13 @@ float GetDistance(float3 position)
 float3 CalculateNormal(float3 position)
 {
     float step;
-    if (constant_buffer_.rendering_flags_ & RENDERING_FLAG_ANALYTICAL)
+    if (rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_ANALYTICAL)
     {
         step = 0.001f;
     }
     else
     {
-        step = constant_buffer_.uvw_step_;
+        step = rt_constant_buffer_.uvw_step_;
     }
     
     const float2 h = float2(step, 0);

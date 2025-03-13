@@ -44,7 +44,8 @@ void RayTracer::RayTracing()
     //commandList->SetDescriptorHeaps(1, &heap);
     commandList->SetComputeRootDescriptorTable(GlobalRTRootSignatureParams::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
     commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::ParticlePositionsBufferSlot, computer_->GetPositionsBuffer()->GetGPUVirtualAddress());
-    commandList->SetComputeRootConstantBufferView(GlobalRTRootSignatureParams::ConstantBufferSlot, application_->GetRaytracingCB()->GetGPUVirtualAddress());
+    commandList->SetComputeRootConstantBufferView(GlobalRTRootSignatureParams::RTConstantBufferSlot, application_->GetRaytracingCB()->GetGPUVirtualAddress());
+    commandList->SetComputeRootConstantBufferView(GlobalRTRootSignatureParams::CompConstantBufferSlot, computer_->GetConstantBuffer()->Resource()->GetGPUVirtualAddress());
 
     auto& debug_values = application_->GetDebugValues();
     if ((debug_values.use_simple_aabb_ || debug_values.visualize_particles_) && !(debug_values.visualize_particles_ && debug_values.visualize_aabbs_)) {
@@ -84,10 +85,15 @@ void RayTracer::RayTracing()
    // commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(acceleration_structure_->GetBLAS()));
    // commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(acceleration_structure_->GetTLAS()));
 
-
+    auto& debug = application_->GetDebugValues();
     commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(computer_->GetPositionsBuffer(),D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-    if (!(application_->GetDebugValues().render_analytical_ || application_->GetDebugValues().visualize_particles_)) {
-        commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(computer_->GetSimpleSDFTexture(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+    if (!(debug.render_analytical_ || debug.visualize_particles_)) {
+        if (debug.use_simple_aabb_) {
+            commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(computer_->GetSimpleSDFTexture(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+        }
+        else {
+            commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(computer_->GetBrickPoolTexture(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+        }
     }
 }
 
@@ -119,7 +125,8 @@ void RayTracer::CreateRootSignatures()
     rootParameters[GlobalRTRootSignatureParams::AABBBufferSlot].InitAsShaderResourceView(3);
 
     // (b)
-    rootParameters[GlobalRTRootSignatureParams::ConstantBufferSlot].InitAsConstantBufferView(0);
+    rootParameters[GlobalRTRootSignatureParams::RTConstantBufferSlot].InitAsConstantBufferView(0);
+    rootParameters[GlobalRTRootSignatureParams::CompConstantBufferSlot].InitAsConstantBufferView(1);
 
     // Sampler
     CD3DX12_STATIC_SAMPLER_DESC sampler(0, D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP);

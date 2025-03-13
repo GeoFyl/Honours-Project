@@ -11,7 +11,7 @@ ConstantBuffer<ComputeCB> constant_buffer_ : register(b0);
 groupshared AABB aabb;
 groupshared uint3 brick_pool_dimensions;
 
-// Works out the index of the cell from the block index and cell offset
+// Works out the index of the voxel from the brick index and voxel offset
 uint3 BrickIndexToVoxelPosition(uint brick_index, uint3 voxel_offset)
 {
     // Convert brick index to its (bx, by, bz) brick coordinates

@@ -10,7 +10,8 @@ namespace GlobalRTRootSignatureParams {
     enum Value {
         OutputViewSlot = 0,
         AccelerationStructureSlot,
-        ConstantBufferSlot,
+        RTConstantBufferSlot,
+        CompConstantBufferSlot,
         ParticlePositionsBufferSlot,
         SDFTextureSlot,
         AABBBufferSlot,

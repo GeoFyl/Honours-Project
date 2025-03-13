@@ -206,6 +206,7 @@ void HonoursApplication::OnUpdate()
     if (debug_.render_analytical_) buff.rendering_flags_ |= RENDERING_FLAG_ANALYTICAL;
     if (debug_.render_normals_) buff.rendering_flags_ |= RENDERING_FLAG_NORMALS;
     if (debug_.visualize_aabbs_) buff.rendering_flags_ |= RENDERING_FLAG_VISUALIZE_AABBS;
+    if (debug_.use_simple_aabb_) buff.rendering_flags_ |= RENDERING_FLAG_SIMPLE_AABB;
 
     ray_tracing_cb_->CopyData(0, buff);
 
@@ -256,7 +257,10 @@ void HonoursApplication::OnRender()
     // Record all the commands we need to render the scene into the command list.
 
 
-    if (!(debug_.render_analytical_ || debug_.visualize_particles_)) computer_->ComputeSimpleSDFTexture();
+    if (!(debug_.render_analytical_ || debug_.visualize_particles_)) {
+        if (debug_.use_simple_aabb_) computer_->ComputeSimpleSDFTexture();
+        else computer_->ComputeBrickPoolTexture();
+    }
 
     if (ray_tracer_->GetAccelerationStructure()->IsStructureBuilt()) {
         ray_tracer_->RayTracing();

@@ -10,6 +10,7 @@
 #define RENDERING_FLAG_ANALYTICAL               1 << 1
 #define RENDERING_FLAG_NORMALS                  1 << 2
 #define RENDERING_FLAG_VISUALIZE_AABBS          1 << 3
+#define RENDERING_FLAG_SIMPLE_AABB              1 << 4
 
 using namespace DirectX;
 

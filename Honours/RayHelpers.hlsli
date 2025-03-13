@@ -14,10 +14,10 @@ inline void GenerateCameraRay(uint2 dispatch_index, out float3 ray_origin, out f
     screenPos.y = -screenPos.y;
 
     // Unproject the pixel coordinate into a ray.
-    float4 world = mul(float4(screenPos, 0, 1), constant_buffer_.inv_view_proj_);
+    float4 world = mul(float4(screenPos, 0, 1), rt_constant_buffer_.inv_view_proj_);
 
     world.xyz /= world.w;
-    ray_origin = constant_buffer_.camera_pos_;
+    ray_origin = rt_constant_buffer_.camera_pos_;
     ray_direction = normalize(world.xyz - ray_origin);
 }
 
@@ -95,7 +95,7 @@ bool RenderParticlesVisualized()
         screenPos.x *= aspect_ratio;
         
         // Project particle from world to screen space and adjust for aspect ratio
-        float4 particleScreenpos = mul(float4(particle_positions_[x].position_, 1), constant_buffer_.view_proj_);
+        float4 particleScreenpos = mul(float4(particle_positions_[x].position_, 1), rt_constant_buffer_.view_proj_);
         particleScreenpos.xyz /= particleScreenpos.w;
         particleScreenpos.x *= aspect_ratio;
         

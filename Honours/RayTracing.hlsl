@@ -4,6 +4,26 @@
 #include "RayHelpers.hlsli"
 #include "SdfHelpers.hlsli"
 
+// Works out the index of the voxel from the brick index and voxel offset
+uint3 BrickIndexToVoxelPosition(uint brick_index, uint3 voxel_offset)
+{
+    // Convert brick index to its (bx, by, bz) brick coordinates
+    uint3 brick_pool_dimensions = comp_constant_buffer_.brick_pool_dimensions_;
+    
+    uint bricks_per_z = brick_pool_dimensions.x * brick_pool_dimensions.y;
+    uint bz = brick_index / bricks_per_z;
+    uint by = (brick_index % bricks_per_z) / brick_pool_dimensions.x;
+    uint bx = brick_index % brick_pool_dimensions.x;
+    
+    // Compute the voxel position
+    uint x = bx * VOXELS_PER_AXIS_PER_BRICK + voxel_offset.x;
+    uint y = by * VOXELS_PER_AXIS_PER_BRICK + voxel_offset.y;
+    uint z = bz * VOXELS_PER_AXIS_PER_BRICK + voxel_offset.z;
+    
+    // Turn this into an index
+    return uint3(x, y, z);
+}
+
 // ------------ Ray Generation Shader ----------------
 
 [shader("raygeneration")]
@@ -25,8 +45,8 @@ void RayGenerationShader()
 [shader("intersection")]
 void IntersectionShader()
 {
-    if (!(constant_buffer_.rendering_flags_ & RENDERING_FLAG_VISUALIZE_AABBS) &&
-        constant_buffer_.rendering_flags_ & RENDERING_FLAG_VISUALIZE_PARTICLES)
+    if (!(rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_VISUALIZE_AABBS) &&
+        rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_VISUALIZE_PARTICLES)
     {
         if (RenderParticlesVisualized())
         {
@@ -49,9 +69,9 @@ void IntersectionShader()
         {
             // --------------------------------------------------------------------------
             // We may want to just render the AABBs
-            if (constant_buffer_.rendering_flags_ & RENDERING_FLAG_VISUALIZE_AABBS)
+            if (rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_VISUALIZE_AABBS)
             {
-                ray.origin_ -= aabb[0];
+                ray.origin_ -= aabb[0];                   
                 float3 aabb_uvw = ray.origin_ + max(t_min, 0) * ray.direction_;
                 aabb_uvw /= BRICK_SIZE;
                 
@@ -63,11 +83,29 @@ void IntersectionShader()
             }
             
             // --------------------------------------------------------------------------
+            
+            if (!(rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_SIMPLE_AABB) &&
+                !(rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_ANALYTICAL))
+            {
+                ray.origin_ -= aabb[0];
+            }
+            
             // Perform sphere tracing through the AABB.
             uint i = 0;
             while (i++ < MAX_SPHERE_TRACING_STEPS && t_min <= t_max)
             {
                 float3 position = ray.origin_ + max(t_min, 0) * ray.direction_;
+
+                if (!(rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_SIMPLE_AABB) &&
+                    !(rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_ANALYTICAL))
+                {
+                    uint3 voxel_offset = (position / BRICK_SIZE) * VOXELS_PER_AXIS_PER_BRICK;
+                    position = BrickIndexToVoxelPosition(PrimitiveIndex(), voxel_offset);
+                }
+                else
+                {
+                    position /= WORLD_MAX;
+                }
                 
                 float distance = GetDistance(position);
 
@@ -96,17 +134,17 @@ void IntersectionShader()
 [shader("closesthit")]
 void ClosestHitShader(inout RayPayload payload, in RayIntersectionAttributes attributes)
 {
-    if (constant_buffer_.rendering_flags_ & RENDERING_FLAG_VISUALIZE_AABBS)
+    if (rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_VISUALIZE_AABBS)
     {
         payload.colour_ = float4(attributes.float_3_, 1.f);
         return;
     }
-    else if (constant_buffer_.rendering_flags_ & RENDERING_FLAG_VISUALIZE_PARTICLES)
+    else if (rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_VISUALIZE_PARTICLES)
     {
         payload.colour_ = float4(0.306, 0.941, 0.933, 1);
         return;
     }
-    else if (constant_buffer_.rendering_flags_ & RENDERING_FLAG_NORMALS)
+    else if (rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_NORMALS)
     {
         payload.colour_ = float4(attributes.float_3_, 1.f);
         return;
@@ -115,7 +153,7 @@ void ClosestHitShader(inout RayPayload payload, in RayIntersectionAttributes att
     {
         float3 position = WorldRayOrigin() + RayTCurrent() * WorldRayDirection();
         float4 specular = float4(0.9f, 0.9f, 0.9f, 1);
-        payload.colour_ = float4(0.306, 0.941, 0.933, 1) * CalculateLighting(attributes.float_3_, constant_buffer_.camera_pos_, position, specular) + specular;
+        payload.colour_ = float4(0.306, 0.941, 0.933, 1) * CalculateLighting(attributes.float_3_, rt_constant_buffer_.camera_pos_, position, specular) + specular;
     }
 }
 
