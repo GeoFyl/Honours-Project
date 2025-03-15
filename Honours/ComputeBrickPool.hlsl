@@ -49,9 +49,10 @@ void CSBrickPoolMain(int3 brick_index : SV_GroupID, int3 voxel_offset : SV_Group
     GroupMemoryBarrierWithGroupSync();
     
     float3 voxel_size = VOXEL_SIZE;
-    float3 position = aabb.min_ + (voxel_size * voxel_offset) + (voxel_size * 0.5f);
+    float3 position = aabb.min_ + (voxel_size * (float3)voxel_offset) + (voxel_size * 0.5f);
     
-    output_texture_[BrickIndexToVoxelPosition(brick_index.x, voxel_offset)] = GetAnalyticalSignedDistance(position);
+    //output_texture_[BrickIndexToVoxelPosition(brick_index.x, voxel_offset)] = GetAnalyticalSignedDistance(position);
+    output_texture_[BrickIndexToVoxelPosition(brick_index.x, voxel_offset)] = position.x;
 }
 
 #endif

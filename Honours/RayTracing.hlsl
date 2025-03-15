@@ -24,6 +24,17 @@ uint3 BrickIndexToVoxelPosition(uint brick_index, uint3 voxel_offset)
     return uint3(x, y, z);
 }
 
+float3 BrickIndexToBrickPoolUVW(uint brick_index, uint3 voxel_offset)
+{
+    float3 uvw = BrickIndexToVoxelPosition(PrimitiveIndex(), voxel_offset) + float3(0.5f, 0.5f, 0.5f);
+                    
+    uvw /= (float3) comp_constant_buffer_.brick_pool_dimensions_ * float3(VOXELS_PER_AXIS_PER_BRICK, VOXELS_PER_AXIS_PER_BRICK, VOXELS_PER_AXIS_PER_BRICK);
+    
+    return uvw;
+}
+
+
+
 // ------------ Ray Generation Shader ----------------
 
 [shader("raygeneration")]
@@ -96,18 +107,44 @@ void IntersectionShader()
             {
                 float3 position = ray.origin_ + max(t_min, 0) * ray.direction_;
 
+                // If we are using the complex AABBs and texture
                 if (!(rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_SIMPLE_AABB) &&
                     !(rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_ANALYTICAL))
                 {
-                    uint3 voxel_offset = (position / BRICK_SIZE) * VOXELS_PER_AXIS_PER_BRICK;
-                    position = BrickIndexToVoxelPosition(PrimitiveIndex(), voxel_offset);
+                    position /= BRICK_SIZE;
+                    
+                    //float3 voxel_offset = (position / BRICK_SIZE) * VOXELS_PER_AXIS_PER_BRICK;
+                    uint3 voxel_offset = position * VOXELS_PER_AXIS_PER_BRICK;
+                    
+                    // Need to clamp voxel offset to be in correct range. clamp() wasn't working for some reason
+                    uint max_offset = VOXELS_PER_AXIS_PER_BRICK - 1;
+                    if (voxel_offset.x > max_offset)
+                        voxel_offset.x = max_offset;
+                    if (voxel_offset.y > max_offset)
+                        voxel_offset.y = max_offset;
+                    if (voxel_offset.z > max_offset)
+                        voxel_offset.z = max_offset;
+
+                    position = BrickIndexToBrickPoolUVW(PrimitiveIndex(), voxel_offset);
+
                 }
-                else
+                else if (!(rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_ANALYTICAL))
                 {
                     position /= WORLD_MAX;
                 }
+               
+                //float distance = GetDistance(position);
+                //float distance = sdf_texture_.Load(int4(position, 0));
+                float distance = sdf_texture_.SampleLevel(sampler_, position, 0);
                 
-                float distance = GetDistance(position);
+                //----------
+                RayIntersectionAttributes attributes;
+                attributes.float_3_ = float3(distance, 0, 0);
+                //attributes.float_3_ = position;
+                    
+                ReportHit(max(t_min, RayTMin()), 0, attributes);
+                return;
+                // ----------
 
                 // Has the ray intersected the primitive? 
                 if (distance <= SPHERE_TRACING_THRESHOLD)
@@ -134,27 +171,33 @@ void IntersectionShader()
 [shader("closesthit")]
 void ClosestHitShader(inout RayPayload payload, in RayIntersectionAttributes attributes)
 {
-    if (rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_VISUALIZE_AABBS)
-    {
-        payload.colour_ = float4(attributes.float_3_, 1.f);
-        return;
-    }
-    else if (rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_VISUALIZE_PARTICLES)
-    {
-        payload.colour_ = float4(0.306, 0.941, 0.933, 1);
-        return;
-    }
-    else if (rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_NORMALS)
-    {
-        payload.colour_ = float4(attributes.float_3_, 1.f);
-        return;
-    }
-    else
-    {
-        float3 position = WorldRayOrigin() + RayTCurrent() * WorldRayDirection();
-        float4 specular = float4(0.9f, 0.9f, 0.9f, 1);
-        payload.colour_ = float4(0.306, 0.941, 0.933, 1) * CalculateLighting(attributes.float_3_, rt_constant_buffer_.camera_pos_, position, specular) + specular;
-    }
+    payload.colour_ = float4(attributes.float_3_, 1.f);
+    return;
+    
+    //if (rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_VISUALIZE_AABBS)
+    //{
+    //    payload.colour_ = float4(attributes.float_3_, 1.f);
+    //    return;
+    //}
+    //else if (rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_VISUALIZE_PARTICLES)
+    //{
+    //    payload.colour_ = float4(0.306, 0.941, 0.933, 1);
+    //    return;
+    //}
+    //else if (rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_NORMALS)
+    //{
+    //    payload.colour_ = float4(attributes.float_3_, 1.f);
+    //    return;
+    //}
+    //else
+    //{
+    //    //float3 position = WorldRayOrigin() + RayTCurrent() * WorldRayDirection();
+    //    //float4 specular = float4(0.9f, 0.9f, 0.9f, 1);
+    //    //payload.colour_ = float4(0.306, 0.941, 0.933, 1) * CalculateLighting(attributes.float_3_, rt_constant_buffer_.camera_pos_, position, specular) + specular;
+        
+    //    payload.colour_ = float4(0.306, 0.941, 0.933, 1);
+
+    //}
 }
 
 

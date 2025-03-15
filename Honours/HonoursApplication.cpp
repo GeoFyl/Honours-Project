@@ -226,6 +226,18 @@ void HonoursApplication::OnUpdate()
          device_resources_->ExecuteCommandList();
          device_resources_->WaitForGpu();
     }
+
+    if (!(debug_.render_analytical_ || debug_.visualize_particles_)) {
+        device_resources_->ResetCommandList();
+
+        if (debug_.use_simple_aabb_) computer_->ComputeSimpleSDFTexture();
+        else computer_->ComputeBrickPoolTexture();
+
+        device_resources_->ExecuteCommandList();
+        device_resources_->WaitForGpu();
+    }
+
+
 }
 
 // Render the scene.
@@ -246,7 +258,10 @@ void HonoursApplication::OnRender()
     // Prepare the command list and render target for rendering.
     device_resources_->Prepare(m_pipelineState.Get());
 
-
+    if (ray_tracer_->GetAccelerationStructure()->IsStructureBuilt()) {
+        ray_tracer_->RayTracing();
+        CopyRaytracingOutputToBackbuffer();
+    }
 
     ID3D12DescriptorHeap* srv_heaps[1] = { descriptor_heap_.Get() };
     device_resources_->GetCommandList()->SetDescriptorHeaps(1, srv_heaps);
@@ -257,15 +272,7 @@ void HonoursApplication::OnRender()
     // Record all the commands we need to render the scene into the command list.
 
 
-    if (!(debug_.render_analytical_ || debug_.visualize_particles_)) {
-        if (debug_.use_simple_aabb_) computer_->ComputeSimpleSDFTexture();
-        else computer_->ComputeBrickPoolTexture();
-    }
 
-    if (ray_tracer_->GetAccelerationStructure()->IsStructureBuilt()) {
-        ray_tracer_->RayTracing();
-        CopyRaytracingOutputToBackbuffer();
-    }
 
     // Record commands for drawing GUI
     DrawGUI();
@@ -359,16 +366,16 @@ void HonoursApplication::DrawGUI()
 
     ImGui::Text("FPS: %.2f", timer_.GetCurrentFPS());
 
-    if (ImGui::CollapsingHeader("Implementation")) {
+    if (ImGui::CollapsingHeader("Implementation"), ImGuiTreeNodeFlags_DefaultOpen) {
         ImGui::Checkbox("Analytical distances", &debug_.render_analytical_);
         ImGui::Checkbox("Use simple bounding volume", &debug_.use_simple_aabb_);
     }
-    if (ImGui::CollapsingHeader("Visualisation")) {
+    if (ImGui::CollapsingHeader("Visualisation"), ImGuiTreeNodeFlags_DefaultOpen) {
         ImGui::Checkbox("Visualize bounding volumes", &debug_.visualize_aabbs_);
         ImGui::Checkbox("Visualise particles", &debug_.visualize_particles_);
-        ImGui::Checkbox("Pause particles", &debug_.pause_positions_);    
+        ImGui::Checkbox("Pause particles", &debug_.pause_positions_);
     }
-    if (ImGui::CollapsingHeader("Debug Normals")) {
+    if (ImGui::CollapsingHeader("Debug Normals"), ImGuiTreeNodeFlags_DefaultOpen) {
         ImGui::Checkbox("Debug normals", &debug_.render_normals_);
         ImGui::Text("Normals uvw step (texture):");
         ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.9f);

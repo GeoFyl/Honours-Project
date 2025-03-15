@@ -238,6 +238,9 @@ void Computer::ComputeBrickPoolTexture()
 {
     auto commandList = device_resources_->GetCommandList();
 
+    ID3D12DescriptorHeap* heap = application_->GetDescriptorHeap();
+    commandList->SetDescriptorHeaps(1, &heap);
+
     commandList->SetPipelineState(compute_brickpool_state_object_.Get());
     commandList->SetComputeRootSignature(compute_brickpool_root_signature_.Get());
 
@@ -246,7 +249,9 @@ void Computer::ComputeBrickPoolTexture()
     commandList->SetComputeRootShaderResourceView(ComputeBrickPoolRootSignatureParams::AABBBufferSlot, ray_tracer_->GetAccelerationStructure()->GetAABBBuffer()->GetGPUVirtualAddress());
     commandList->SetComputeRootConstantBufferView(ComputeBrickPoolRootSignatureParams::ConstantBufferSlot, compute_cb_->Resource()->GetGPUVirtualAddress());
 
-    commandList->Dispatch(std::ceil(bricks_count_ / 1024.f), 1, 1);
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(brick_pool_3d_texture_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+
+    commandList->Dispatch(bricks_count_, 1, 1);
 
     commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(brick_pool_3d_texture_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
 }
@@ -254,6 +259,9 @@ void Computer::ComputeBrickPoolTexture()
 void Computer::ComputeSimpleSDFTexture()
 {
     auto commandList = device_resources_->GetCommandList();
+
+    ID3D12DescriptorHeap* heap = application_->GetDescriptorHeap();
+    commandList->SetDescriptorHeaps(1, &heap);
 
     commandList->SetPipelineState(compute_simple_tex_state_object_.Get());
     commandList->SetComputeRootSignature(compute_simple_tex_root_signature_.Get());
@@ -479,7 +487,7 @@ void Computer::CreateBuffers()
         positions[i].position_.x = i * 0.125f + 0.1f;
         positions[i].position_.y = 0.1f;
         positions[i].position_.z = 0.1f;
-        positions[i].speed_ = rand() % 10 + 1;
+        positions[i].speed_ = 0;
         positions[i].start_y_ = positions[i].position_.y;
     }*/
 
@@ -523,7 +531,7 @@ void Computer::AllocateBrickPoolTexture()
     // If count of surface cells is larger than max bricks the pool can store
     if (bricks_count_ > max_bricks_count_) {
         XMUINT3 dimensions;
-        max_bricks_count_ = FindOptimalBrickPoolDimensions(dimensions);
+        max_bricks_count_ = FindOptimalBrickPoolDimensions(dimensions); 
 
        // dimensions = XMUINT3(dimensions.x * VOXELS_PER_AXIS_PER_BRICK, dimensions.y * VOXELS_PER_AXIS_PER_BRICK, dimensions.z * VOXELS_PER_AXIS_PER_BRICK);
 
@@ -538,7 +546,7 @@ void Computer::AllocateBrickPoolTexture()
             &defaultHeapProperties,
             D3D12_HEAP_FLAG_NONE,
             &uavDesc,
-            D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+            D3D12_RESOURCE_STATE_GENERIC_READ,
             nullptr, IID_PPV_ARGS(&brick_pool_3d_texture_)));
 
         device_resources_->GetD3DDevice()->CreateUnorderedAccessView(brick_pool_3d_texture_.Get(), nullptr, nullptr, brick_pool_3d_texture_cpu_handle_);
