@@ -483,10 +483,10 @@ void Computer::CreateBuffers()
         positions[i].start_y_ = positions[i].position_.y;
     }
 
-   /* for (int i = 0; i < NUM_PARTICLES; i++) {
+    /*for (int i = 0; i < NUM_PARTICLES; i++) {
         positions[i].position_.x = i * 0.125f + 0.1f;
         positions[i].position_.y = 0.1f;
-        positions[i].position_.z = 0.1f;
+        positions[i].position_.z = 0.05f;
         positions[i].speed_ = 0;
         positions[i].start_y_ = positions[i].position_.y;
     }*/
@@ -539,7 +539,7 @@ void Computer::AllocateBrickPoolTexture()
         brick_pool_3d_texture_.Reset();
 
         // Create the 3D texture 
-        auto uavDesc = CD3DX12_RESOURCE_DESC::Tex3D(DXGI_FORMAT_R8_SNORM, dimensions.x * VOXELS_PER_AXIS_PER_BRICK, dimensions.y * VOXELS_PER_AXIS_PER_BRICK, dimensions.z * VOXELS_PER_AXIS_PER_BRICK, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+        auto uavDesc = CD3DX12_RESOURCE_DESC::Tex3D(DXGI_FORMAT_R16_SNORM, dimensions.x * VOXELS_PER_AXIS_PER_BRICK_ADJACENCY, dimensions.y * VOXELS_PER_AXIS_PER_BRICK_ADJACENCY, dimensions.z * VOXELS_PER_AXIS_PER_BRICK_ADJACENCY, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
         auto defaultHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
         ThrowIfFailed(device_resources_->GetD3DDevice()->CreateCommittedResource(
@@ -588,7 +588,7 @@ unsigned int Computer::FindOptimalBrickPoolDimensions(XMUINT3& dimensions)
 void Computer::AllocateSimpleSDFTexture()
 {
     // Create the 3D texture 
-    auto uavDesc = CD3DX12_RESOURCE_DESC::Tex3D(DXGI_FORMAT_R8_SNORM, TEXTURE_RESOLUTION, TEXTURE_RESOLUTION, TEXTURE_RESOLUTION, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+    auto uavDesc = CD3DX12_RESOURCE_DESC::Tex3D(DXGI_FORMAT_R16_SNORM, TEXTURE_RESOLUTION, TEXTURE_RESOLUTION, TEXTURE_RESOLUTION, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
     auto defaultHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
     ThrowIfFailed(device_resources_->GetD3DDevice()->CreateCommittedResource(

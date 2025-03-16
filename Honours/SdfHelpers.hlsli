@@ -60,20 +60,33 @@ float GetDistance(float3 position)
 // https://iquilezles.org/articles/normalsSDF/
 float3 CalculateNormal(float3 position)
 {
-    float step;
     if (rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_ANALYTICAL)
     {
-        step = 0.001f;
+        // Using analytical method
+        
+        float step = 0.001f;
+        
+        const float2 h = float2(step, 0);
+        return normalize(float3(GetDistance(position + h.xyy) - GetDistance(position - h.xyy),
+                                GetDistance(position + h.yxy) - GetDistance(position - h.yxy),
+                                GetDistance(position + h.yyx) - GetDistance(position - h.yyx)));
     }
-    else
+    else if (rt_constant_buffer_.rendering_flags_ ^ RENDERING_FLAG_SIMPLE_AABB)
     {
-        step = rt_constant_buffer_.uvw_step_;
+        // Using complex texture
+        
+        float4 h = float4(1.f / (comp_constant_buffer_.brick_pool_dimensions_ * VOXELS_PER_AXIS_PER_BRICK_ADJACENCY), 0);
+
+        return normalize(float3(GetDistance(position + h.xww) - GetDistance(position - h.xww),
+                                GetDistance(position + h.wyw) - GetDistance(position - h.wyw),
+                                GetDistance(position + h.wwz) - GetDistance(position - h.wwz)));
     }
     
-    const float2 h = float2(step, 0);
+    // Using simple texture
+    const float2 h = float2(rt_constant_buffer_.uvw_step_, 0);
     return normalize(float3(GetDistance(position + h.xyy) - GetDistance(position - h.xyy),
-                            GetDistance(position + h.yxy) - GetDistance(position - h.yxy),
-                            GetDistance(position + h.yyx) - GetDistance(position - h.yyx)));
+                                GetDistance(position + h.yxy) - GetDistance(position - h.yxy),
+                                GetDistance(position + h.yyx) - GetDistance(position - h.yyx)));
 }
 
 float CalculateLighting(float3 normal, float3 cameraPos, float3 worldPosition, inout float4 specular)

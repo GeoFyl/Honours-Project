@@ -28,7 +28,7 @@ struct RayPayload
 
 struct RayIntersectionAttributes
 {
-    float3 float_3_; // Can be used for normals or uvw 
+    float3 float_3_; // Can be used for normals or brick AABB uvw 
 };
 
 struct RayTracingCB
