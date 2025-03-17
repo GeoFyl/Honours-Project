@@ -1,6 +1,6 @@
 #pragma once
 
-#define NUM_PARTICLES 125
+#define NUM_PARTICLES 2
 #define TEXTURE_RESOLUTION 256 
 
 #define WORLD_MIN float3(0, 0, 0)

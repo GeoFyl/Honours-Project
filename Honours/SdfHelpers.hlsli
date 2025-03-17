@@ -30,11 +30,12 @@ float GetAnalyticalSignedDistance(float3 position)
 {
     // vector between the particle position and the current sphere tracing position
     
-    float distance = GetDistanceToSphere(particle_positions_[0].position_ - position, 0.1f);
+    float distance = GetDistanceToSphere(particle_positions_[0].position_ - position, PARTICLE_RADIUS);
     for (int x = 1; x < NUM_PARTICLES; x++)
     {
-        float distance1 = GetDistanceToSphere(particle_positions_[x].position_ - position, 0.1f);      
-        distance = SmoothMin(distance, distance1, 0.05);
+        float distance1 = GetDistanceToSphere(particle_positions_[x].position_ - position, PARTICLE_RADIUS);
+        if (distance1 <= PARTICLE_RADIUS)
+            distance = SmoothMin(distance, distance1, PARTICLE_RADIUS);
         //distance = min(distance, distance1);
     }
     

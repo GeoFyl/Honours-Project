@@ -1,7 +1,7 @@
 #ifndef GLOBAL_VALUES_HLSL
 #define GLOBAL_VALUES_HLSL
 
-#define NUM_PARTICLES 125
+#define NUM_PARTICLES 2
 #define TEXTURE_RESOLUTION 256 
 
 #define WORLD_MIN float3(0, 0, 0)
@@ -20,7 +20,7 @@
 #define NUM_CELLS_PER_BLOCK 64
 
 #define CELL_SIZE WORLD_MAX / float3(NUM_CELLS_PER_AXIS)
-
+#define PARTICLE_RADIUS 0.0625
 
 // Currently assumes cells are perfect cubes
 // 2 x 2 x 2 = 8

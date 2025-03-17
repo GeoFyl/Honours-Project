@@ -33,8 +33,6 @@ float3 BrickIndexToBrickPoolUVW(uint brick_index, uint3 voxel_offset)
     return uvw;
 }
 
-
-
 // ------------ Ray Generation Shader ----------------
 
 [shader("raygeneration")]
@@ -198,7 +196,6 @@ void ClosestHitShader(inout RayPayload payload, in RayIntersectionAttributes att
         float3 position = WorldRayOrigin() + RayTCurrent() * WorldRayDirection();
         float4 specular = float4(0.9f, 0.9f, 0.9f, 1);
         payload.colour_ = float4(0.306, 0.941, 0.933, 1) * CalculateLighting(attributes.float_3_, rt_constant_buffer_.camera_pos_, position, specular) + specular;
-
     }
 }
 
