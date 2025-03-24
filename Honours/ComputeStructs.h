@@ -4,10 +4,11 @@
 
 using namespace DirectX;
 
-struct ParticlePosition {
+struct ParticleData {
 	XMFLOAT3 position_;
 	float speed_;
 	float start_y_;
+	UINT32 intra_cell_index_;
 };
 
 struct ComputeCB {
@@ -19,7 +20,7 @@ struct ComputeCB {
 struct Cell
 {
 	unsigned int particle_count_;
-	unsigned int particle_indices_[CELL_MAX_PARTICLE_COUNT];
+	//unsigned int particle_indices_[CELL_MAX_PARTICLE_COUNT];
 };
 
 struct Block

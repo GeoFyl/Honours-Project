@@ -2,6 +2,7 @@
 #include "DeviceResources.h"
 #include "ComputeStructs.h"
 #include "UploadBuffer.h"
+#include "ChainedScanDecoupledLookback.h"
 
 namespace ComputePositionsRootSignatureParams {
     enum Value {
@@ -97,7 +98,10 @@ private:
     void AllocateBrickPoolTexture();
     UINT FindOptimalBrickPoolDimensions(XMUINT3& dimensions);
 
-    // DXR attributes
+    // Implementation of chained scan with decoupled lookback from https://github.com/b0nes164/GPUPrefixSums
+    std::unique_ptr<ChainedScanDecoupledLookback> scan_shader_;
+
+    // State Objects
     ComPtr<ID3D12PipelineState> compute_pos_state_object_;
     ComPtr<ID3D12PipelineState> compute_grid_state_object_;
     ComPtr<ID3D12PipelineState> compute_clear_counts_state_object_;
@@ -118,7 +122,7 @@ private:
     ComPtr<ID3D12Resource> particle_pos_buffer_uploader_;
     ComPtr<ID3D12Resource> particle_pos_buffer_;
 
-    ComPtr<ID3D12Resource> cells_buffer_;
+    //ComPtr<ID3D12Resource> cells_buffer_;
     ComPtr<ID3D12Resource> blocks_buffer_;
     ComPtr<ID3D12Resource> surface_block_indices_buffer_;
     ComPtr<ID3D12Resource> surface_cell_indices_buffer_;
@@ -131,7 +135,6 @@ private:
     UINT surface_blocks_count_ = 0;
     UINT bricks_count_ = 0;
     UINT max_bricks_count_ = 0;
-
 
     // 3D texture
     ComPtr<ID3D12Resource> simple_sdf_3d_texture_;

@@ -25,19 +25,23 @@ Computer::Computer(DX::DeviceResources* device_resources, HonoursApplication* ap
 void Computer::ComputePostitions()
 {
    
-    auto commandList = device_resources_->GetCommandList();
+    auto command_list = device_resources_->GetCommandList();
 
-    commandList->SetPipelineState(compute_pos_state_object_.Get());
-    commandList->SetComputeRootSignature(compute_pos_root_signature_.Get());
+    command_list->SetPipelineState(compute_pos_state_object_.Get());
+    command_list->SetComputeRootSignature(compute_pos_root_signature_.Get());
 
-    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(particle_pos_buffer_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+    //commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(particle_pos_buffer_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 
-    commandList->SetComputeRootUnorderedAccessView(ComputePositionsRootSignatureParams::ParticlePositionsBufferSlot, particle_pos_buffer_->GetGPUVirtualAddress());
-    commandList->SetComputeRootConstantBufferView(ComputePositionsRootSignatureParams::ConstantBufferSlot, compute_cb_->Resource()->GetGPUVirtualAddress());
+    command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(particle_pos_buffer_.Get()));
 
-    commandList->Dispatch(particle_threadgroups_, 1, 1);
+    command_list->SetComputeRootUnorderedAccessView(ComputePositionsRootSignatureParams::ParticlePositionsBufferSlot, particle_pos_buffer_->GetGPUVirtualAddress());
+    command_list->SetComputeRootConstantBufferView(ComputePositionsRootSignatureParams::ConstantBufferSlot, compute_cb_->Resource()->GetGPUVirtualAddress());
 
-    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(particle_pos_buffer_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
+    command_list->Dispatch(particle_threadgroups_, 1, 1);
+
+    //command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(particle_pos_buffer_.Get()));
+
+    //commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(particle_pos_buffer_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
     
 }
 
@@ -48,20 +52,21 @@ void Computer::ComputeGrid()
     
     // Bind resources
     commandList->SetComputeRootSignature(compute_grid_root_signature_.Get());
-    commandList->SetComputeRootShaderResourceView(ComputeGridRootSignatureParams::ParticlePositionsBufferSlot, particle_pos_buffer_->GetGPUVirtualAddress());
 
-    commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::CellsSlot, cells_buffer_->GetGPUVirtualAddress());
+    commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::ParticlePositionsBufferSlot, particle_pos_buffer_->GetGPUVirtualAddress());
+    commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::CellsSlot, scan_shader_->GetScanInBuffer()->GetGPUVirtualAddress());
     commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::BlocksSlot, blocks_buffer_->GetGPUVirtualAddress());
     commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::SurfaceBlocksSlot, surface_block_indices_buffer_->GetGPUVirtualAddress());
     commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::SurfaceCellsSlot, surface_cell_indices_buffer_->GetGPUVirtualAddress());
     commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::SurfaceCountsSlot, surface_counts_buffer_->GetGPUVirtualAddress());
 
-    D3D12_RESOURCE_BARRIER grid_uav_barriers[5];
-    grid_uav_barriers[0] = CD3DX12_RESOURCE_BARRIER::UAV(cells_buffer_.Get());
+    D3D12_RESOURCE_BARRIER grid_uav_barriers[6];
+    grid_uav_barriers[0] = CD3DX12_RESOURCE_BARRIER::UAV(scan_shader_->GetScanInBuffer());
     grid_uav_barriers[1] = CD3DX12_RESOURCE_BARRIER::UAV(blocks_buffer_.Get());
     grid_uav_barriers[2] = CD3DX12_RESOURCE_BARRIER::UAV(surface_block_indices_buffer_.Get());
     grid_uav_barriers[3] = CD3DX12_RESOURCE_BARRIER::UAV(surface_cell_indices_buffer_.Get());
     grid_uav_barriers[4] = CD3DX12_RESOURCE_BARRIER::UAV(surface_counts_buffer_.Get());
+    grid_uav_barriers[5] = CD3DX12_RESOURCE_BARRIER::UAV(particle_pos_buffer_.Get());
 
     commandList->ResourceBarrier(ARRAYSIZE(grid_uav_barriers), grid_uav_barriers);
 
@@ -104,8 +109,8 @@ void Computer::ComputeGrid()
         commandList->SetPipelineState(compute_surface_cells_state_object_.Get());
         commandList->SetComputeRootSignature(compute_grid_root_signature_.Get());
 
-        commandList->SetComputeRootShaderResourceView(ComputeGridRootSignatureParams::ParticlePositionsBufferSlot, particle_pos_buffer_->GetGPUVirtualAddress());
-        commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::CellsSlot, cells_buffer_->GetGPUVirtualAddress());
+        commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::ParticlePositionsBufferSlot, particle_pos_buffer_->GetGPUVirtualAddress());
+        commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::CellsSlot, scan_shader_->GetScanInBuffer()->GetGPUVirtualAddress());
         commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::BlocksSlot, blocks_buffer_->GetGPUVirtualAddress());
         commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::SurfaceBlocksSlot, surface_block_indices_buffer_->GetGPUVirtualAddress());
         commandList->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::SurfaceCellsSlot, surface_cell_indices_buffer_->GetGPUVirtualAddress());
@@ -285,7 +290,7 @@ void Computer::CreateRootSignatures()
     
     // Root signature used for shader which computes the grid
     CD3DX12_ROOT_PARAMETER grid_root_params[ComputeGridRootSignatureParams::Count];
-    grid_root_params[ComputeGridRootSignatureParams::ParticlePositionsBufferSlot].InitAsShaderResourceView(0);
+    grid_root_params[ComputeGridRootSignatureParams::ParticlePositionsBufferSlot].InitAsUnorderedAccessView(0);
     grid_root_params[ComputeGridRootSignatureParams::CellsSlot].InitAsUnorderedAccessView(1);
     grid_root_params[ComputeGridRootSignatureParams::BlocksSlot].InitAsUnorderedAccessView(2);
     grid_root_params[ComputeGridRootSignatureParams::SurfaceBlocksSlot].InitAsUnorderedAccessView(3);
@@ -473,7 +478,7 @@ void Computer::CreateBuffers()
     tex_creation_threadgroups_ = XMUINT3(std::ceil(TEXTURE_RESOLUTION / 32.f), std::ceil(TEXTURE_RESOLUTION / 32.f), TEXTURE_RESOLUTION);
 
     // Particle position buffer
-    ParticlePosition positions[NUM_PARTICLES];
+    ParticleData positions[NUM_PARTICLES];
 
     /*for (int i = 0; i < NUM_PARTICLES; i++) {
         positions[i].position_.x = ((float)(rand() % 10) + 0.5f) / 10.f;
@@ -505,12 +510,14 @@ void Computer::CreateBuffers()
 
 
 
-    UINT64 byte_size = NUM_PARTICLES * sizeof(ParticlePosition);
+    UINT64 byte_size = NUM_PARTICLES * sizeof(ParticleData);
 
     particle_pos_buffer_ = Utilities::CreateDefaultBuffer(device, command_list, &positions, byte_size, particle_pos_buffer_uploader_, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
     // Grid buffers
-    Utilities::AllocateDefaultBuffer(device, NUM_CELLS * sizeof(Cell), cells_buffer_.GetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+    //Utilities::AllocateDefaultBuffer(device, NUM_CELLS * sizeof(Cell), cells_buffer_.GetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+    scan_shader_ = std::make_unique<ChainedScanDecoupledLookback>(device_resources_);
+    scan_shader_->UpdateSize(NUM_CELLS);
     Utilities::AllocateDefaultBuffer(device, NUM_BLOCKS * sizeof(Block), blocks_buffer_.GetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     Utilities::AllocateDefaultBuffer(device, NUM_CELLS * sizeof(unsigned int), surface_cell_indices_buffer_.GetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     Utilities::AllocateDefaultBuffer(device, NUM_BLOCKS * sizeof(unsigned int), surface_block_indices_buffer_.GetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
@@ -539,7 +546,7 @@ void Computer::AllocateBrickPoolTexture()
         brick_pool_3d_texture_.Reset();
 
         // Create the 3D texture 
-        auto uavDesc = CD3DX12_RESOURCE_DESC::Tex3D(DXGI_FORMAT_R16_SNORM, dimensions.x * VOXELS_PER_AXIS_PER_BRICK_ADJACENCY, dimensions.y * VOXELS_PER_AXIS_PER_BRICK_ADJACENCY, dimensions.z * VOXELS_PER_AXIS_PER_BRICK_ADJACENCY, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+        auto uavDesc = CD3DX12_RESOURCE_DESC::Tex3D(DXGI_FORMAT_R16_SNORM, dimensions.x * VOXELS_PER_AXIS_PER_BRICK_ADJACENCY, dimensions.y * VOXELS_PER_AXIS_PER_BRICK_ADJACENCY, dimensions.z * VOXELS_PER_AXIS_PER_BRICK_ADJACENCY, 1, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
         auto defaultHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
         ThrowIfFailed(device_resources_->GetD3DDevice()->CreateCommittedResource(
@@ -588,7 +595,7 @@ unsigned int Computer::FindOptimalBrickPoolDimensions(XMUINT3& dimensions)
 void Computer::AllocateSimpleSDFTexture()
 {
     // Create the 3D texture 
-    auto uavDesc = CD3DX12_RESOURCE_DESC::Tex3D(DXGI_FORMAT_R16_SNORM, TEXTURE_RESOLUTION, TEXTURE_RESOLUTION, TEXTURE_RESOLUTION, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+    auto uavDesc = CD3DX12_RESOURCE_DESC::Tex3D(DXGI_FORMAT_R16_SNORM, TEXTURE_RESOLUTION, TEXTURE_RESOLUTION, TEXTURE_RESOLUTION, 1, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
     auto defaultHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
     ThrowIfFailed(device_resources_->GetD3DDevice()->CreateCommittedResource(

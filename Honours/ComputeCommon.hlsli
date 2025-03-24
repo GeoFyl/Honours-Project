@@ -3,11 +3,12 @@
 
 #include "GlobalValues.hlsli"
 
-struct ParticlePosition
+struct ParticleData
 {
     float3 position_;
     float speed_;
     float start_y_;
+    uint intra_cell_index_;
 };
 
 struct ComputeCB

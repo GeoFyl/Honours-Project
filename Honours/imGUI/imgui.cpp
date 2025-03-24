@@ -1,6 +1,5 @@
 // dear imgui, v1.91.5
 // (main code and documentation)
-
 // Help:
 // - See links below.
 // - Call and read ImGui::ShowDemoWindow() in imgui_demo.cpp. All applications in examples/ are doing that.

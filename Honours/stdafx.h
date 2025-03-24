@@ -30,7 +30,8 @@
 #include <string>
 #include <wrl.h>
 #include <shellapi.h>
-
+#include <winrt/base.h>
+#include <cstdint>
 #include <iostream>
 
 #ifdef _DEBUG

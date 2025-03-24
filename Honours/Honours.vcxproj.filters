@@ -49,6 +49,12 @@
     <Filter Include="Source Files\Compute">
       <UniqueIdentifier>{2ff12c70-eddd-44c3-8c47-625de93844bd}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Compute\GPUPrefixSums">
+      <UniqueIdentifier>{b2bd5247-da14-47ee-a438-e8d10e198de3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Compute\GPUPrefixSums">
+      <UniqueIdentifier>{15db9f9b-f4aa-41ec-b73b-107e27167f66}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DXSample.h">
@@ -142,6 +148,21 @@
     <ClInclude Include="GlobalValues.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="GPUPrefixSums\ChainedScanDecoupledLookback.h">
+      <Filter>Header Files\Compute\GPUPrefixSums</Filter>
+    </ClInclude>
+    <ClInclude Include="GPUPrefixSums\ComputeKernelBase.h">
+      <Filter>Header Files\Compute\GPUPrefixSums</Filter>
+    </ClInclude>
+    <ClInclude Include="GPUPrefixSums\CSDLKernels.h">
+      <Filter>Header Files\Compute\GPUPrefixSums</Filter>
+    </ClInclude>
+    <ClInclude Include="GPUPrefixSums\GPUPrefixSumBase.h">
+      <Filter>Header Files\Compute\GPUPrefixSums</Filter>
+    </ClInclude>
+    <ClInclude Include="GPUPrefixSums\Utils.h">
+      <Filter>Header Files\Compute\GPUPrefixSums</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="HonoursApplication.cpp">
@@ -219,6 +240,9 @@
     </ClCompile>
     <ClCompile Include="AccelerationStructureManager.cpp">
       <Filter>Source Files\RayTracing</Filter>
+    </ClCompile>
+    <ClCompile Include="GPUPrefixSums\ChainedScanDecoupledLookback.cpp">
+      <Filter>Source Files\Compute\GPUPrefixSums</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

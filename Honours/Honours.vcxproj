@@ -69,9 +69,9 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>imGUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>GPUPrefixSums;imGUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAsWinRT>false</CompileAsWinRT>
-      <LanguageStandard>stdcpp14</LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -100,7 +100,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>imGUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>GPUPrefixSums;imGUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAsWinRT>false</CompileAsWinRT>
     </ClCompile>
     <Link>
@@ -132,6 +132,11 @@
     <ClInclude Include="DeviceResources.h" />
     <ClInclude Include="FPCamera.h" />
     <ClInclude Include="GlobalValues.h" />
+    <ClInclude Include="GPUPrefixSums\ChainedScanDecoupledLookback.h" />
+    <ClInclude Include="GPUPrefixSums\ComputeKernelBase.h" />
+    <ClInclude Include="GPUPrefixSums\CSDLKernels.h" />
+    <ClInclude Include="GPUPrefixSums\GPUPrefixSumBase.h" />
+    <ClInclude Include="GPUPrefixSums\Utils.h" />
     <ClInclude Include="HonoursApplication.h" />
     <ClInclude Include="imGUI\imconfig.h" />
     <ClInclude Include="imGUI\imgui.h" />
@@ -163,6 +168,10 @@
     <ClCompile Include="CubeMesh.cpp" />
     <ClCompile Include="DeviceResources.cpp" />
     <ClCompile Include="FPCamera.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="GPUPrefixSums\ChainedScanDecoupledLookback.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>

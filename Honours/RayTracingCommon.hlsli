@@ -44,7 +44,7 @@ struct RayTracingCB
 // Global arguments
 
 RaytracingAccelerationStructure scene_ : register(t0);
-StructuredBuffer<ParticlePosition> particle_positions_ : register(t1);
+StructuredBuffer<ParticleData> particles_ : register(t1);
 Texture3D<snorm float> sdf_texture_ : register(t2);
 StructuredBuffer<AABB> AABBs_ : register(t3);
 RWTexture2D<float4> render_target_ : register(u0);

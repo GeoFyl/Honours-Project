@@ -95,7 +95,7 @@ bool RenderParticlesVisualized()
         screenPos.x *= aspect_ratio;
         
         // Project particle from world to screen space and adjust for aspect ratio
-        float4 particleScreenpos = mul(float4(particle_positions_[x].position_, 1), rt_constant_buffer_.view_proj_);
+        float4 particleScreenpos = mul(float4(particles_[x].position_, 1), rt_constant_buffer_.view_proj_);
         particleScreenpos.xyz /= particleScreenpos.w;
         particleScreenpos.x *= aspect_ratio;
         

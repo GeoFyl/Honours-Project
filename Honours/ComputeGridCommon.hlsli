@@ -9,7 +9,7 @@
 struct Cell
 {
     uint particle_count_;
-    uint particle_indices_[CELL_MAX_PARTICLE_COUNT];
+    //uint particle_indices_[CELL_MAX_PARTICLE_COUNT];
 };
 
 struct Block

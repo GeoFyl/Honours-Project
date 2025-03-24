@@ -3,7 +3,7 @@
 
 #include "ComputeGridCommon.hlsli"
 
-StructuredBuffer<ParticlePosition> particle_positions_ : register(t0);
+RWStructuredBuffer<ParticleData> particles_ : register(u0);
 RWStructuredBuffer<Cell> cells_ : register(u1);
 RWStructuredBuffer<Block> blocks_ : register(u2);
 RWStructuredBuffer<uint> surface_block_indices_ : register(u3);
@@ -73,18 +73,15 @@ void CSGridMain(int3 dispatch_ID : SV_DispatchThreadID)
     }
     
     // Identify the cell containing the target particle
-    float3 particle_pos = particle_positions_[dispatch_ID.x].position_;
+    float3 particle_pos = particles_[dispatch_ID.x].position_;
     uint cell_index = GetCellIndex(particle_pos);
     
     // Increment the cell's particle count and assign intra-cell offset
     uint particle_intra_cell_index;
     InterlockedAdd(cells_[cell_index].particle_count_, 1, particle_intra_cell_index);
     
-    // Add the particle's index to cell's particle list
-    if (particle_intra_cell_index < CELL_MAX_PARTICLE_COUNT)
-    {
-        cells_[cell_index].particle_indices_[particle_intra_cell_index] = dispatch_ID.x;        
-    }
+    // Store the particle's intra cell index for the data reorganising stage
+    particles_[dispatch_ID.x].intra_cell_index_ = particle_intra_cell_index;
     
     // If this is the first particle in the cell, increment the blocks non empty cell counter
     if (particle_intra_cell_index == 0)

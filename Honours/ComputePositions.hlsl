@@ -3,7 +3,7 @@
 
 #include "ComputeCommon.hlsli"
 
-RWStructuredBuffer<ParticlePosition> particle_positions_ : register(u0);
+RWStructuredBuffer<ParticleData> particle_positions_ : register(u0);
 ConstantBuffer<ComputeCB> constant_buffer_ : register(b0);
 
 // Shader for manipulating particle positions
