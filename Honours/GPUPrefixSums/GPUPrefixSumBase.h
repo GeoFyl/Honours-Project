@@ -109,6 +109,7 @@ class GPUPrefixSumBase {
     void ExecuteCommandList() {
         device_resources_->ExecuteCommandList();
         device_resources_->WaitForGpu();
+        device_resources_->ResetCommandList();
     }
 
     static inline uint32_t divRoundUp(uint32_t x, uint32_t y) { return (x + y - 1) / y; }

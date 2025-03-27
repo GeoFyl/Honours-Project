@@ -76,6 +76,9 @@ void CSGridMain(int3 dispatch_ID : SV_DispatchThreadID)
     float3 particle_pos = particles_[dispatch_ID.x].position_;
     uint cell_index = GetCellIndex(particle_pos);
     
+    // Store particle's cell index to be used in particle reordering
+    particles_[dispatch_ID.x].cell_index_ = cell_index;
+    
     // Increment the cell's particle count and assign intra-cell offset
     uint particle_intra_cell_index;
     InterlockedAdd(cells_[cell_index].particle_count_, 1, particle_intra_cell_index);

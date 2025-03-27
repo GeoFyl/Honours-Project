@@ -230,8 +230,13 @@ void HonoursApplication::OnUpdate()
     if (!(debug_.render_analytical_ || debug_.visualize_particles_)) {
         device_resources_->ResetCommandList();
 
-        if (debug_.use_simple_aabb_) computer_->ComputeSimpleSDFTexture();
-        else computer_->ComputeBrickPoolTexture();
+        if (debug_.use_simple_aabb_) {
+            computer_->ComputeSimpleSDFTexture();
+        }
+        else {
+            computer_->SortParticleData();
+            computer_->ComputeBrickPoolTexture();
+        }
 
         device_resources_->ExecuteCommandList();
         device_resources_->WaitForGpu();

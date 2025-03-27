@@ -46,4 +46,6 @@ void ChainedScanDecoupledLookback::PrepareScanCmdListExclusive() {
                               m_scanOutBuffer->GetGPUVirtualAddress(),
                               m_scanBumpBuffer->GetGPUVirtualAddress(),
                               m_threadBlockReductionBuffer, m_vectorizedSize, m_partitions);
+
+    UAVBarrierSingle(device_resources_->GetCommandList(), m_scanOutBuffer);
 }

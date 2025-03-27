@@ -9,6 +9,7 @@ struct ParticleData
     float speed_;
     float start_y_;
     uint intra_cell_index_;
+    uint cell_index_;
 };
 
 struct ComputeCB

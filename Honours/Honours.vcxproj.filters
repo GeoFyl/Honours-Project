@@ -288,6 +288,9 @@
     <CustomBuild Include="ComputeBrickPool.hlsl">
       <Filter>Assets\Shaders\Compute</Filter>
     </CustomBuild>
+    <CustomBuild Include="ComputeReorderParticles.hlsl">
+      <Filter>Assets\Shaders\Compute</Filter>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

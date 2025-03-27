@@ -53,6 +53,14 @@ namespace ComputeAABBsRootSignatureParams {
         Count
     };
 }
+namespace ComputeReorderParticlesParams {
+    enum Value {
+        OrderedParticlesSlot = 0,
+        UnorderedParticlesSlot,
+        CellGlobalIndicexOffsetsSlot,
+        Count
+    };
+}
 
 
 using Microsoft::WRL::ComPtr;
@@ -72,19 +80,21 @@ public:
     void ReadBackCellCount();
     void ComputeAABBs();
     void ComputeBrickPoolTexture();
+    void SortParticleData();
 
 
     //UINT GetSurfaceCellCount() { return surface_cell_count_; }
 
     inline UploadBuffer<ComputeCB>* GetConstantBuffer() { return compute_cb_.get(); }
-    inline ID3D12Resource* GetPositionsBuffer() { return particle_pos_buffer_.Get(); }
+    inline ID3D12Resource* GetUnorderedParticlesBuffer() { return particle_buffer_unordered_.Get(); }
+    inline ID3D12Resource* GetOrderedParticlesBuffer() { return particle_buffer_ordered_.Get(); }
     inline ID3D12Resource* GetSimpleSDFTexture() { return simple_sdf_3d_texture_.Get(); }
     inline D3D12_GPU_DESCRIPTOR_HANDLE GetSimpleSDFTextureHandle() { return simple_sdf_3d_texture_gpu_handle_; }
     inline ID3D12Resource* GetBrickPoolTexture() { return brick_pool_3d_texture_.Get(); }
     inline D3D12_GPU_DESCRIPTOR_HANDLE GetBrickPoolTextureHandle() { return brick_pool_3d_texture_gpu_handle_; }
 
     inline void ReleaseUploaders() {
-        particle_pos_buffer_uploader_.Reset();
+        particle_buffer_uploader_.Reset();
     }
 
 private:
@@ -110,6 +120,7 @@ private:
     ComPtr<ID3D12PipelineState> compute_AABBs_state_object_;
     ComPtr<ID3D12PipelineState> compute_simple_tex_state_object_;
     ComPtr<ID3D12PipelineState> compute_brickpool_state_object_;
+    ComPtr<ID3D12PipelineState> compute_reorder_state_object_;
 
     // Root signatures
     ComPtr<ID3D12RootSignature> compute_pos_root_signature_;
@@ -117,12 +128,12 @@ private:
     ComPtr<ID3D12RootSignature> compute_AABBs_root_signature_;
     ComPtr<ID3D12RootSignature> compute_simple_tex_root_signature_;
     ComPtr<ID3D12RootSignature> compute_brickpool_root_signature_;
+    ComPtr<ID3D12RootSignature> compute_reorder_root_signature_;
 
     // Buffers
-    ComPtr<ID3D12Resource> particle_pos_buffer_uploader_;
-    ComPtr<ID3D12Resource> particle_pos_buffer_;
-
-    //ComPtr<ID3D12Resource> cells_buffer_;
+    ComPtr<ID3D12Resource> particle_buffer_uploader_;
+    ComPtr<ID3D12Resource> particle_buffer_unordered_;
+    ComPtr<ID3D12Resource> particle_buffer_ordered_;
     ComPtr<ID3D12Resource> blocks_buffer_;
     ComPtr<ID3D12Resource> surface_block_indices_buffer_;
     ComPtr<ID3D12Resource> surface_cell_indices_buffer_;
