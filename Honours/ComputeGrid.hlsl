@@ -18,10 +18,7 @@ RWStructuredBuffer<GridSurfaceCounts> surface_counts_ : register(u5);
 // Returns true if neighbour cell exists
 bool IsNeighbourEmpty(int cell_index, int3 offset, out bool empty)
 {
-    uint3 cell_coords = CellIndexTo3DCoords(cell_index) + offset;
-    
-    uint3 cells_per_axis = uint3(NUM_CELLS_PER_AXIS);
-    int new_index = (cell_coords.z * cells_per_axis.x * cells_per_axis.y) + (cell_coords.y * cells_per_axis.x) + cell_coords.x;
+    int new_index = OffsetCellIndex(cell_index, offset);
     
     if (new_index > -1 && new_index < NUM_CELLS)
     {
@@ -90,7 +87,7 @@ void CSGridMain(int3 dispatch_ID : SV_DispatchThreadID)
     if (particle_intra_cell_index == 0)
     {
         int block_indices[8];
-        CellIndexToBlockIndices(cell_index, block_indices);
+        CellIndexToNeighbourBlockIndices(cell_index, block_indices);
         
         //uint block_index = CellIndexToBlockIndex(cell_index);
         

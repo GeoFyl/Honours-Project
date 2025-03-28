@@ -23,6 +23,8 @@ namespace ComputeBrickPoolRootSignatureParams {
         ParticlePositionsBufferSlot = 0,
         TextureSlot,
         AABBBufferSlot,
+        CellCountsSlot,
+        CellGlobalIndicexOffsetsSlot,
         ConstantBufferSlot,
         Count
     };

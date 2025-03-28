@@ -252,6 +252,8 @@ void Computer::ComputeBrickPoolTexture()
     command_list->SetComputeRootDescriptorTable(ComputeBrickPoolRootSignatureParams::TextureSlot, brick_pool_3d_texture_gpu_handle_);
     command_list->SetComputeRootShaderResourceView(ComputeBrickPoolRootSignatureParams::ParticlePositionsBufferSlot, particle_buffer_ordered_->GetGPUVirtualAddress());
     command_list->SetComputeRootShaderResourceView(ComputeBrickPoolRootSignatureParams::AABBBufferSlot, ray_tracer_->GetAccelerationStructure()->GetAABBBuffer()->GetGPUVirtualAddress());
+    command_list->SetComputeRootShaderResourceView(ComputeBrickPoolRootSignatureParams::CellCountsSlot, scan_shader_->GetScanInBuffer()->GetGPUVirtualAddress());
+    command_list->SetComputeRootShaderResourceView(ComputeBrickPoolRootSignatureParams::CellGlobalIndicexOffsetsSlot, scan_shader_->GetScanOutBuffer()->GetGPUVirtualAddress());
     command_list->SetComputeRootConstantBufferView(ComputeBrickPoolRootSignatureParams::ConstantBufferSlot, compute_cb_->Resource()->GetGPUVirtualAddress());
 
     command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(brick_pool_3d_texture_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
@@ -344,6 +346,8 @@ void Computer::CreateRootSignatures()
     brickpool_root_params[ComputeBrickPoolRootSignatureParams::TextureSlot].InitAsDescriptorTable(1, &brickpool_uav_descriptor);
     brickpool_root_params[ComputeBrickPoolRootSignatureParams::ParticlePositionsBufferSlot].InitAsShaderResourceView(0);
     brickpool_root_params[ComputeBrickPoolRootSignatureParams::AABBBufferSlot].InitAsShaderResourceView(1);
+    brickpool_root_params[ComputeBrickPoolRootSignatureParams::CellCountsSlot].InitAsShaderResourceView(2);
+    brickpool_root_params[ComputeBrickPoolRootSignatureParams::CellGlobalIndicexOffsetsSlot].InitAsShaderResourceView(3);
     brickpool_root_params[ComputeBrickPoolRootSignatureParams::ConstantBufferSlot].InitAsConstantBufferView(0);
     CD3DX12_ROOT_SIGNATURE_DESC brickpool_root_signature_desc(ARRAYSIZE(brickpool_root_params), brickpool_root_params);
     SerializeAndCreateComputeRootSignature(brickpool_root_signature_desc, &compute_brickpool_root_signature_);

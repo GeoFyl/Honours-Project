@@ -50,6 +50,16 @@ uint3 CellIndexTo3DCoords(uint cell_index)
     return coords;
 }
 
+int OffsetCellIndex(uint cell_index, int3 cell_offset)
+{
+    uint3 cell_coords = CellIndexTo3DCoords(cell_index) + cell_offset;
+    
+    uint3 cells_per_axis = uint3(NUM_CELLS_PER_AXIS);
+    int new_index = (cell_coords.z * cells_per_axis.x * cells_per_axis.y) + (cell_coords.y * cells_per_axis.x) + cell_coords.x;
+    
+    return new_index;
+}
+
 uint Cell3DCoordsToBlockIndex(uint3 coords, int3 block_offset)
 {
     uint3 cells_per_block = uint3(NUM_CELLS_PER_AXIS_PER_BLOCK);
@@ -62,9 +72,8 @@ uint Cell3DCoordsToBlockIndex(uint3 coords, int3 block_offset)
     return (bz * blocks_per_axis.x * blocks_per_axis.y) + (by * blocks_per_axis.x) + bx;
 }
 
-
 // Works out the index of the block containing the given cell, and blocks neighbouring the cell
-void CellIndexToBlockIndices(uint cell_index, out int block_indices[8])
+void CellIndexToNeighbourBlockIndices(uint cell_index, out int block_indices[8])
 {
     block_indices = invalid_block_indices;
     uint3 cells_per_block = uint3(NUM_CELLS_PER_AXIS_PER_BLOCK);
