@@ -2,6 +2,7 @@
 #include "Computer.h"
 #include "HonoursApplication.h"
 #include "RayTracer.h"
+#include "GFSDK_Aftermath.h"
 
 Computer::Computer(DX::DeviceResources* device_resources, HonoursApplication* app) :
 	device_resources_(device_resources), application_(app)
@@ -157,7 +158,7 @@ void Computer::ComputeAABBs()
         command_list->Dispatch(std::ceil(bricks_count_ / 1024.f), 1, 1);
 
         command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_counts_buffer_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-        command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_cell_indices_buffer_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+        
         command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(ray_tracer_->GetAccelerationStructure()->GetAABBBuffer(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
 
         // Execute and wait for work to finish 
@@ -254,6 +255,7 @@ void Computer::ComputeBrickPoolTexture()
     command_list->SetComputeRootShaderResourceView(ComputeBrickPoolRootSignatureParams::AABBBufferSlot, ray_tracer_->GetAccelerationStructure()->GetAABBBuffer()->GetGPUVirtualAddress());
     command_list->SetComputeRootShaderResourceView(ComputeBrickPoolRootSignatureParams::CellCountsSlot, scan_shader_->GetScanInBuffer()->GetGPUVirtualAddress());
     command_list->SetComputeRootShaderResourceView(ComputeBrickPoolRootSignatureParams::CellGlobalIndicexOffsetsSlot, scan_shader_->GetScanOutBuffer()->GetGPUVirtualAddress());
+    command_list->SetComputeRootShaderResourceView(ComputeBrickPoolRootSignatureParams::SurfaceCellIndicesSlot, surface_cell_indices_buffer_->GetGPUVirtualAddress());
     command_list->SetComputeRootConstantBufferView(ComputeBrickPoolRootSignatureParams::ConstantBufferSlot, compute_cb_->Resource()->GetGPUVirtualAddress());
 
     command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(brick_pool_3d_texture_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
@@ -261,6 +263,7 @@ void Computer::ComputeBrickPoolTexture()
     command_list->Dispatch(bricks_count_, 1, 1);
 
     command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(brick_pool_3d_texture_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
+    command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_cell_indices_buffer_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 }
 
 void Computer::SortParticleData()
@@ -278,10 +281,14 @@ void Computer::SortParticleData()
     command_list->SetComputeRootShaderResourceView(ComputeReorderParticlesParams::CellGlobalIndicexOffsetsSlot, scan_shader_->GetScanOutBuffer()->GetGPUVirtualAddress());
 
     command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(particle_buffer_ordered_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+    command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(particle_buffer_unordered_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
+    command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(scan_shader_->GetScanOutBuffer(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
 
     command_list->Dispatch(particle_threadgroups_, 1, 1);
 
     command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(particle_buffer_ordered_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
+    command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(particle_buffer_unordered_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+    command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(scan_shader_->GetScanOutBuffer(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 }
 
 void Computer::ComputeSimpleSDFTexture()
@@ -348,6 +355,7 @@ void Computer::CreateRootSignatures()
     brickpool_root_params[ComputeBrickPoolRootSignatureParams::AABBBufferSlot].InitAsShaderResourceView(1);
     brickpool_root_params[ComputeBrickPoolRootSignatureParams::CellCountsSlot].InitAsShaderResourceView(2);
     brickpool_root_params[ComputeBrickPoolRootSignatureParams::CellGlobalIndicexOffsetsSlot].InitAsShaderResourceView(3);
+    brickpool_root_params[ComputeBrickPoolRootSignatureParams::SurfaceCellIndicesSlot].InitAsShaderResourceView(4);
     brickpool_root_params[ComputeBrickPoolRootSignatureParams::ConstantBufferSlot].InitAsConstantBufferView(0);
     CD3DX12_ROOT_SIGNATURE_DESC brickpool_root_signature_desc(ARRAYSIZE(brickpool_root_params), brickpool_root_params);
     SerializeAndCreateComputeRootSignature(brickpool_root_signature_desc, &compute_brickpool_root_signature_);
@@ -480,21 +488,21 @@ void Computer::CreateBuffers()
     // Particle position buffer
     ParticleData positions[NUM_PARTICLES];
 
-    /*for (int i = 0; i < NUM_PARTICLES; i++) {
+    for (int i = 0; i < NUM_PARTICLES; i++) {
         positions[i].position_.x = ((float)(rand() % 10) + 0.5f) / 10.f;
         positions[i].position_.y = ((float)(rand() % 10) + 0.5f) / 10.f;
         positions[i].position_.z = ((float)(rand() % 10) + 0.5f) / 10.f;
         positions[i].speed_ = rand() % 10 + 1;
         positions[i].start_y_ = positions[i].position_.y;
-    }*/
+    }
 
-    for (int i = 0; i < NUM_PARTICLES; i++) {
-        positions[i].position_.x = i * 0.125f + 0.15f;
+    /*for (int i = 0; i < NUM_PARTICLES; i++) {
+        positions[i].position_.x = i * 0.0625 + 0.15f;
         positions[i].position_.y = 0.1f;
         positions[i].position_.z = 0.15f;
         positions[i].speed_ = 0;
         positions[i].start_y_ = positions[i].position_.y;
-    }
+    }*/
 
     /*positions[0].position_.x = 0.1f;
     positions[0].position_.y = 0.1f;
@@ -514,7 +522,10 @@ void Computer::CreateBuffers()
 
     particle_buffer_unordered_ = Utilities::CreateDefaultBuffer(device, command_list, &positions, byte_size, particle_buffer_uploader_, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     Utilities::AllocateDefaultBuffer(device, byte_size, particle_buffer_ordered_.GetAddressOf(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-
+    particle_buffer_unordered_->SetName(L"UnorderedP");
+    particle_buffer_ordered_->SetName(L"OrderedP");
+    GFSDK_Aftermath_DX12_RegisterResource(particle_buffer_unordered_.Get(), new GFSDK_Aftermath_ResourceHandle);
+    GFSDK_Aftermath_DX12_RegisterResource(particle_buffer_ordered_.Get(), new GFSDK_Aftermath_ResourceHandle);
 
     // Grid buffers
     //Utilities::AllocateDefaultBuffer(device, NUM_CELLS * sizeof(Cell), cells_buffer_.GetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
@@ -524,6 +535,20 @@ void Computer::CreateBuffers()
     Utilities::AllocateDefaultBuffer(device, NUM_CELLS * sizeof(unsigned int), surface_cell_indices_buffer_.GetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     Utilities::AllocateDefaultBuffer(device, NUM_BLOCKS * sizeof(unsigned int), surface_block_indices_buffer_.GetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     Utilities::AllocateDefaultBuffer(device, sizeof(GridSurfaceCounts), surface_counts_buffer_.GetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+
+    blocks_buffer_->SetName(L"Blocks");
+    GFSDK_Aftermath_DX12_RegisterResource(blocks_buffer_.Get(), new GFSDK_Aftermath_ResourceHandle);
+
+    surface_cell_indices_buffer_->SetName(L"SurfaceCellIndices");
+    GFSDK_Aftermath_DX12_RegisterResource(surface_cell_indices_buffer_.Get(), new GFSDK_Aftermath_ResourceHandle);
+
+    surface_block_indices_buffer_->SetName(L"SurfaceBlockIndices");
+    GFSDK_Aftermath_DX12_RegisterResource(surface_block_indices_buffer_.Get(), new GFSDK_Aftermath_ResourceHandle);
+
+    surface_counts_buffer_->SetName(L"SurfaceCounts");
+    GFSDK_Aftermath_DX12_RegisterResource(surface_counts_buffer_.Get(), new GFSDK_Aftermath_ResourceHandle);
+
+
 
     // Allocate buffer for reading back surface cell count
     ThrowIfFailed(device->CreateCommittedResource(

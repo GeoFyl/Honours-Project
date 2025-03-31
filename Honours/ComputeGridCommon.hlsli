@@ -171,4 +171,17 @@ bool IsBlockAtEdge(uint block_index)
     return false;
 }
 
+// Takes the index of a brick within a cell to determine a 3D offset of the brick within the cell
+uint3 BrickIndexTo3DOffset(uint brick_index)
+{
+    uint3 offset = uint3(0, 0, 0);
+    
+    uint bricks_per_z = BRICKS_PER_AXIS_PER_CELL * BRICKS_PER_AXIS_PER_CELL;
+    offset.z = brick_index / bricks_per_z;
+    offset.y = (brick_index % bricks_per_z) / BRICKS_PER_AXIS_PER_CELL;
+    offset.x = brick_index % BRICKS_PER_AXIS_PER_CELL;
+    
+    return offset;
+}
+
 #endif

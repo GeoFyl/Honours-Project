@@ -10,19 +10,6 @@ StructuredBuffer<uint> surface_cell_indices_ : register(t0);
 StructuredBuffer<GridSurfaceCounts> surface_counts_ : register(t1);
 RWStructuredBuffer<AABB> aabbs_ : register(u0);
 
-// Takes the index of a brick within a cell to determine an offset
-uint3 BrickIndexTo3DOffset(uint brick_index)
-{
-    uint3 offset = uint3(0, 0, 0);
-    
-    uint bricks_per_z = BRICKS_PER_AXIS_PER_CELL * BRICKS_PER_AXIS_PER_CELL;
-    offset.z = brick_index / bricks_per_z;
-    offset.y = (brick_index % bricks_per_z) / BRICKS_PER_AXIS_PER_CELL;
-    offset.x = brick_index % BRICKS_PER_AXIS_PER_CELL;
-    
-    return offset;
-}
-
 // Builds Array of AABBs in for surface cells world space
 [numthreads(1024, 1, 1)]
 void CSBuildAABBs(int3 dispatch_ID : SV_DispatchThreadID)

@@ -16,7 +16,18 @@ void CSPosMain(int3 dispatch_ID : SV_DispatchThreadID)
         return;
     }
     
-    particle_positions_[dispatch_ID.x].position_.y = particle_positions_[dispatch_ID.x].start_y_ + (0.2 * sin(0.5 * constant_buffer_.time_ * particle_positions_[dispatch_ID.x].speed_));
+    float new_y = particle_positions_[dispatch_ID.x].start_y_ + (0.2 * sin(0.5 * constant_buffer_.time_ * particle_positions_[dispatch_ID.x].speed_));
+    
+    if (new_y > WORLD_MAX.y)
+    {
+        new_y = WORLD_MAX.y - 0.1f;
+    }
+    else if (new_y < 0)
+    {
+        new_y = 0.1f;
+    }
+    
+    particle_positions_[dispatch_ID.x].position_.y = new_y;
     
     return;
 }

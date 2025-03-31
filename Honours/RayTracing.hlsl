@@ -102,7 +102,7 @@ void IntersectionShader()
             // Perform sphere tracing through the AABB.
             float3 position;
             uint3 voxel_offset = uint3(0,0,0);
-            uint max_offset = VOXELS_PER_AXIS_PER_BRICK - 1;
+            uint max_offset = CORE_VOXELS_PER_AXIS_PER_BRICK - 1;
             uint i = 0;
             while (i++ < MAX_SPHERE_TRACING_STEPS && t_min <= t_max)
             {
@@ -114,8 +114,8 @@ void IntersectionShader()
                 {
                     position /= BRICK_SIZE;
                     
-                    //float3 voxel_offset = (position / BRICK_SIZE) * VOXELS_PER_AXIS_PER_BRICK;
-                    voxel_offset = position * VOXELS_PER_AXIS_PER_BRICK;
+                    //float3 voxel_offset = (position / BRICK_SIZE) * CORE_VOXELS_PER_AXIS_PER_BRICK;
+                    voxel_offset = position * CORE_VOXELS_PER_AXIS_PER_BRICK;
                     
                     //// Need to clamp voxel offset to be in correct range.
                     if (voxel_offset.x > max_offset)

@@ -69,14 +69,14 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>GPUPrefixSums;imGUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>include;GPUPrefixSums;imGUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAsWinRT>false</CompileAsWinRT>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;dxcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;dxcompiler.lib;GFSDK_Aftermath_Lib.x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>d3d12.dll</DelayLoadDLLs>
     </Link>
     <CustomBuildStep>
@@ -100,15 +100,16 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>GPUPrefixSums;imGUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>include;GPUPrefixSums;imGUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAsWinRT>false</CompileAsWinRT>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;dxcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;dxcompiler.lib;GFSDK_Aftermath_Lib.x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>d3d12.dll</DelayLoadDLLs>
     </Link>
     <CustomBuildStep>
@@ -239,8 +240,13 @@
     <CustomBuild Include="dxil.dll">
       <FileType>Document</FileType>
     </CustomBuild>
-    <None Include="ComputeGridCommon.hlsli" />
+    <CustomBuild Include="ComputeGridCommon.hlsli">
+      <FileType>Document</FileType>
+    </CustomBuild>
     <CustomBuild Include="GlobalValues.hlsli">
+      <FileType>Document</FileType>
+    </CustomBuild>
+    <CustomBuild Include="GFSDK_Aftermath_Lib.x64.dll">
       <FileType>Document</FileType>
     </CustomBuild>
     <None Include="packages.config" />

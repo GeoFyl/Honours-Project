@@ -33,7 +33,6 @@ void ChainedScanDecoupledLookback::InitStaticBuffers() {
     m_scanBumpBuffer =
         CreateBuffer(device_resources_->GetD3DDevice(), sizeof(uint32_t), D3D12_HEAP_TYPE_DEFAULT,
                      D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-
 }
 
 void ChainedScanDecoupledLookback::PrepareScanCmdListExclusive() {

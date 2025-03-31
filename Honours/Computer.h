@@ -25,6 +25,7 @@ namespace ComputeBrickPoolRootSignatureParams {
         AABBBufferSlot,
         CellCountsSlot,
         CellGlobalIndicexOffsetsSlot,
+        SurfaceCellIndicesSlot,
         ConstantBufferSlot,
         Count
     };
