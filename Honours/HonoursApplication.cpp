@@ -197,6 +197,7 @@ void HonoursApplication::OnUpdate()
     // Update constant buffers
     RayTracingCB buff;
     buff.camera_pos_ = camera_->getPosition();
+    buff.camera_lookat_ = camera_->getLookAt();
     buff.view_proj_ = XMMatrixMultiply(camera_->getViewMatrix(), projection_matrix_);
     buff.inv_view_proj_ = XMMatrixTranspose(XMMatrixInverse(nullptr, buff.view_proj_));
     buff.view_proj_ = XMMatrixTranspose(buff.view_proj_);

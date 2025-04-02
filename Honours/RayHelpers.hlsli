@@ -83,26 +83,31 @@ bool RayAABBIntersectionTest(Ray ray, float3 aabb[2], out float tmin, out float 
 bool RenderParticlesVisualized()
 {
     float aspect_ratio = (float)DispatchRaysDimensions().x / (float)DispatchRaysDimensions().y;    
-    
+    float2 xy = DispatchRaysIndex().xy + 0.5f; // center in the middle of the pixel.
+    float2 screenPos = xy / DispatchRaysDimensions().xy * 2.0 - 1.0;
+
+    // Invert Y for DirectX-style coordinates and adjust for aspect ratio
+    screenPos.y = -screenPos.y;
+    screenPos.x *= aspect_ratio;    
+
     [unroll]
     for (int x = 0; x < NUM_PARTICLES; x++)
     {
-        float2 xy = DispatchRaysIndex().xy + 0.5f; // center in the middle of the pixel.
-        float2 screenPos = xy / DispatchRaysDimensions().xy * 2.0 - 1.0;
-
-        // Invert Y for DirectX-style coordinates and adjust for aspect ratio
-        screenPos.y = -screenPos.y;
-        screenPos.x *= aspect_ratio;
+        float3 particle_pos = particles_[x].position_;
+        float3 cam_pos = rt_constant_buffer_.camera_pos_;
         
-        // Project particle from world to screen space and adjust for aspect ratio
-        float4 particleScreenpos = mul(float4(particles_[x].position_, 1), rt_constant_buffer_.view_proj_);
-        particleScreenpos.xyz /= particleScreenpos.w;
-        particleScreenpos.x *= aspect_ratio;
-        
-        // Report hit in small radius around particle (draws circle)
-        if (length(particleScreenpos.xy - screenPos) < 0.015)
+        if (dot(particle_pos - cam_pos, rt_constant_buffer_.camera_lookat_ - cam_pos) > 0)
         {
-            return true;
+            // Project particle from world to screen space and adjust for aspect ratio
+            float4 particleScreenpos = mul(float4(particle_pos, 1), rt_constant_buffer_.view_proj_);
+            particleScreenpos.xyz /= particleScreenpos.w;
+            particleScreenpos.x *= aspect_ratio;
+        
+            // Report hit in small radius around particle (draws circle)
+            if (length(particleScreenpos.xy - screenPos) < 0.015)
+            {
+                return true;
+            }            
         }
     }
     return false;

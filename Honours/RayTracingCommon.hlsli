@@ -37,6 +37,7 @@ struct RayTracingCB
     float4x4 inv_view_proj_;
     float3 camera_pos_;
     float uvw_step_;
+    float3 camera_lookat_;    
     uint rendering_flags_;
 };
 

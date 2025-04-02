@@ -92,7 +92,7 @@ void CellIndexToNeighbourBlockIndices(uint cell_index, out int block_indices[8])
     }
     else if (intra_block_coords.x == NUM_CELLS_PER_AXIS_PER_BLOCK - 1)
     {
-        block_offset.x = -1;
+        block_offset.x = 1;
         block_indices[1] = Cell3DCoordsToBlockIndex(coords, block_offset.xww);
     }
     if (intra_block_coords.y == 0)
@@ -102,7 +102,7 @@ void CellIndexToNeighbourBlockIndices(uint cell_index, out int block_indices[8])
     }
     else if (intra_block_coords.y == NUM_CELLS_PER_AXIS_PER_BLOCK - 1)
     {
-        block_offset.y = -1;
+        block_offset.y = 1;
         block_indices[2] = Cell3DCoordsToBlockIndex(coords, block_offset.wyw);
     }
     if (intra_block_coords.z == 0)
@@ -112,7 +112,7 @@ void CellIndexToNeighbourBlockIndices(uint cell_index, out int block_indices[8])
     }
     else if (intra_block_coords.z == NUM_CELLS_PER_AXIS_PER_BLOCK - 1)
     {
-        block_offset.z = -1;
+        block_offset.z = 1;
         block_indices[3] = Cell3DCoordsToBlockIndex(coords, block_offset.wwz);
     }
 

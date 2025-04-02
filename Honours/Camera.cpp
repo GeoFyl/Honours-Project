@@ -55,6 +55,11 @@ XMFLOAT3 Camera::getRotation()
 	return rotation;
 }
 
+XMFLOAT3 Camera::getLookAt()
+{
+	return lookat;
+}
+
 // Re-calucation view Matrix.
 bool Camera::update()
 {
@@ -85,8 +90,11 @@ bool Camera::update()
 		// Translate the rotated camera position to the location of the viewer.
 		lookAt = positionv + lookAt;
 
+		XMStoreFloat3(&lookat, lookAt);
+
 		// Finally create the view matrix from the three updated vectors.
 		viewMatrix = XMMatrixLookAtLH(positionv, lookAt, up);
+
 
 		return true;
 	}
