@@ -79,7 +79,7 @@ float3 CalculateNormal(float3 position)
     {
         // Using complex texture
         
-        float4 h = float4(1.f / (comp_constant_buffer_.brick_pool_dimensions_ * VOXELS_PER_AXIS_PER_BRICK_ADJACENCY), 0);
+        float4 h = float4(0.5f / (comp_constant_buffer_.brick_pool_dimensions_ * VOXELS_PER_AXIS_PER_BRICK_ADJACENCY), 0);
 
         return normalize(float3(GetDistance(position + h.xww) - GetDistance(position - h.xww),
                                 GetDistance(position + h.wyw) - GetDistance(position - h.wyw),

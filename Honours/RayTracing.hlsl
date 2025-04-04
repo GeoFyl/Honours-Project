@@ -5,7 +5,7 @@
 #include "SdfHelpers.hlsli"
 
 // Works out the index of the voxel from the brick index and voxel offset
-uint3 BrickIndexToVoxelPosition(uint brick_index, uint3 voxel_offset)
+uint3 BrickIndexToVoxelPosition(uint brick_index)
 {
     // Convert brick index to its (bx, by, bz) brick coordinates
     uint3 brick_pool_dimensions = comp_constant_buffer_.brick_pool_dimensions_;
@@ -16,22 +16,23 @@ uint3 BrickIndexToVoxelPosition(uint brick_index, uint3 voxel_offset)
     uint bx = brick_index % brick_pool_dimensions.x;
     
     // Compute the voxel position
-    uint x = bx * VOXELS_PER_AXIS_PER_BRICK_ADJACENCY + voxel_offset.x;
-    uint y = by * VOXELS_PER_AXIS_PER_BRICK_ADJACENCY + voxel_offset.y;
-    uint z = bz * VOXELS_PER_AXIS_PER_BRICK_ADJACENCY + voxel_offset.z;
+    uint x = bx;
+    uint y = by;
+    uint z = bz;
     
     // Turn this into an index
     return uint3(x, y, z);
 }
 
-float3 BrickIndexToBrickPoolUVW(uint brick_index, uint3 voxel_offset)
+float3 BrickIndexToBrickPoolUVW(float3 voxel_offset)
 {
-    float3 uvw = BrickIndexToVoxelPosition(PrimitiveIndex(), voxel_offset) + float3(0.5f, 0.5f, 0.5f);
+    float3 uvw = (voxel_offset / VOXELS_PER_AXIS_PER_BRICK_ADJACENCY) + BrickIndexToVoxelPosition(PrimitiveIndex());
                     
-    uvw /= (float3) comp_constant_buffer_.brick_pool_dimensions_ * VOXELS_PER_AXIS_PER_BRICK_ADJACENCY;
+    uvw /= (float3) comp_constant_buffer_.brick_pool_dimensions_;
     
     return uvw;
 }
+
 
 // ------------ Ray Generation Shader ----------------
 
@@ -101,31 +102,23 @@ void IntersectionShader()
             
             // Perform sphere tracing through the AABB.
             float3 position;
-            uint3 voxel_offset = uint3(0,0,0);
-            uint max_offset = CORE_VOXELS_PER_AXIS_PER_BRICK - 1;
+            float3 voxel_offset = float3(0,0,0);
+            uint max_offset = CORE_VOXELS_PER_AXIS_PER_BRICK;
             uint i = 0;
             while (i++ < MAX_SPHERE_TRACING_STEPS && t_min <= t_max)
             {
                 position = clamp(ray.origin_ + max(t_min, 0) * ray.direction_, WORLD_MIN, WORLD_MAX);
-
+                
                 // If we are using the complex AABBs and texture
                 if (!(rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_SIMPLE_AABB) &&
                     !(rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_ANALYTICAL))
                 {
+                    
                     position /= BRICK_SIZE;
-                    
-                    //float3 voxel_offset = (position / BRICK_SIZE) * CORE_VOXELS_PER_AXIS_PER_BRICK;
-                    voxel_offset = position * CORE_VOXELS_PER_AXIS_PER_BRICK;
-                    
-                    //// Need to clamp voxel offset to be in correct range.
-                    if (voxel_offset.x > max_offset)
-                        voxel_offset.x = max_offset;
-                    if (voxel_offset.y > max_offset)
-                        voxel_offset.y = max_offset;
-                    if (voxel_offset.z > max_offset)
-                        voxel_offset.z = max_offset;
 
-                    position = BrickIndexToBrickPoolUVW(PrimitiveIndex(), voxel_offset + 1); // voxel offset is offset by (1,1,1) to account for adjacency voxels
+                    voxel_offset = position * CORE_VOXELS_PER_AXIS_PER_BRICK;
+                                      
+                    position = BrickIndexToBrickPoolUVW(voxel_offset + 1.f); // voxel offset is offset by (1,1,1) to account for adjacency voxels
 
                 }
                 else if (!(rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_ANALYTICAL))
@@ -134,22 +127,7 @@ void IntersectionShader()
                 }
                
                 float distance = GetDistance(position);
-                
-                ////---------- for testing
-                //RayIntersectionAttributes attributes;
-                
-                //if (position.z < 0)
-                //{
-                //    attributes.float_3_ = float3(1, 0, 0);                    
-                //}
-                //else
-                //{
-                //    attributes.float_3_ = float3(0, 1, 0);
-                //}
- 
-                //ReportHit(max(t_min, RayTMin()), 0, attributes);
-                //return;
-                //// ----------
+
 
                 // Has the ray intersected the primitive? 
                 if (distance <= SPHERE_TRACING_THRESHOLD)
