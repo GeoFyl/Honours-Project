@@ -1,7 +1,7 @@
 #ifndef GLOBAL_VALUES_HLSL
 #define GLOBAL_VALUES_HLSL
 
-#define NUM_PARTICLES 1
+#define NUM_PARTICLES 200
 #define TEXTURE_RESOLUTION 256 
 
 #define WORLD_MIN float3(0, 0, 0)
