@@ -93,6 +93,31 @@ float3 CalculateNormal(float3 position)
                                 GetDistance(position + h.yyx) - GetDistance(position - h.yyx)));
 }
 
+// Failed attempt at tetrahedron method
+//float3 CalculateNormal(float3 position)
+//{
+//    float3 step;    
+    
+//    if (rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_ANALYTICAL) // If using the naive method
+//    {
+//        step = float3(0.001f, 0.001f, 0.001f);
+//    }
+//    else if (rt_constant_buffer_.rendering_flags_ ^ RENDERING_FLAG_SIMPLE_AABB) // If using simple texture
+//    {
+//        step = rt_constant_buffer_.uvw_step_;
+//    }
+//    else // If using complex method
+//    {
+//        step = 1.f / (comp_constant_buffer_.brick_pool_dimensions_ * VOXELS_PER_AXIS_PER_BRICK_ADJACENCY);
+//    }
+    
+//    const float2 k = float2(1, -1);
+//    return normalize(k.xyy * GetDistance(position + k.xyy * step) +
+//                     k.yyx * GetDistance(position + k.yyx * step) +
+//                     k.yxy * GetDistance(position + k.yxy * step) +
+//                     k.xxx * GetDistance(position + k.xxx * step));
+//}
+
 float CalculateLighting(float3 normal, float3 cameraPos, float3 worldPosition, inout float4 specular)
 {
     float3 lightVector = -float3(LIGHT_DIRECTION);
