@@ -14,28 +14,6 @@ RWStructuredBuffer<GridSurfaceCounts> surface_counts_ : register(u5);
 // Blocks: 4 x 4 x 4 total
 // Cells: 16 x 16 x 16 total, 4 x 4 x 4 per block
 
-// Finds if a neighbouring cell is empty, given a current index and an offset
-// Returns true if neighbour cell exists
-bool IsNeighbourEmpty(int cell_index, int3 offset, out bool empty)
-{
-    int new_index = OffsetCellIndex(cell_index, offset);
-    
-    if (new_index > -1 && new_index < NUM_CELLS)
-    {
-        empty = (cells_[new_index].particle_count_ == 0);   
-        return true;
-    }
-
-    return false;
-}
-
-void MarkAsSurfaceCell(uint cell_index)
-{
-    uint surface_cells_array_index;
-    InterlockedAdd(surface_counts_[0].surface_cells, 1, surface_cells_array_index);
-    surface_cell_indices_[surface_cells_array_index] = cell_index;
-    return;
-}
 
 // --------------- SHADERS -------------------
 
@@ -131,25 +109,80 @@ void CSDetectSurfaceBlocksMain(int3 dispatch_ID : SV_DispatchThreadID)
     return;
 }
 
+// ------------------- Surface Cell Detection ------------------------
+
 groupshared uint block_index;
+groupshared uint cells_empty[2] = {0, 0}; // 2x 32 bit values for 64 bits. Each bit represents if a cell in the block is empty (set to 1 if empty) 
+
+int OffsetIntraBlockCellIndex(int cell_index, int3 offset)
+{
+    uint3 coords = uint3(0, 0, 0);
+    
+    coords.z = cell_index / 16;
+    coords.y = (cell_index % 16) / 4;
+    coords.x = cell_index % 4;
+    
+    return (coords.z * 16) + (coords.y * 4) + coords.x;
+}
+
+// Finds if a neighbouring cell is empty, given a current index and an offset
+// Returns true if neighbour cell exists
+bool IsNeighbourEmpty(int cell_index, int intra_block_cell_index, int3 intra_block_cell_coords, int3 offset, out bool empty)
+{
+    int new_index = OffsetIntraBlockCellIndex(intra_block_cell_index, offset);
+    
+    // If the neighbouring cell is outside of the block, will need to access the global cells buffer
+    if ((new_index < 0 || new_index > 63))
+    {
+        int new_index = OffsetCellIndex(cell_index, offset);
+        if (new_index > -1 && new_index < NUM_CELLS)
+        {
+            empty = (cells_[new_index].particle_count_ == 0);
+            return true;
+        }
+    }
+    else
+    {
+        empty = cells_empty[intra_block_cell_index / 32] & 1 << (intra_block_cell_index % 32);
+        return true;
+    }
+
+    return false;
+}
+
+void MarkAsSurfaceCell(uint cell_index)
+{
+    uint surface_cells_array_index;
+    InterlockedAdd(surface_counts_[0].surface_cells, 1, surface_cells_array_index);
+    surface_cell_indices_[surface_cells_array_index] = cell_index;
+    return;
+}
+
 
 // Shader for detecting surface cells
 [numthreads(NUM_CELLS_PER_AXIS_PER_BLOCK)]
-void CSDetectSurfaceCellsMain(int3 group_index : SV_GroupID, int3 offset : SV_GroupThreadID, uint thread_index : SV_GroupIndex)
+void CSDetectSurfaceCellsMain(int3 group_index : SV_GroupID, int3 intra_block_cell_coords : SV_GroupThreadID, uint intra_block_cell_index : SV_GroupIndex)
 {
     
     // Load block index into groupshared memory
-    if (thread_index == 0)
+    if (intra_block_cell_index == 0)
     {
         block_index = surface_block_indices_[group_index.x];
     }
     GroupMemoryBarrierWithGroupSync();
     
     // Use the block index to find the cell index
-    uint cell_index = BlockIndexToCellIndex(block_index, offset);
+    uint cell_index = BlockIndexToCellIndex(block_index, intra_block_cell_coords);
     
-    // If the cell is not completely empty and not completely full, it's a surface cell for certain
+    // Get the particle count for this cell and mark if it's empty
     uint particle_count = cells_[cell_index].particle_count_;
+    if (particle_count == 0)
+    {
+        cells_empty[intra_block_cell_index / 32] |= 1 << (intra_block_cell_index % 32);   
+    }
+    GroupMemoryBarrierWithGroupSync();
+    
+    // If the cell is not completely empty and not completely full, it's a surface cell for certain   
     if (particle_count > 0 && particle_count < CELL_MAX_PARTICLE_COUNT)
     {
         MarkAsSurfaceCell(cell_index);
@@ -174,9 +207,9 @@ void CSDetectSurfaceCellsMain(int3 group_index : SV_GroupID, int3 offset : SV_Gr
                 }
                 
                 bool neighbour_empty;
-                bool neighbour_exists = IsNeighbourEmpty(cell_index, int3(i, j, k), neighbour_empty);
+                bool neighbour_exists = IsNeighbourEmpty(cell_index, intra_block_cell_index, intra_block_cell_coords, int3(i, j, k), neighbour_empty);
                 
-                // To be a surface cell, at least one neighbouring cell must be empty
+                // To be a surface cell, at least one neighbouring cell must be different fullness
                 if (neighbour_exists && (particle_count == 0) ^ neighbour_empty)
                 {
                     // The cell is a surface cell. Increment the count of surface cells and store the index.
