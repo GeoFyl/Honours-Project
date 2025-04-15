@@ -54,7 +54,7 @@ float GetSignedDistanceNNS(float3 position)
                     float distance1 = GetDistanceToSphere(particles_[particle_index_offset + i].position_ - position, PARTICLE_RADIUS);
                     if (distance1 <= PARTICLE_INFLUENCE_RADIUS)
                     {
-                        distance = SmoothMin(distance, distance1, PARTICLE_INFLUENCE_RADIUS);                           
+                        distance = SmoothMin(distance, distance1, PARTICLE_RADIUS);
                     }
                 }                
             }

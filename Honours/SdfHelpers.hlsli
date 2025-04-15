@@ -37,7 +37,10 @@ float GetAnalyticalSignedDistance(float3 position)
     {
         float distance1 = GetDistanceToSphere(particles_[x].position_ - position, PARTICLE_RADIUS);
         
-        distance = SmoothMin(distance, distance1, PARTICLE_INFLUENCE_RADIUS);            
+        if (distance1 <= PARTICLE_INFLUENCE_RADIUS)
+        {
+            distance = SmoothMin(distance, distance1, PARTICLE_RADIUS);
+        }
         
         //distance = min(distance, distance1);
     }
