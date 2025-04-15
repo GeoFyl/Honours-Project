@@ -489,9 +489,9 @@ void Computer::CreateBuffers()
     ParticleData positions[NUM_PARTICLES];
 
     for (int i = 0; i < NUM_PARTICLES; i++) {
-        positions[i].position_.x = ((float)(rand() % 5) + 0.5f) / 10.f;
-        positions[i].position_.y = ((float)(rand() % 5) + 0.5f) / 10.f;
-        positions[i].position_.z = ((float)(rand() % 5) + 0.5f) / 10.f;
+        positions[i].position_.x = ((float)(rand() % 10) + 0.5f) / 10.f;
+        positions[i].position_.y = ((float)(rand() % 10) + 0.5f) / 10.f;
+        positions[i].position_.z = ((float)(rand() % 10) + 0.5f) / 10.f;
         positions[i].speed_ = rand() % 10 + 1;
         positions[i].start_y_ = positions[i].position_.y;
     }
