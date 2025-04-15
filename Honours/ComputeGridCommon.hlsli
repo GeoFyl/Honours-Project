@@ -53,14 +53,20 @@ uint3 CellIndexTo3DCoords(uint cell_index)
 int OffsetCellIndex(uint cell_index, int3 cell_offset)
 {
     uint3 cell_coords = CellIndexTo3DCoords(cell_index) + cell_offset;
+    uint3 cells_per_axis = uint3(NUM_CELLS_PER_AXIS);    
     
-    uint3 cells_per_axis = uint3(NUM_CELLS_PER_AXIS);
+    //// Invalid if new cell is out of bounds
+    if (cell_coords.x < 0 || cell_coords.y < 0 || cell_coords.z < 0 || cell_coords.x > cells_per_axis.x || cell_coords.y > cells_per_axis.y || cell_coords.z > cells_per_axis.z)
+    {
+        return -1;
+    }
+
     int new_index = (cell_coords.z * cells_per_axis.x * cells_per_axis.y) + (cell_coords.y * cells_per_axis.x) + cell_coords.x;
     
     return new_index;
 }
 
-uint Cell3DCoordsToBlockIndex(uint3 coords, int3 block_offset)
+int Cell3DCoordsToBlockIndex(uint3 coords, int3 block_offset)
 {
     uint3 cells_per_block = uint3(NUM_CELLS_PER_AXIS_PER_BLOCK);
     uint3 blocks_per_axis = uint3(NUM_BLOCKS_PER_AXIS);
@@ -68,6 +74,12 @@ uint Cell3DCoordsToBlockIndex(uint3 coords, int3 block_offset)
     int bx = (coords.x / cells_per_block.x) + block_offset.x;
     int by = (coords.y / cells_per_block.y) + block_offset.y;
     int bz = (coords.z / cells_per_block.z) + block_offset.z;
+    
+    // Invalid if new block is out of bounds
+    if (bx < 0 || by < 0 || bz < 0 || bx > cells_per_block.x || by > cells_per_block.y || bz > cells_per_block.z)
+    {
+        return -1;
+    }
     
     return (bz * blocks_per_axis.x * blocks_per_axis.y) + (by * blocks_per_axis.x) + bx;
 }
@@ -81,7 +93,7 @@ void CellIndexToNeighbourBlockIndices(uint cell_index, out int block_indices[8])
     
     int4 block_offset = int4(0, 0, 0, 0);
     
-    int3 intra_block_coords = coords % cells_per_block;
+    uint3 intra_block_coords = coords % cells_per_block;
     
     block_indices[0] = Cell3DCoordsToBlockIndex(coords, block_offset.xyz);
     
@@ -90,7 +102,7 @@ void CellIndexToNeighbourBlockIndices(uint cell_index, out int block_indices[8])
         block_offset.x = -1;
         block_indices[1] = Cell3DCoordsToBlockIndex(coords, block_offset.xww);
     }
-    else if (intra_block_coords.x == NUM_CELLS_PER_AXIS_PER_BLOCK - 1)
+    else if (intra_block_coords.x == cells_per_block.x - 1)
     {
         block_offset.x = 1;
         block_indices[1] = Cell3DCoordsToBlockIndex(coords, block_offset.xww);
@@ -100,7 +112,7 @@ void CellIndexToNeighbourBlockIndices(uint cell_index, out int block_indices[8])
         block_offset.y = -1;
         block_indices[2] = Cell3DCoordsToBlockIndex(coords, block_offset.wyw);
     }
-    else if (intra_block_coords.y == NUM_CELLS_PER_AXIS_PER_BLOCK - 1)
+    else if (intra_block_coords.y == cells_per_block.y - 1)
     {
         block_offset.y = 1;
         block_indices[2] = Cell3DCoordsToBlockIndex(coords, block_offset.wyw);
@@ -110,7 +122,7 @@ void CellIndexToNeighbourBlockIndices(uint cell_index, out int block_indices[8])
         block_offset.z = -1;
         block_indices[3] = Cell3DCoordsToBlockIndex(coords, block_offset.wwz);
     }
-    else if (intra_block_coords.z == NUM_CELLS_PER_AXIS_PER_BLOCK - 1)
+    else if (intra_block_coords.z == cells_per_block.z - 1)
     {
         block_offset.z = 1;
         block_indices[3] = Cell3DCoordsToBlockIndex(coords, block_offset.wwz);

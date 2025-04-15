@@ -489,28 +489,28 @@ void Computer::CreateBuffers()
     ParticleData positions[NUM_PARTICLES];
 
     for (int i = 0; i < NUM_PARTICLES; i++) {
-        positions[i].position_.x = ((float)(rand() % 10) + 0.5f) / 10.f;
-        positions[i].position_.y = ((float)(rand() % 10) + 0.5f) / 10.f;
-        positions[i].position_.z = ((float)(rand() % 10) + 0.5f) / 10.f;
+        positions[i].position_.x = ((float)(rand() % 5) + 0.5f) / 10.f;
+        positions[i].position_.y = ((float)(rand() % 5) + 0.5f) / 10.f;
+        positions[i].position_.z = ((float)(rand() % 5) + 0.5f) / 10.f;
         positions[i].speed_ = rand() % 10 + 1;
         positions[i].start_y_ = positions[i].position_.y;
     }
 
-    //for (int i = 0; i < NUM_PARTICLES; i++) {
-    //    positions[i].position_.x = i * 0.0625 + 0.15f;
-    //    positions[i].position_.y = 0.25f;
-    //    positions[i].position_.z = 0.15f;
-    //    positions[i].speed_ = 0;
-    //    positions[i].start_y_ = positions[i].position_.y;
-    //}
+   /* for (int i = 0; i < NUM_PARTICLES; i++) {
+        positions[i].position_.x = i * 0.0625 + 0.15f;
+        positions[i].position_.y = 0.25f;
+        positions[i].position_.z = 0.15f;
+        positions[i].speed_ = rand() % 10 + 1;
+        positions[i].start_y_ = positions[i].position_.y;
+    }*/
 
-    /*positions[0].position_.x = 0.1f;
-    positions[0].position_.y = 0.1f;
-    positions[0].position_.z = 0.1f;
+    /*positions[0].position_.x = 0.05f;
+    positions[0].position_.y = 0.251f;
+    positions[0].position_.z = 0.05f;
     positions[0].speed_ = 0;
-    positions[0].start_y_ = positions[0].position_.y;
+    positions[0].start_y_ = positions[0].position_.y;*/
 
-    positions[1].position_.x = 0.05f;
+    /*positions[1].position_.x = 0.05f;
     positions[1].position_.y = 0.05f;
     positions[1].position_.z = 0.05f;
     positions[1].speed_ = 0;

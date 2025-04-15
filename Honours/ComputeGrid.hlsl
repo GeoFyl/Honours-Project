@@ -25,7 +25,7 @@ bool IsNeighbourEmpty(int cell_index, int3 offset, out bool empty)
         empty = (cells_[new_index].particle_count_ == 0);   
         return true;
     }
-
+    
     return false;
 }
 
@@ -87,14 +87,19 @@ void CSGridMain(int3 dispatch_ID : SV_DispatchThreadID)
     if (particle_intra_cell_index == 0)
     {
         int block_indices[8];
-        CellIndexToNeighbourBlockIndices(cell_index, block_indices);
-        
-        //uint block_index = CellIndexToBlockIndex(cell_index);
+        CellIndexToNeighbourBlockIndices(cell_index, block_indices); // Builds a list of all blocks which should have their counts incremented
         
         for (int i = 0; i < 8; i++)
         {
-            if (block_indices[i]> -1)
-                InterlockedAdd(blocks_[block_indices[i]].non_empty_cell_count_, 1);
+            int block_index = block_indices[i];
+            if (block_index > -1)
+            {
+                if (i == 0 || blocks_[block_index].non_empty_cell_count_ == 0)
+                {
+                    InterlockedAdd(blocks_[block_index].non_empty_cell_count_, 1);
+                }
+            }
+
         } 
         
     }
