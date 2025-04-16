@@ -26,7 +26,7 @@ uint3 BrickIndexToVoxelPosition(uint brick_index)
 
 float3 BrickIndexToBrickPoolUVW(float3 voxel_offset)
 {
-    float3 uvw = (voxel_offset / VOXELS_PER_AXIS_PER_BRICK_ADJACENCY) + BrickIndexToVoxelPosition(PrimitiveIndex());
+    float3 uvw = (voxel_offset / VOXELS_PER_AXIS_PER_BRICK) + BrickIndexToVoxelPosition(PrimitiveIndex());
                     
     uvw /= (float3) comp_constant_buffer_.brick_pool_dimensions_;
     

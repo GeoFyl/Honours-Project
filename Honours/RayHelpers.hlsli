@@ -90,7 +90,6 @@ bool RenderParticlesVisualized()
     screenPos.y = -screenPos.y;
     screenPos.x *= aspect_ratio;    
 
-    [unroll]
     for (int x = 0; x < NUM_PARTICLES; x++)
     {
         float3 particle_pos = particles_[x].position_;

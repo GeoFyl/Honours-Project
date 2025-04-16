@@ -1,6 +1,6 @@
 #pragma once
 #include <DirectXMath.h>
-#include "GlobalValues.h"
+#include "TestValues.h"
 
 using namespace DirectX;
 

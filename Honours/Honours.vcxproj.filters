@@ -145,7 +145,7 @@
     <ClInclude Include="AccelerationStructureManager.h">
       <Filter>Header Files\RayTracing</Filter>
     </ClInclude>
-    <ClInclude Include="GlobalValues.h">
+    <ClInclude Include="TestValues.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="GPUPrefixSums\ChainedScanDecoupledLookback.h">

@@ -9,7 +9,7 @@ StructuredBuffer<AABB> aabbs_ : register(t1);
 StructuredBuffer<Cell> cell_particle_counts_ : register(t2);
 StructuredBuffer<uint> cell_global_index_offsets_ : register(t3);
 StructuredBuffer<uint> surface_cell_indices_ : register(t4);
-ConstantBuffer<ComputeCB> constant_buffer_ : register(b0);
+ConstantBuffer<ComputeCB> constant_buffer_ : register(b1);
 
 groupshared AABB aabb;
 groupshared uint cell_index;
@@ -26,9 +26,9 @@ uint3 BrickIndexToVoxelPosition(uint brick_index, uint3 voxel_offset)
     uint bx = brick_index % brick_pool_dimensions.x;
     
     // Compute the voxel position
-    uint x = bx * VOXELS_PER_AXIS_PER_BRICK_ADJACENCY + voxel_offset.x;
-    uint y = by * VOXELS_PER_AXIS_PER_BRICK_ADJACENCY + voxel_offset.y;
-    uint z = bz * VOXELS_PER_AXIS_PER_BRICK_ADJACENCY + voxel_offset.z;
+    uint x = bx * VOXELS_PER_AXIS_PER_BRICK + voxel_offset.x;
+    uint y = by * VOXELS_PER_AXIS_PER_BRICK + voxel_offset.y;
+    uint z = bz * VOXELS_PER_AXIS_PER_BRICK + voxel_offset.z;
     
     // Turn this into an index
     return uint3(x, y, z);
@@ -66,7 +66,7 @@ float GetSignedDistanceNNS(float3 position)
 }
 
 // Shader for creating SDF 3D texture 
-[numthreads(VOXELS_PER_AXIS_PER_BRICK_ADJACENCY, VOXELS_PER_AXIS_PER_BRICK_ADJACENCY, VOXELS_PER_AXIS_PER_BRICK_ADJACENCY)]
+[numthreads(VOXELS_PER_AXIS_PER_BRICK, VOXELS_PER_AXIS_PER_BRICK, VOXELS_PER_AXIS_PER_BRICK)]
 void CSBrickPoolMain(int3 brick_index : SV_GroupID, int3 voxel_offset : SV_GroupThreadID, uint voxel_index : SV_GroupIndex)
 {
     // Load this bricks AABB, cell index and the brick pool's dimensions into groupshared memory

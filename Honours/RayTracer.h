@@ -15,6 +15,7 @@ namespace GlobalRTRootSignatureParams {
         ParticlePositionsBufferSlot,
         SDFTextureSlot,
         AABBBufferSlot,
+        TestValuesSlot,
         Count
     };
 }

@@ -1,6 +1,6 @@
 #pragma once
 #include <DirectXMath.h>
-#include "GlobalValues.h"
+#include "TestValues.h"
 
 #define MAX_RECURSION_DEPTH 1 // Primary rays
 

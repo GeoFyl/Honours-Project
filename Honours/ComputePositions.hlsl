@@ -4,7 +4,7 @@
 #include "ComputeCommon.hlsli"
 
 RWStructuredBuffer<ParticleData> particle_positions_ : register(u0);
-ConstantBuffer<ComputeCB> constant_buffer_ : register(b0);
+ConstantBuffer<ComputeCB> constant_buffer_ : register(b1);
 
 // Shader for manipulating particle positions
 [numthreads(1024, 1, 1)]

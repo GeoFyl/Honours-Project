@@ -132,7 +132,7 @@
     <ClInclude Include="CubeMesh.h" />
     <ClInclude Include="DeviceResources.h" />
     <ClInclude Include="FPCamera.h" />
-    <ClInclude Include="GlobalValues.h" />
+    <ClInclude Include="TestValues.h" />
     <ClInclude Include="GPUPrefixSums\ChainedScanDecoupledLookback.h" />
     <ClInclude Include="GPUPrefixSums\ComputeKernelBase.h" />
     <ClInclude Include="GPUPrefixSums\CSDLKernels.h" />

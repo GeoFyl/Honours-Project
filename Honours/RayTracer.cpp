@@ -46,6 +46,7 @@ void RayTracer::RayTracing()
     commandList->SetComputeRootDescriptorTable(GlobalRTRootSignatureParams::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
     commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::ParticlePositionsBufferSlot, computer_->GetUnorderedParticlesBuffer()->GetGPUVirtualAddress());
     commandList->SetComputeRootConstantBufferView(GlobalRTRootSignatureParams::RTConstantBufferSlot, application_->GetRaytracingCB()->GetGPUVirtualAddress());
+    commandList->SetComputeRootConstantBufferView(GlobalRTRootSignatureParams::TestValuesSlot, computer_->GetTestValsBuffer()->Resource()->GetGPUVirtualAddress());
     commandList->SetComputeRootConstantBufferView(GlobalRTRootSignatureParams::CompConstantBufferSlot, computer_->GetConstantBuffer()->Resource()->GetGPUVirtualAddress());
 
     auto& debug_values = application_->GetDebugValues();
@@ -126,8 +127,9 @@ void RayTracer::CreateRootSignatures()
     rootParameters[GlobalRTRootSignatureParams::AABBBufferSlot].InitAsShaderResourceView(3);
 
     // (b)
-    rootParameters[GlobalRTRootSignatureParams::RTConstantBufferSlot].InitAsConstantBufferView(0);
-    rootParameters[GlobalRTRootSignatureParams::CompConstantBufferSlot].InitAsConstantBufferView(1);
+    rootParameters[GlobalRTRootSignatureParams::TestValuesSlot].InitAsConstantBufferView(0);
+    rootParameters[GlobalRTRootSignatureParams::RTConstantBufferSlot].InitAsConstantBufferView(1);
+    rootParameters[GlobalRTRootSignatureParams::CompConstantBufferSlot].InitAsConstantBufferView(2);
 
     // Sampler
     CD3DX12_STATIC_SAMPLER_DESC sampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP);

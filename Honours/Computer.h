@@ -8,6 +8,7 @@ namespace ComputePositionsRootSignatureParams {
     enum Value {
         ParticlePositionsBufferSlot = 0,
         ConstantBufferSlot,
+        TestValuesSlot,
         Count
     };
 }
@@ -15,6 +16,7 @@ namespace ComputeTextureRootSignatureParams {
     enum Value {
         ParticlePositionsBufferSlot = 0,
         TextureSlot,
+        TestValuesSlot,
         Count
     };
 }
@@ -27,6 +29,7 @@ namespace ComputeBrickPoolRootSignatureParams {
         CellGlobalIndicexOffsetsSlot,
         SurfaceCellIndicesSlot,
         ConstantBufferSlot,
+        TestValuesSlot,
         Count
     };
 }
@@ -38,13 +41,7 @@ namespace ComputeGridRootSignatureParams {
         SurfaceBlocksSlot,
         SurfaceCellsSlot,
         SurfaceCountsSlot,
-        Count
-    };
-}
-namespace ComputeDispatchCellsRootSignatureParams {
-    enum Value {
-        SurfaceCountsSlot = 0,
-        DispatchArgsSlot,
+        TestValuesSlot,
         Count
     };
 }
@@ -53,6 +50,7 @@ namespace ComputeAABBsRootSignatureParams {
         SurfaceCellIndicesSlot = 0,
         SurfaceCountsSlot,
         AABBBufferSlot,
+        TestValuesSlot,
         Count
     };
 }
@@ -61,6 +59,7 @@ namespace ComputeReorderParticlesParams {
         OrderedParticlesSlot = 0,
         UnorderedParticlesSlot,
         CellGlobalIndicexOffsetsSlot,
+        TestValuesSlot,
         Count
     };
 }
@@ -89,6 +88,7 @@ public:
     //UINT GetSurfaceCellCount() { return surface_cell_count_; }
 
     inline UploadBuffer<ComputeCB>* GetConstantBuffer() { return compute_cb_.get(); }
+    inline UploadBuffer<TestVariables>* GetTestValsBuffer() { return test_vals_cb_.get(); }
     inline ID3D12Resource* GetUnorderedParticlesBuffer() { return particle_buffer_unordered_.Get(); }
     inline ID3D12Resource* GetOrderedParticlesBuffer() { return particle_buffer_ordered_.Get(); }
     inline ID3D12Resource* GetSimpleSDFTexture() { return simple_sdf_3d_texture_.Get(); }
@@ -144,6 +144,7 @@ private:
     ComPtr<ID3D12Resource> surface_counts_readback_buffer_;
 
     std::unique_ptr<UploadBuffer<ComputeCB>> compute_cb_ = nullptr;
+    std::unique_ptr<UploadBuffer<TestVariables>> test_vals_cb_ = nullptr;
 
     // Values
     UINT surface_blocks_count_ = 0;
