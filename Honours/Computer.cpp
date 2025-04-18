@@ -17,6 +17,7 @@ Computer::Computer(DX::DeviceResources* device_resources, HonoursApplication* ap
     // Execute command list and wait until assets have been uploaded to the GPU.
     device_resources_->ExecuteCommandList();
     device_resources_->WaitForGpu();
+    device_resources_->ResetCommandList();
 
     compute_cb_ = std::make_unique<UploadBuffer<ComputeCB>>(device_resources_->GetD3DDevice(), 1, true);
     test_vals_cb_ = std::make_unique<UploadBuffer<TestVariables>>(device_resources_->GetD3DDevice(), 1, true);
@@ -25,7 +26,29 @@ Computer::Computer(DX::DeviceResources* device_resources, HonoursApplication* ap
     test_vals_cb_->Values() = test_values_;
     test_vals_cb_->CopyData(0);
 
+    GenerateParticles(); // Generate initial particle positions
+
+    // Execute command list and wait until assets have been uploaded to the GPU.
+    device_resources_->ExecuteCommandList();
+    device_resources_->WaitForGpu();
+
     ReleaseUploaders();
+}
+
+void Computer::GenerateParticles()
+{
+    auto command_list = device_resources_->GetCommandList();
+
+    command_list->SetPipelineState(compute_generate_state_object_.Get());
+    command_list->SetComputeRootSignature(compute_pos_root_signature_.Get());
+
+    command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(particle_buffer_unordered_.Get()));
+
+    command_list->SetComputeRootUnorderedAccessView(ComputePositionsRootSignatureParams::ParticlePositionsBufferSlot, particle_buffer_unordered_->GetGPUVirtualAddress());
+    //command_list->SetComputeRootConstantBufferView(ComputePositionsRootSignatureParams::ConstantBufferSlot, compute_cb_->Resource()->GetGPUVirtualAddress());
+    command_list->SetComputeRootConstantBufferView(ComputePositionsRootSignatureParams::TestValuesSlot, test_vals_cb_->Resource()->GetGPUVirtualAddress());
+
+    command_list->Dispatch(particle_threadgroups_, 1, 1);
 }
 
 void Computer::ComputePostitions()
@@ -420,6 +443,15 @@ void Computer::CreateComputePipelineStateObjects()
     compute_pso.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
     ThrowIfFailed(device_resources_->GetD3DDevice()->CreateComputePipelineState(&compute_pso, IID_PPV_ARGS(&compute_pos_state_object_)));
 
+    // Generate particles shader
+    if (FAILED(D3DCompileFromFile(application_->GetAssetFullPath(L"ComputePositions.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "CSParticleGen", "cs_5_1", flags, 0, &compute_shader, &error_blob))) {
+        std::string errMsg((char*)error_blob->GetBufferPointer(), error_blob->GetBufferSize());
+        throw std::exception(errMsg.c_str());
+    }
+    compute_pso.pRootSignature = compute_pos_root_signature_.Get();
+    compute_pso.CS = CD3DX12_SHADER_BYTECODE(compute_shader.Get());
+    ThrowIfFailed(device_resources_->GetD3DDevice()->CreateComputePipelineState(&compute_pso, IID_PPV_ARGS(&compute_generate_state_object_)));
+
     // Build grid shader
     if (FAILED(D3DCompileFromFile(application_->GetAssetFullPath(L"ComputeGrid.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "CSGridMain", "cs_5_1", flags, 0, &compute_shader, &error_blob))) {
         std::string errMsg((char*)error_blob->GetBufferPointer(), error_blob->GetBufferSize());
@@ -504,19 +536,19 @@ void Computer::CreateBuffers()
     tex_creation_threadgroups_ = XMUINT3(std::ceil(TEXTURE_RESOLUTION / 32.f), std::ceil(TEXTURE_RESOLUTION / 32.f), TEXTURE_RESOLUTION);
 
     // Particle position buffer
-    std::vector<ParticleData> positions;
-    //ParticleData positions[NUM_PARTICLES];
-    int bruv = NUM_PARTICLES;
-    for (int i = 0; i < NUM_PARTICLES; i++) {
-        ParticleData p;
-        p.position_.x = ((float)(rand() % 10) + 0.5f) / 10.f;
-        p.position_.y = ((float)(rand() % 10) + 0.5f) / 10.f;
-        p.position_.z = ((float)(rand() % 10) + 0.5f) / 10.f;
-        p.speed_ = rand() % 10 + 1;
-        p.start_y_ = p.position_.y;
+    //std::vector<ParticleData> positions;
+    ////ParticleData positions[NUM_PARTICLES];
+    //int bruv = NUM_PARTICLES;
+    //for (int i = 0; i < NUM_PARTICLES; i++) {
+    //    ParticleData p;
+    //    p.position_.x = ((float)(rand() % 10) + 0.5f) / 10.f;
+    //    p.position_.y = ((float)(rand() % 10) + 0.5f) / 10.f;
+    //    p.position_.z = ((float)(rand() % 10) + 0.5f) / 10.f;
+    //    p.speed_ = rand() % 10 + 1;
+    //    p.start_y_ = p.position_.y;
 
-        positions.push_back(p);
-    }
+    //    positions.push_back(p);
+    //}
 
    /* for (int i = 0; i < NUM_PARTICLES; i++) {
         positions[i].position_.x = i * 0.0625 + 0.15f;
@@ -542,7 +574,8 @@ void Computer::CreateBuffers()
 
     UINT64 byte_size = NUM_PARTICLES * sizeof(ParticleData);
 
-    particle_buffer_unordered_ = Utilities::CreateDefaultBuffer(device, command_list, positions.data(), byte_size, particle_buffer_uploader_, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+    //particle_buffer_unordered_ = Utilities::CreateDefaultBuffer(device, command_list, positions.data(), byte_size, particle_buffer_uploader_, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+    Utilities::AllocateDefaultBuffer(device, byte_size, particle_buffer_unordered_.GetAddressOf(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     Utilities::AllocateDefaultBuffer(device, byte_size, particle_buffer_ordered_.GetAddressOf(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     particle_buffer_unordered_->SetName(L"UnorderedP");
     particle_buffer_ordered_->SetName(L"OrderedP");

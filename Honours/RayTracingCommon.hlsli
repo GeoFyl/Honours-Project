@@ -51,7 +51,7 @@ StructuredBuffer<AABB> AABBs_ : register(t3);
 RWTexture2D<float4> render_target_ : register(u0);
 ConstantBuffer<RayTracingCB> rt_constant_buffer_ : register(b1);
 ConstantBuffer<ComputeCB> comp_constant_buffer_ : register(b2);
-SamplerState sampler_ : register(s0);
+SamplerState linear_sampler_ : register(s0);
 
 // Local arguments
 //StructuredBuffer<AABB> AABBs_ : register(t0, space1);

@@ -57,7 +57,7 @@ float GetDistance(float3 position)
     else
     {
         // Sample the distance from the SDF texture
-        return sdf_texture_.SampleLevel(sampler_, position, 0);
+        return sdf_texture_.SampleLevel(linear_sampler_, position, 0);
     }
 }
 

@@ -124,17 +124,17 @@ void IntersectionShader()
                 else if (!(rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_ANALYTICAL))
                 {
                     position /= WORLD_MAX;
+                    
                 }
                
                 float distance = GetDistance(position);
-
 
                 // Has the ray intersected the primitive? 
                 if (distance <= SPHERE_TRACING_THRESHOLD)
                 {
                     // Store the normal and report hit                    
                     RayIntersectionAttributes attributes;
-                    attributes.float_3_ = CalculateNormal(position);
+                    attributes.float_3_ = CalculateNormal(position);     
 
                     ReportHit(max(t_min, RayTMin()), 0, attributes);
                     return;

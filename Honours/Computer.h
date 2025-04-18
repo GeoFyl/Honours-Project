@@ -106,6 +106,7 @@ private:
     void SerializeAndCreateComputeRootSignature(D3D12_ROOT_SIGNATURE_DESC& desc, ComPtr<ID3D12RootSignature>* rootSig);
     void CreateComputePipelineStateObjects();
     void CreateBuffers();
+    void GenerateParticles();
     void AllocateSimpleSDFTexture();
     void ReadBackBlocksCount();
     void AllocateBrickPoolTexture();
@@ -116,6 +117,7 @@ private:
 
     // State Objects
     ComPtr<ID3D12PipelineState> compute_pos_state_object_;
+    ComPtr<ID3D12PipelineState> compute_generate_state_object_;
     ComPtr<ID3D12PipelineState> compute_grid_state_object_;
     ComPtr<ID3D12PipelineState> compute_clear_counts_state_object_;
     ComPtr<ID3D12PipelineState> compute_surface_blocks_state_object_;

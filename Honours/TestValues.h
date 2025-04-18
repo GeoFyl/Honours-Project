@@ -5,13 +5,19 @@
 
 
 // Custom values
+enum SceneType {
+	SceneRandom = 0,
+	SceneGrid,
+	SceneWave
+};
+
 struct TestVariables {
 	int num_particles_;
 	int texture_res_;
 	int num_cells_;
 	int num_blocks_;
 	int bricks_per_cell_;
-	int padding;
+	SceneType scene_;
 };
 extern TestVariables test_values_;
 

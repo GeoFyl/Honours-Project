@@ -42,6 +42,12 @@
 #define VOXEL_SIZE BRICK_SIZE / float3(CORE_VOXELS_PER_AXIS_PER_BRICK, CORE_VOXELS_PER_AXIS_PER_BRICK, CORE_VOXELS_PER_AXIS_PER_BRICK)
 
 
+// Customizable values for testing
+
+#define SceneRandom 0
+#define SceneGrid 1
+#define SceneWave 2
+
 struct TestVariables
 {
     int num_particles_;
@@ -49,7 +55,7 @@ struct TestVariables
     int num_cells_;
     int num_blocks_;
     int bricks_per_cell_;
-    int padding;
+    int scene_;
 };
 ConstantBuffer<TestVariables> test_values_ : register(b0);
 
@@ -58,5 +64,6 @@ ConstantBuffer<TestVariables> test_values_ : register(b0);
 #define NUM_CELLS test_values_.num_cells_
 #define NUM_BLOCKS test_values_.num_blocks_
 #define BRICKS_PER_CELL test_values_.bricks_per_cell_
+#define SCENE test_values_.scene_
 
 #endif

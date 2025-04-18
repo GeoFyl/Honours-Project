@@ -37,11 +37,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
             test_values_.bricks_per_cell_ = _wtoi(args[5]);
         }
         else {
-            test_values_.num_particles_ = 200;
+            test_values_.num_particles_ = 1000;
             test_values_.texture_res_ = 256;
             test_values_.num_cells_ = 4096;
             test_values_.num_blocks_ = 64;
             test_values_.bricks_per_cell_ = 8;
+            test_values_.scene_ = SceneWave;
         }
 
         HonoursApplication sample(1280, 720, L"Application");

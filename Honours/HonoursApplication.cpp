@@ -211,7 +211,7 @@ void HonoursApplication::OnUpdate()
 
     ray_tracing_cb_->CopyData(0, buff);
 
-    if (!debug_.pause_positions_) {
+    if (!debug_.pause_positions_ && test_values_.scene_ != SceneGrid) {
         computer_->GetConstantBuffer()->Values().time_ = timer_.GetElapsedTime();
         computer_->GetConstantBuffer()->CopyData(0);
         computer_->ComputePostitions();
