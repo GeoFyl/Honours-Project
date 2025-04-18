@@ -13,7 +13,8 @@
 #include "HonoursApplication.h"
 #include <fstream>
 
-TestVariables test_values_;
+TestVariables test_vars_;
+TestVariablesCPUOnly cpu_test_vars_;
 
 _Use_decl_annotations_
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
@@ -28,21 +29,31 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
             teststream << _wtoi(args[i]) << std::endl;
         }
         teststream.close();*/
+        
+        // Command line arguments: (screen res x), (screen res y), (view distance), (scene), (particle no.), (texture res), (cells no.), (blocks no.), (bricks per cell) 
 
         if (num_args > 1) {
-            test_values_.num_particles_ = _wtoi(args[1]);
-            test_values_.texture_res_ = _wtoi(args[2]);
-            test_values_.num_cells_ = _wtoi(args[3]);
-            test_values_.num_blocks_ = _wtoi(args[4]);
-            test_values_.bricks_per_cell_ = _wtoi(args[5]);
+            cpu_test_vars_.screen_res_[0] = _wtoi(args[1]);
+            cpu_test_vars_.screen_res_[1] = _wtoi(args[2]);
+            cpu_test_vars_.view_dist_ = _wtoi(args[3]);
+            SCENE = (SceneType)_wtoi(args[4]);
+            NUM_PARTICLES = _wtoi(args[5]);
+            TEXTURE_RESOLUTION = _wtoi(args[6]);
+            NUM_CELLS = _wtoi(args[7]);
+            NUM_BLOCKS = _wtoi(args[8]);
+            BRICKS_PER_CELL = _wtoi(args[9]);
         }
         else {
-            test_values_.num_particles_ = 1000;
-            test_values_.texture_res_ = 256;
-            test_values_.num_cells_ = 4096;
-            test_values_.num_blocks_ = 64;
-            test_values_.bricks_per_cell_ = 8;
-            test_values_.scene_ = SceneWave;
+            cpu_test_vars_.screen_res_[0] = 1280;
+            cpu_test_vars_.screen_res_[1] = 720;
+            cpu_test_vars_.view_dist_ = 2;
+            SCENE = SceneRandom;
+            NUM_PARTICLES = 125;
+            TEXTURE_RESOLUTION = 256;
+            NUM_CELLS = 4096;
+            NUM_BLOCKS = 64;
+            BRICKS_PER_CELL = 8;
+
         }
 
         HonoursApplication sample(1280, 720, L"Application");

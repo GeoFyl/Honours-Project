@@ -48,13 +48,14 @@ void CSParticleGen(int3 dispatch_ID : SV_DispatchThreadID)
         seed.x += particle.position_.x;
         
         particle.position_.y = random(seed);
-        seed.y += particle.position_.y;
-        particle.start_y_ = particle.position_.y;        
+        seed.y += particle.position_.y;   
         
         particle.position_.z = random(seed);
         seed.x += particle.position_.z;
         
-        particle.speed_ = random(seed) * 10;
+        particle.start_pos_ = particle.position_;
+        
+        particle.speed_ = random(seed) * 4;
 
     }
     else if (SCENE == SceneGrid)
@@ -66,10 +67,13 @@ void CSParticleGen(int3 dispatch_ID : SV_DispatchThreadID)
         float up = min((particles_per_axis - 1) * PARTICLE_RADIUS * 2, 0.99f - PARTICLE_RADIUS);
         float3 upper = float3(up, up, up);
         
+        lower += (0.99f - PARTICLE_RADIUS - up) / 2;
+        upper += (0.99f - PARTICLE_RADIUS - up) / 2;
+        
         float3 particle_coords = lerp(lower, upper, IndexTo3DCoords(dispatch_ID.x, particles_per_axis) / (particles_per_axis - 1));
         
         particle.position_ = particle_coords;
-        particle.start_y_ = particle.position_.y;
+        particle.start_pos_ = particle.position_;
         particle.speed_ = 0;
     }
     else if (SCENE == SceneWave)
@@ -77,14 +81,17 @@ void CSParticleGen(int3 dispatch_ID : SV_DispatchThreadID)
         int particles_per_axis = pow(NUM_PARTICLES, 1.0 / 3.0);
 
         float3 lower = float3(PARTICLE_RADIUS + 0.01f, PARTICLE_RADIUS + 0.01f, PARTICLE_RADIUS + 0.01f);
-        
+
         float up = min((particles_per_axis - 1) * PARTICLE_RADIUS * 2, 0.99f - PARTICLE_RADIUS);
         float3 upper = float3(up, 0.3, up);
+       
+        lower.xz += (0.99f - PARTICLE_RADIUS - up) / 2;
+        upper.xz += (0.99f - PARTICLE_RADIUS - up) / 2;
         
         float3 particle_coords = lerp(lower, upper, IndexTo3DCoords(dispatch_ID.x, particles_per_axis) / (particles_per_axis - 1));
         
         particle.position_ = particle_coords;
-        particle.start_y_ = particle.position_.y;
+        particle.start_pos_ = particle.position_;
         
         particle.speed_ = 1;        
         if (random(float2(dispatch_ID.x, particle.position_.z)) > 0.95) // 5% chance to be speedy
@@ -112,24 +119,17 @@ void CSPosMain(int3 dispatch_ID : SV_DispatchThreadID)
     
     if (SCENE == SceneRandom)
     {
-        particle.position_.y = particle.start_y_ + (0.2 * sin(0.5 * constant_buffer_.time_ * particle.speed_));
+        float3 direction = normalize(float3(random(float2(dispatch_ID.x, particle.speed_)) - 0.5, random(float2(dispatch_ID.x, particle.start_pos_.z)) - 0.5, random(float2(dispatch_ID.x, particle.start_pos_.y)) - 0.5));
+        particle.position_ = particle.start_pos_ + direction * 0.2 * sin(particle.speed_ * constant_buffer_.time_);
     }
     else if (SCENE == SceneWave)
     {
-        //particle.position_.y = particle.start_y_ + (0.05 * sin(5 * constant_buffer_.time_ * particle.position_.x));
-        particle.position_.y = particle.start_y_ + 0.1 * sin(5 * particle.position_.x + 2 * constant_buffer_.time_ * particle.speed_);
+        particle.position_.y = particle.start_pos_.y + 0.1 * sin(5 * particle.position_.x + 2 * constant_buffer_.time_ * particle.speed_);
     }
     
-    if (particle.position_.y > WORLD_MAX.y - 0.1f)
-    {
-        particle.position_.y = WORLD_MAX.y - 0.1f;
-    }
-    else if (particle.position_.y < 0.1f)
-    {
-        particle.position_.y = 0.1f;
-    }
+    particle.position_ = clamp(particle.position_, WORLD_MIN + 0.1f, WORLD_MAX - 0.1f);
     
-    particle_positions_[dispatch_ID.x].position_.y = particle.position_.y;
+    particle_positions_[dispatch_ID.x].position_ = particle.position_;
     
     return;
 }

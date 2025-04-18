@@ -40,14 +40,14 @@ public:
 
 	XMFLOAT3 getPosition();		///< Get camera's current position
 	XMFLOAT3 getRotation();		///< Get camera's current rotation
-	XMFLOAT3 getLookAt();		///< Get camera's current rotation
+	XMFLOAT3 getLookAt();		///< Get camera's current lookat vector
 
 	// Returns true when camera updated
-	bool update();				///< Update camera, recalculates view matrix based on rotation
+
 	XMMATRIX getViewMatrix();	///< Get current view matrix of camera
 	XMMATRIX getOrthoViewMatrix();	///< Get current orthographic view matrix for camera
 
-	void setFrameTime(float);
+	virtual void Update(float dt) = 0;
 
 	void moveForward();			///< default function for moving forward
 	void moveBackward();		///< default function for moving backward
@@ -61,7 +61,9 @@ public:
 	void strafeLeft();			///< default function for moving left
 	void turn(int x, int y);	///< default function for turning in both x/y axis
 
-private:
+protected:
+	bool update();				///< Update camera, recalculates view matrix based on rotation
+
 	XMFLOAT3 position;		///< float3 for position
 	XMFLOAT3 rotation;		///< float3 for rotation (angles)
 	XMFLOAT3 lookat;

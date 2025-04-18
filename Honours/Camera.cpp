@@ -23,12 +23,6 @@ Camera::~Camera()
 {
 }
 
-// Store frame/delta time.
-void Camera::setFrameTime(float t)
-{
-	frameTime = t;
-}
-
 void Camera::setPosition(float lx, float ly, float lz)
 {
 	position.x = lx;

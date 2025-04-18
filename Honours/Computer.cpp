@@ -23,7 +23,7 @@ Computer::Computer(DX::DeviceResources* device_resources, HonoursApplication* ap
     test_vals_cb_ = std::make_unique<UploadBuffer<TestVariables>>(device_resources_->GetD3DDevice(), 1, true);
 
     // Upload defined test values
-    test_vals_cb_->Values() = test_values_;
+    test_vals_cb_->Values() = test_vars_;
     test_vals_cb_->CopyData(0);
 
     GenerateParticles(); // Generate initial particle positions

@@ -6,8 +6,8 @@ using namespace DirectX;
 
 struct ParticleData {
 	XMFLOAT3 position_;
+	XMFLOAT3 start_pos_;
 	float speed_;
-	float start_y_;
 	UINT32 intra_cell_index_;
 	UINT32 cell_index_;
 };

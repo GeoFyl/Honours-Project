@@ -1,6 +1,6 @@
 #pragma once
 
-#include "camera.h"
+#include "Camera.h"
 #include "input.h"
 
 
@@ -9,22 +9,13 @@ using namespace DirectX;
 class FPCamera : public Camera
 {
 public:
-	/*void* operator new(size_t i)
-	{
-		return _mm_malloc(i, 16);
-	}
-
-	void operator delete(void* p)
-	{
-		_mm_free(p);
-	}*/
-
 	FPCamera(Input* in, int width, int height, HWND hnd);	///< Initialised default camera object
-	//~FPCamera();
 
-	bool move(float dt);	///< Move camera, handles basic camera movement
+	virtual void Update(float dt) override { move(dt); };
 
 private:
+	bool move(float dt);	///< Move camera, handles basic camera movement
+
 	Input* input;
 	int winWidth, winHeight;///< stores window width and height
 	int deltax, deltay;		///< for mouse movement

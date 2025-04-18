@@ -6,8 +6,8 @@
 struct ParticleData
 {
     float3 position_;
+    float3 start_pos_;    
     float speed_;
-    float start_y_;
     uint intra_cell_index_;
     uint cell_index_;
 };

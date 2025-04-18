@@ -13,7 +13,8 @@ FPCamera::FPCamera(Input* in, int width, int height, HWND hnd)
 
 bool FPCamera::move(float dt)
 {
-	setFrameTime(dt);
+	frameTime = dt;
+
 	// Handle the input.
 	if (input->isKeyDown('W'))
 	{
@@ -99,26 +100,5 @@ bool FPCamera::move(float dt)
 		ShowCursor(true);
 	}
 
-	//if (input->isKeyDown(VK_SPACE))
-	//{
-	//	// re-position cursor
-	//	cursor.x = winWidth / 2;
-	//	cursor.y = winHeight / 2;
-	//	ClientToScreen(wnd, &cursor);
-	//	SetCursorPos(cursor.x, cursor.y);
-	//	input->setMouseX(winWidth / 2);
-	//	input->setMouseY(winHeight / 2);
-	//	input->SetKeyUp(VK_SPACE);
-	//	// if space pressed toggle mouse
-	//	input->setMouseActive(!input->isMouseActive());
-	//	if (!input->isMouseActive())
-	//	{
-	//		ShowCursor(true);
-	//	}
-	//	else
-	//	{
-	//		ShowCursor(false);
-	//	}
-	//}
 	return update();
 }

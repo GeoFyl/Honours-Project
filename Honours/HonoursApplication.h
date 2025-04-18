@@ -20,6 +20,7 @@
 #include "Resources.h"
 #include "Input.h"
 #include "FPCamera.h"
+#include "OrbitalCamera.h"
 #include "TriangleMesh.h"
 #include "CubeMesh.h"
 
@@ -79,10 +80,10 @@ public:
 private:
     void LoadPipeline();
     void InitGUI();
-    //void LoadAssets();
-   // void PopulateCommandList();
     void CopyRaytracingOutputToBackbuffer();
     void DrawGUI();
+
+    void SwitchCamera();
 
     static const UINT FrameCount = 2;
 
@@ -108,7 +109,10 @@ private:
 
     // Scene Resources
     Input input_;
-    std::unique_ptr<FPCamera> camera_;
+    int camera_;
+    std::unique_ptr<Camera> cameras_array_[2];
+    //std::unique_ptr<FPCamera> camera_; 
+    //std::unique_ptr<OrbitalCamera> camera_;
 
     XMMATRIX projection_matrix_;					///< Identity projection matrix
     XMMATRIX world_matrix_;						///< Identity world matrix

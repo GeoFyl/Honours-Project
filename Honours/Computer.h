@@ -75,7 +75,7 @@ class Computer
 public: 
     Computer(DX::DeviceResources* device_resources, HonoursApplication* app);
     void SetRayTracer(RayTracer* ray_tracer) { ray_tracer_ = ray_tracer; }
-
+    void GenerateParticles();
     void ComputePostitions();
     void ComputeGrid();
     void ComputeSimpleSDFTexture();
@@ -106,7 +106,7 @@ private:
     void SerializeAndCreateComputeRootSignature(D3D12_ROOT_SIGNATURE_DESC& desc, ComPtr<ID3D12RootSignature>* rootSig);
     void CreateComputePipelineStateObjects();
     void CreateBuffers();
-    void GenerateParticles();
+
     void AllocateSimpleSDFTexture();
     void ReadBackBlocksCount();
     void AllocateBrickPoolTexture();

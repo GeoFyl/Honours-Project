@@ -55,6 +55,12 @@
     <Filter Include="Source Files\Compute\GPUPrefixSums">
       <UniqueIdentifier>{15db9f9b-f4aa-41ec-b73b-107e27167f66}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Framework\Camera">
+      <UniqueIdentifier>{1b05e226-8757-474a-ada7-6ea00d60cfd4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Framework\Camera">
+      <UniqueIdentifier>{add0b0ff-3354-44fc-bf45-969a11eed3c5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DXSample.h">
@@ -83,9 +89,6 @@
     </ClInclude>
     <ClInclude Include="TriangleMesh.h">
       <Filter>Header Files\Framework\Geometry</Filter>
-    </ClInclude>
-    <ClInclude Include="Camera.h">
-      <Filter>Header Files\Framework</Filter>
     </ClInclude>
     <ClInclude Include="UploadBuffer.h">
       <Filter>Header Files\Framework</Filter>
@@ -130,12 +133,6 @@
       <Filter>Header Files\Framework</Filter>
     </ClInclude>
     <ClInclude Include="ShaderTable.h" />
-    <ClInclude Include="Input.h">
-      <Filter>Header Files\Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="FPCamera.h">
-      <Filter>Header Files\Framework</Filter>
-    </ClInclude>
     <ClInclude Include="Computer.h">
       <Filter>Header Files\Compute</Filter>
     </ClInclude>
@@ -162,6 +159,18 @@
     </ClInclude>
     <ClInclude Include="GPUPrefixSums\Utils.h">
       <Filter>Header Files\Compute\GPUPrefixSums</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>Header Files\Framework\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="FPCamera.h">
+      <Filter>Header Files\Framework\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="Input.h">
+      <Filter>Header Files\Framework\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="OrbitalCamera.h">
+      <Filter>Header Files\Framework\Camera</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -191,9 +200,6 @@
     </ClCompile>
     <ClCompile Include="TriangleMesh.cpp">
       <Filter>Source Files\Framework\Geometry</Filter>
-    </ClCompile>
-    <ClCompile Include="Camera.cpp">
-      <Filter>Source Files\Framework</Filter>
     </ClCompile>
     <ClCompile Include="Resources.cpp">
       <Filter>Source Files</Filter>
@@ -229,12 +235,6 @@
       <Filter>Source Files\Framework</Filter>
     </ClCompile>
     <ClCompile Include="ShaderTable.cpp" />
-    <ClCompile Include="Input.cpp">
-      <Filter>Source Files\Framework</Filter>
-    </ClCompile>
-    <ClCompile Include="FPCamera.cpp">
-      <Filter>Source Files\Framework</Filter>
-    </ClCompile>
     <ClCompile Include="Computer.cpp">
       <Filter>Source Files\Compute</Filter>
     </ClCompile>
@@ -243,6 +243,18 @@
     </ClCompile>
     <ClCompile Include="GPUPrefixSums\ChainedScanDecoupledLookback.cpp">
       <Filter>Source Files\Compute\GPUPrefixSums</Filter>
+    </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>Source Files\Framework\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="FPCamera.cpp">
+      <Filter>Source Files\Framework\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="OrbitalCamera.cpp">
+      <Filter>Source Files\Framework\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="Input.cpp">
+      <Filter>Source Files\Framework\Camera</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

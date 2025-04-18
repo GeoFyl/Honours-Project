@@ -52,11 +52,13 @@ void HonoursApplication::OnInit()
     device_resources_->CreateWindowSizeDependentResources();
 
     // Initialise camera
-    camera_ = std::make_unique<FPCamera>(&input_, m_width, m_height, Win32Application::GetHwnd());
-    camera_->setPosition(0.5, 0.5, -3.f);
-    //camera_.setRotation(0, -30, 0);
+    cameras_array_[0] = std::make_unique<OrbitalCamera>();
+    cameras_array_[1] = std::make_unique<FPCamera>(&input_, m_width, m_height, Win32Application::GetHwnd());
+    cameras_array_[1]->setPosition(0.5, 0.5, -3.f);
+
+    camera_ = 0;
+
     LoadPipeline();
-   // LoadAssets();
 
     InitGUI();
     timer_.Start();
@@ -99,106 +101,20 @@ void HonoursApplication::InitGUI()
         descriptor_heap_->GetGPUDescriptorHandleForHeapStart());
 }
 
-//// Load the sample assets.
-//void HonoursApplication::LoadAssets()
-//{
-//    // Create buffers and root signatures
-//    resources_ = std::make_unique<Resources>(device_resources_->GetD3DDevice());
-//
-//    // Create the pipeline state, which includes compiling and loading shaders.
-//    {
-//        ComPtr<ID3DBlob> vertexShader;
-//        ComPtr<ID3DBlob> pixelShader;
-//
-//#if defined(_DEBUG)
-//        // Enable better shader debugging with the graphics debugging tools.
-//        UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-//#else
-//        UINT compileFlags = 0;
-//#endif
-//
-//        ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"shaders.hlsl").c_str(), nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr));
-//        ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"shaders.hlsl").c_str(), nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr));
-//
-//        // Define the vertex input layout.
-//        D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
-//        {
-//            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-//            { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-//        };
-//
-//        // Describe and create the graphics pipeline state object (PSO).
-//        D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-//        psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
-//        psoDesc.pRootSignature = resources_->GetRootSignature();
-//        psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());
-//        psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
-//        psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-//        psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-//        psoDesc.DepthStencilState.DepthEnable = FALSE;
-//        psoDesc.DepthStencilState.StencilEnable = FALSE;
-//        psoDesc.SampleMask = UINT_MAX;
-//        psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-//        psoDesc.NumRenderTargets = 1;
-//        psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-//        psoDesc.SampleDesc.Count = 1;
-//        ThrowIfFailed(device_resources_->GetD3DDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
-//    }
-//
-//    //// Create the command list.
-//    //ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocators[m_frameIndex].Get(), m_pipelineState.Get(), IID_PPV_ARGS(&m_commandList)));
-//    //ppCommandLists_[0] = m_commandList.Get();
-//
-//    // Create meshes
-//    //triangle_ = std::make_unique<TriangleMesh>(m_device.Get(), m_commandList.Get());
-//    device_resources_->GetCommandList()->Reset(device_resources_->GetCommandAllocator(), m_pipelineState.Get());
-//    //cube_ = std::make_unique<CubeMesh>(device_resources_->GetD3DDevice(), device_resources_->GetCommandList());
-//
-//    // Execute command list and wait until assets have been uploaded to the GPU.
-//    device_resources_->ExecuteCommandList();
-//    device_resources_->WaitForGpu();
-//
-//    //// Close and execute command list.
-//    //ThrowIfFailed(m_commandList->Close());
-//    //m_commandQueue->ExecuteCommandLists(1, ppCommandLists_);
-//
-//    //// Create synchronization objects and wait until assets have been uploaded to the GPU.
-//    //{
-//    //    ThrowIfFailed(m_device->CreateFence(m_fenceValues[m_frameIndex], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
-//    //    m_fenceValues[m_frameIndex]++;
-//
-//    //    // Create an event handle to use for frame synchronization.
-//    //    m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-//    //    if (m_fenceEvent == nullptr)
-//    //    {
-//    //        ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
-//    //    }
-//
-//    //    // Wait for the command list to execute; we are reusing the same command 
-//    //    // list in our main loop but for now, we just want to wait for setup to 
-//    //    // complete before continuing.
-//    //    WaitForGpu();
-//
-//        // Release mesh upload heaps
-//        //triangle_->ReleaseUploaders();
-//        //cube_->ReleaseUploaders();
-//    //}
-//}
-
 // Update frame-based values.
 void HonoursApplication::OnUpdate()
 {
     timer_.Update();
 
-    camera_->move(timer_.GetDeltaTime());
+    cameras_array_[camera_]->Update(timer_.GetDeltaTime());
 
     device_resources_->ResetCommandList();
 
     // Update constant buffers
     RayTracingCB buff;
-    buff.camera_pos_ = camera_->getPosition();
-    buff.camera_lookat_ = camera_->getLookAt();
-    buff.view_proj_ = XMMatrixMultiply(camera_->getViewMatrix(), projection_matrix_);
+    buff.camera_pos_ = cameras_array_[camera_]->getPosition();
+    buff.camera_lookat_ = cameras_array_[camera_]->getLookAt();
+    buff.view_proj_ = XMMatrixMultiply(cameras_array_[camera_]->getViewMatrix(), projection_matrix_);
     buff.inv_view_proj_ = XMMatrixTranspose(XMMatrixInverse(nullptr, buff.view_proj_));
     buff.view_proj_ = XMMatrixTranspose(buff.view_proj_);
     buff.uvw_step_ = debug_.uvw_normals_step_;
@@ -211,7 +127,7 @@ void HonoursApplication::OnUpdate()
 
     ray_tracing_cb_->CopyData(0, buff);
 
-    if (!debug_.pause_positions_ && test_values_.scene_ != SceneGrid) {
+    if (!debug_.pause_positions_ && SCENE != SceneGrid) {
         computer_->GetConstantBuffer()->Values().time_ = timer_.GetElapsedTime();
         computer_->GetConstantBuffer()->CopyData(0);
         computer_->ComputePostitions();
@@ -275,11 +191,6 @@ void HonoursApplication::OnRender()
     CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle = device_resources_->GetRenderTargetView();
     device_resources_->GetCommandList()->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
 
-    // Record all the commands we need to render the scene into the command list.
-
-
-
-
     // Record commands for drawing GUI
     DrawGUI();
 
@@ -290,59 +201,6 @@ void HonoursApplication::OnRender()
 
 
 }
-
-//void HonoursApplication::PopulateCommandList()
-//{
-//    //// Command list allocators can only be reset when the associated 
-//    //// command lists have finished execution on the GPU; apps should use 
-//    //// fences to determine GPU execution progress.
-//    //ThrowIfFailed(m_commandAllocators[m_frameIndex]->Reset());
-//
-//    //// However, when ExecuteCommandList() is called on a particular command 
-//    //// list, that command list can then be reset at any time and must be before 
-//    //// re-recording.
-//    //ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_frameIndex].Get(), m_pipelineState.Get()));
-//
-//    // Set necessary state.
-//    ID3D12GraphicsCommandList4* command_list = device_resources_->GetCommandList();
-//    command_list->SetGraphicsRootSignature(resources_->GetRootSignature());
-//    command_list->RSSetViewports(1, &device_resources_->GetScreenViewport());
-//    command_list->RSSetScissorRects(1, &device_resources_->GetScissorRect());
-//    ID3D12DescriptorHeap* srv_heaps[1] = { descriptor_heap_.Get() };
-//    command_list->SetDescriptorHeaps(1, srv_heaps);
-//
-//    // Indicate that the back buffer will be used as a render target.
-//    //command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
-//
-//    /*CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_rtvDescriptorSize);
-//    command_list->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);*/
-//
-//    CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle = device_resources_->GetRenderTargetView();
-//    command_list->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
-//
-//    // Record commands.
-//    XMMATRIX view_projection = XMMatrixMultiply(camera_->getViewMatrix(), projection_matrix_);
-//
-//    const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
-//    command_list->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-//
-//    // Set world-view-projection matrix for current object
-//    XMMATRIX world_view_proj = XMMatrixMultiplyTranspose(world_matrix_, view_projection);
-//    resources_->SetWorldViewProj(world_view_proj);
-//
-//    // Set root views to the ones for current object and draw
-//    resources_->SetRootViews(command_list);
-//    //cube_->SendData(command_list);
-//    //cube_->Draw(command_list);
-//
-//    // Record commands for drawing GUI
-//    DrawGUI();
-//
-//    // Indicate that the back buffer will now be used to present.
-//    //m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
-//
-//    //ThrowIfFailed(m_commandList->Close());
-//}
 
 // Copy the raytracing output to the backbuffer.
 void HonoursApplication::CopyRaytracingOutputToBackbuffer()
@@ -368,29 +226,71 @@ void HonoursApplication::CopyRaytracingOutputToBackbuffer()
 // Records commands for drawing GUI
 void HonoursApplication::DrawGUI()
 {
-    //ImGui::ShowDemoWindow();
+   // ImGui::ShowDemoWindow();
 
     ImGui::Text("FPS: %.2f", timer_.GetCurrentFPS());
 
-    if (ImGui::CollapsingHeader("Implementation"), ImGuiTreeNodeFlags_DefaultOpen) {
+    ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+    if (ImGui::CollapsingHeader("System")) {
         ImGui::Checkbox("Analytical distances", &debug_.render_analytical_);
         ImGui::Checkbox("Use simple bounding volume", &debug_.use_simple_aabb_);
     }
-    if (ImGui::CollapsingHeader("Visualisation"), ImGuiTreeNodeFlags_DefaultOpen) {
+    
+    ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+    if (ImGui::CollapsingHeader("Visualisation")) {
         ImGui::Checkbox("Visualize bounding volumes", &debug_.visualize_aabbs_);
         ImGui::Checkbox("Visualise particles", &debug_.visualize_particles_);
         ImGui::Checkbox("Pause particles", &debug_.pause_positions_);
     }
-    if (ImGui::CollapsingHeader("Debug Normals"), ImGuiTreeNodeFlags_DefaultOpen) {
+    
+    ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+    if (ImGui::CollapsingHeader("Scene")) {
+        ImGui::Text("Select scene:");
+        if (ImGui::Button("Grid")) {
+            SCENE = SceneGrid;
+            computer_->GetTestValsBuffer()->Values().scene_ = SceneGrid;
+            computer_->GetTestValsBuffer()->CopyData(0);
+            computer_->GenerateParticles();
+        } ImGui::SameLine();
+        if (ImGui::Button("Random")) {
+            SCENE = SceneRandom;
+            computer_->GetTestValsBuffer()->Values().scene_ = SceneRandom;
+            computer_->GetTestValsBuffer()->CopyData(0);
+            computer_->GenerateParticles();
+        } ImGui::SameLine();
+        if (ImGui::Button("Wave")) {
+            SCENE = SceneWave;
+            computer_->GetTestValsBuffer()->Values().scene_ = SceneWave;
+            computer_->GetTestValsBuffer()->CopyData(0);
+            computer_->GenerateParticles();
+        }
+
+        ImGui::Text("Select camera:");
+        if (ImGui::RadioButton("Orbital", &camera_, 0)) {
+            SwitchCamera();
+        }ImGui::SameLine();
+        if (ImGui::RadioButton("First person", &camera_, 1)) {
+            SwitchCamera();
+        }
+
+    }
+    
+    ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+    if (ImGui::CollapsingHeader("Debug")) {
         ImGui::Checkbox("Debug normals", &debug_.render_normals_);
-        ImGui::Text("Normals uvw step (texture):");
-        ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.9f);
-        ImGui::SliderFloat("##", &debug_.uvw_normals_step_, 0.0001f, 0.1f, "%.5f");
-        ImGui::PopItemWidth();        
     }
 
     ImGui::Render();
     ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), device_resources_->GetCommandList());
+}
+
+void HonoursApplication::SwitchCamera()
+{
+    int prev_cam = 1 - camera_;
+    //camera_ = 1 - camera_;
+
+    cameras_array_[camera_]->setPosition(cameras_array_[prev_cam]->getPosition().x, cameras_array_[prev_cam]->getPosition().y, cameras_array_[prev_cam]->getPosition().z);
+    cameras_array_[camera_]->setRotation(cameras_array_[prev_cam]->getRotation().x, cameras_array_[prev_cam]->getRotation().y, cameras_array_[prev_cam]->getRotation().z);
 }
 
 void HonoursApplication::OnDestroy()
