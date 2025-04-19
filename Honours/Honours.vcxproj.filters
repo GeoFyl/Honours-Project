@@ -306,9 +306,6 @@
     <CustomBuild Include="ComputeGridCommon.hlsli">
       <Filter>Assets\Shaders\Compute</Filter>
     </CustomBuild>
-    <CustomBuild Include="GFSDK_Aftermath_Lib.x64.dll">
-      <Filter>Assets</Filter>
-    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

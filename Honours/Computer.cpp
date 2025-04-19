@@ -2,7 +2,7 @@
 #include "Computer.h"
 #include "HonoursApplication.h"
 #include "RayTracer.h"
-#include "GFSDK_Aftermath.h"
+
 
 Computer::Computer(DX::DeviceResources* device_resources, HonoursApplication* app) :
 	device_resources_(device_resources), application_(app)
@@ -579,8 +579,6 @@ void Computer::CreateBuffers()
     Utilities::AllocateDefaultBuffer(device, byte_size, particle_buffer_ordered_.GetAddressOf(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     particle_buffer_unordered_->SetName(L"UnorderedP");
     particle_buffer_ordered_->SetName(L"OrderedP");
-    GFSDK_Aftermath_DX12_RegisterResource(particle_buffer_unordered_.Get(), new GFSDK_Aftermath_ResourceHandle);
-    GFSDK_Aftermath_DX12_RegisterResource(particle_buffer_ordered_.Get(), new GFSDK_Aftermath_ResourceHandle);
 
     // Grid buffers
     //Utilities::AllocateDefaultBuffer(device, NUM_CELLS * sizeof(Cell), cells_buffer_.GetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
@@ -592,16 +590,10 @@ void Computer::CreateBuffers()
     Utilities::AllocateDefaultBuffer(device, sizeof(GridSurfaceCounts), surface_counts_buffer_.GetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
     blocks_buffer_->SetName(L"Blocks");
-    GFSDK_Aftermath_DX12_RegisterResource(blocks_buffer_.Get(), new GFSDK_Aftermath_ResourceHandle);
-
     surface_cell_indices_buffer_->SetName(L"SurfaceCellIndices");
-    GFSDK_Aftermath_DX12_RegisterResource(surface_cell_indices_buffer_.Get(), new GFSDK_Aftermath_ResourceHandle);
-
     surface_block_indices_buffer_->SetName(L"SurfaceBlockIndices");
-    GFSDK_Aftermath_DX12_RegisterResource(surface_block_indices_buffer_.Get(), new GFSDK_Aftermath_ResourceHandle);
-
     surface_counts_buffer_->SetName(L"SurfaceCounts");
-    GFSDK_Aftermath_DX12_RegisterResource(surface_counts_buffer_.Get(), new GFSDK_Aftermath_ResourceHandle);
+
 
 
 
@@ -621,8 +613,6 @@ void Computer::AllocateBrickPoolTexture()
     if (bricks_count_ > max_bricks_count_) {
         XMUINT3 dimensions;
         max_bricks_count_ = FindOptimalBrickPoolDimensions(dimensions); 
-
-       // dimensions = XMUINT3(dimensions.x * VOXELS_PER_AXIS_PER_BRICK, dimensions.y * VOXELS_PER_AXIS_PER_BRICK, dimensions.z * VOXELS_PER_AXIS_PER_BRICK);
 
         // Release the texture
         brick_pool_3d_texture_.Reset();

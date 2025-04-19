@@ -10,7 +10,6 @@
 #include "../stdafx.h"
 #include "Utils.h"
 #include "../DeviceResources.h"
-#include "../include/GFSDK_Aftermath.h"
 
 class GPUPrefixSumBase {
    protected:
@@ -105,11 +104,8 @@ class GPUPrefixSumBase {
                          D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
         m_scanInBuffer->SetName(L"ScanIn");
-        GFSDK_Aftermath_DX12_RegisterResource(m_scanInBuffer.get(), new GFSDK_Aftermath_ResourceHandle);
         m_scanOutBuffer->SetName(L"ScanOut");
-        GFSDK_Aftermath_DX12_RegisterResource(m_scanOutBuffer.get(), new GFSDK_Aftermath_ResourceHandle);
         m_threadBlockReductionBuffer->SetName(L"ThreadReduction");
-        GFSDK_Aftermath_DX12_RegisterResource(m_threadBlockReductionBuffer.get(), new GFSDK_Aftermath_ResourceHandle);
     }
 
     virtual void PrepareScanCmdListExclusive() = 0;
