@@ -1517,7 +1517,7 @@ namespace nv { namespace perf { namespace profiler {
                                 PerRangeReport::WriteCustomCsvReportFile(m_metricsEvaluator, m_reportLayout, reportData);
                             }
 
-                            PerRangeReport::WriteCsvReportFile(m_metricsEvaluator, m_reportLayout, reportData);
+                            //PerRangeReport::WriteCsvReportFile(m_metricsEvaluator, m_reportLayout, reportData);
                         }
 
                         if (outputOptions.writeCounterConfigImage || m_writeCounterConfigImage)
