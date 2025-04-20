@@ -12,6 +12,7 @@
 #include "stdafx.h"
 #include "HonoursApplication.h"
 #include <fstream>
+#include "atlstr.h"
 
 TestVariables test_vars_;
 TestVariablesCPUOnly cpu_test_vars_;
@@ -30,20 +31,24 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
         }
         teststream.close();*/
         
-        // Command line arguments: (screen res x), (screen res y), (view distance), (scene), (particle no.), (texture res), (cells no.), (blocks no.), (bricks per cell) 
+        // Command line arguments: (Test name), (screen res x), (screen res y), (view distance), (scene), (particle no.), (texture res), (cells no.), (blocks no.), (bricks per cell) 
 
         if (num_args > 1) {
-            cpu_test_vars_.screen_res_[0] = _wtoi(args[1]);
-            cpu_test_vars_.screen_res_[1] = _wtoi(args[2]);
-            cpu_test_vars_.view_dist_ = _wtoi(args[3]);
-            SCENE = (SceneType)_wtoi(args[4]);
-            NUM_PARTICLES = _wtoi(args[5]);
-            TEXTURE_RESOLUTION = _wtoi(args[6]);
-            NUM_CELLS = _wtoi(args[7]);
-            NUM_BLOCKS = _wtoi(args[8]);
-            BRICKS_PER_CELL = _wtoi(args[9]);
+            cpu_test_vars_.test_mode_ = true;
+            cpu_test_vars_.test_name_ = CW2A(args[1]);
+            cpu_test_vars_.screen_res_[0] = _wtoi(args[2]);
+            cpu_test_vars_.screen_res_[1] = _wtoi(args[3]);
+            cpu_test_vars_.view_dist_ = _wtoi(args[4]);
+            SCENE = (SceneType)_wtoi(args[5]);
+            NUM_PARTICLES = _wtoi(args[6]);
+            TEXTURE_RESOLUTION = _wtoi(args[7]);
+            NUM_CELLS = _wtoi(args[8]);
+            NUM_BLOCKS = _wtoi(args[9]);
+            BRICKS_PER_CELL = _wtoi(args[10]);
         }
         else {
+            cpu_test_vars_.test_mode_ = false;
+            cpu_test_vars_.test_name_ = "Default";
             cpu_test_vars_.screen_res_[0] = 1280;
             cpu_test_vars_.screen_res_[1] = 720;
             cpu_test_vars_.view_dist_ = 2;

@@ -1,8 +1,9 @@
 #pragma once
+#include <string>
+
 
 // Fixed values
 #define VOXELS_PER_AXIS_PER_BRICK 10
-
 
 // Custom values
 enum SceneType {
@@ -31,6 +32,8 @@ extern TestVariables test_vars_;
 struct TestVariablesCPUOnly {
 	float screen_res_[2];
 	float view_dist_;
+	bool test_mode_;
+	std::string test_name_;
 };
 extern TestVariablesCPUOnly cpu_test_vars_;
 

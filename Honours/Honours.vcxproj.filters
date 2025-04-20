@@ -172,6 +172,9 @@
     <ClInclude Include="OrbitalCamera.h">
       <Filter>Header Files\Framework\Camera</Filter>
     </ClInclude>
+    <ClInclude Include="Profiler.h">
+      <Filter>Header Files\Framework</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="HonoursApplication.cpp">
@@ -256,6 +259,9 @@
     <ClCompile Include="Input.cpp">
       <Filter>Source Files\Framework\Camera</Filter>
     </ClCompile>
+    <ClCompile Include="Profiler.cpp">
+      <Filter>Source Files\Framework</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="shaders.hlsl">
@@ -305,6 +311,9 @@
     </CustomBuild>
     <CustomBuild Include="ComputeGridCommon.hlsli">
       <Filter>Assets\Shaders\Compute</Filter>
+    </CustomBuild>
+    <CustomBuild Include="nvperf_grfx_host.dll">
+      <Filter>Assets</Filter>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>

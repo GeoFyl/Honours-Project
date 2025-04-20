@@ -23,6 +23,7 @@
 #include "OrbitalCamera.h"
 #include "TriangleMesh.h"
 #include "CubeMesh.h"
+#include "Profiler.h"
 
 using namespace DirectX;
 
@@ -98,6 +99,7 @@ private:
     std::unique_ptr<Resources> resources_ = nullptr;
     std::unique_ptr<RayTracer> ray_tracer_ = nullptr;
     std::unique_ptr<Computer> computer_ = nullptr;
+    std::unique_ptr<Profiler> profiler_ = nullptr;
 
     // Upload buffers
    // std::unique_ptr<UploadBuffer<ComputeCB>> compute_cb_ = nullptr;

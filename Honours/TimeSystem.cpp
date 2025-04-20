@@ -8,7 +8,7 @@ void TimeSystem::Start() {
 
 // Called every frame.
 // Returns the delta time, in seconds, since the last frame.
-double TimeSystem::Update()
+double TimeSystem::Update(bool update_elapsed)
 {
 	// Get current time, get dt since previously recorded time, set current as previous
 	Clock::time_point current_time = Clock::now();
@@ -30,7 +30,9 @@ double TimeSystem::Update()
 		}
 	}
 
-	elapsed_time_ += delta_time_;
+	if (update_elapsed) {
+		elapsed_time_ += delta_time_;
+	}
 
 	// Return the dt since last frame
 	return delta_time_;

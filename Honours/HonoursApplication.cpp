@@ -16,12 +16,7 @@
 #include "HonoursApplication.h"
 
 HonoursApplication::HonoursApplication(UINT width, UINT height, std::wstring name) :
-    DXSample(width, height, name)/*,
-    m_frameIndex(0),
-    m_viewport(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)),
-    m_scissorRect(0, 0, static_cast<LONG>(width), static_cast<LONG>(height)),
-    m_fenceValues{},
-    m_rtvDescriptorSize(0)*/
+    DXSample(width, height, name)
 {
     // Initialize the world matrix to the identity matrix.
     world_matrix_ = XMMatrixIdentity();
@@ -59,6 +54,9 @@ void HonoursApplication::OnInit()
     camera_ = 0;
 
     LoadPipeline();
+
+    profiler_ = std::make_unique<Profiler>();
+    profiler_->Init(device_resources_->GetD3DDevice());
 
     InitGUI();
     timer_.Start();
@@ -104,44 +102,53 @@ void HonoursApplication::InitGUI()
 // Update frame-based values.
 void HonoursApplication::OnUpdate()
 {
-    timer_.Update();
-
-    cameras_array_[camera_]->Update(timer_.GetDeltaTime());
-
     device_resources_->ResetCommandList();
 
-    // Update constant buffers
-    RayTracingCB buff;
-    buff.camera_pos_ = cameras_array_[camera_]->getPosition();
-    buff.camera_lookat_ = cameras_array_[camera_]->getLookAt();
-    buff.view_proj_ = XMMatrixMultiply(cameras_array_[camera_]->getViewMatrix(), projection_matrix_);
-    buff.inv_view_proj_ = XMMatrixTranspose(XMMatrixInverse(nullptr, buff.view_proj_));
-    buff.view_proj_ = XMMatrixTranspose(buff.view_proj_);
-    buff.uvw_step_ = debug_.uvw_normals_step_;
+    timer_.Update(!profiler_->IsCapturing());
 
-    if (debug_.visualize_particles_) buff.rendering_flags_ |= RENDERING_FLAG_VISUALIZE_PARTICLES;
-    if (debug_.render_analytical_) buff.rendering_flags_ |= RENDERING_FLAG_ANALYTICAL;
-    if (debug_.render_normals_) buff.rendering_flags_ |= RENDERING_FLAG_NORMALS;
-    if (debug_.visualize_aabbs_) buff.rendering_flags_ |= RENDERING_FLAG_VISUALIZE_AABBS;
-    if (debug_.use_simple_aabb_) buff.rendering_flags_ |= RENDERING_FLAG_SIMPLE_AABB;
+    if (!profiler_->IsCapturing()) { 
 
-    ray_tracing_cb_->CopyData(0, buff);
+        profiler_->Update(timer_.GetDeltaTime());
 
-    if (!debug_.pause_positions_ && SCENE != SceneGrid) {
-        computer_->GetConstantBuffer()->Values().time_ = timer_.GetElapsedTime();
-        computer_->GetConstantBuffer()->CopyData(0);
-        computer_->ComputePostitions();
+        cameras_array_[camera_]->Update(timer_.GetDeltaTime());
+
+        // Update constant buffers
+        RayTracingCB buff;
+        buff.camera_pos_ = cameras_array_[camera_]->getPosition();
+        buff.camera_lookat_ = cameras_array_[camera_]->getLookAt();
+        buff.view_proj_ = XMMatrixMultiply(cameras_array_[camera_]->getViewMatrix(), projection_matrix_);
+        buff.inv_view_proj_ = XMMatrixTranspose(XMMatrixInverse(nullptr, buff.view_proj_));
+        buff.view_proj_ = XMMatrixTranspose(buff.view_proj_);
+        buff.uvw_step_ = debug_.uvw_normals_step_;
+
+        if (debug_.visualize_particles_) buff.rendering_flags_ |= RENDERING_FLAG_VISUALIZE_PARTICLES;
+        if (debug_.render_analytical_) buff.rendering_flags_ |= RENDERING_FLAG_ANALYTICAL;
+        if (debug_.render_normals_) buff.rendering_flags_ |= RENDERING_FLAG_NORMALS;
+        if (debug_.visualize_aabbs_) buff.rendering_flags_ |= RENDERING_FLAG_VISUALIZE_AABBS;
+        if (debug_.use_simple_aabb_) buff.rendering_flags_ |= RENDERING_FLAG_SIMPLE_AABB;
+
+        ray_tracing_cb_->CopyData(0, buff);     
+
+        if (!debug_.pause_positions_ && SCENE != SceneGrid) {
+            computer_->GetConstantBuffer()->Values().time_ = timer_.GetElapsedTime();
+            computer_->GetConstantBuffer()->CopyData(0);
+            computer_->ComputePostitions();
+        }
     }
+    profiler_->FrameStart(device_resources_->GetCommandQueue());
 
     if (!(debug_.use_simple_aabb_)) {
+        profiler_->PushRange(device_resources_->GetCommandList(), "Grid Construction");
         computer_->ComputeGrid();
+        profiler_->PopRange(device_resources_->GetCommandList());
+
         computer_->ComputeAABBs();
-        ray_tracer_->GetAccelerationStructure()->UpdateStructure();       
+        ray_tracer_->GetAccelerationStructure()->UpdateStructure();
     }
     else {
-         // Execute and wait for work to finish     need this when not calling ComputeAABBs and UpdateStructure
-         device_resources_->ExecuteCommandList();
-         device_resources_->WaitForGpu();
+        // Execute and wait for work to finish need this when not calling ComputeAABBs and UpdateStructure
+        device_resources_->ExecuteCommandList();
+        device_resources_->WaitForGpu();
     }
 
     if (!(debug_.render_analytical_ || debug_.visualize_particles_)) {
@@ -158,8 +165,6 @@ void HonoursApplication::OnUpdate()
         device_resources_->ExecuteCommandList();
         device_resources_->WaitForGpu();
     }
-
-
 }
 
 // Render the scene.
@@ -194,12 +199,10 @@ void HonoursApplication::OnRender()
     // Record commands for drawing GUI
     DrawGUI();
 
-   // OutputDebugString(L"\nPRESENTING\n");
+    profiler_->FrameEnd();
 
     // Present the back buffer
     device_resources_->Present();
-
-
 }
 
 // Copy the raytracing output to the backbuffer.

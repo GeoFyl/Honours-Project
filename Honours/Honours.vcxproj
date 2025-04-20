@@ -69,7 +69,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>include;GPUPrefixSums;imGUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>include\windows-desktop-x64;include;GPUPrefixSums;imGUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAsWinRT>false</CompileAsWinRT>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
@@ -100,7 +100,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>include;GPUPrefixSums;imGUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>include\windows-desktop-x64;include;GPUPrefixSums;imGUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAsWinRT>false</CompileAsWinRT>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
@@ -133,6 +133,7 @@
     <ClInclude Include="DeviceResources.h" />
     <ClInclude Include="FPCamera.h" />
     <ClInclude Include="OrbitalCamera.h" />
+    <ClInclude Include="Profiler.h" />
     <ClInclude Include="TestValues.h" />
     <ClInclude Include="GPUPrefixSums\ChainedScanDecoupledLookback.h" />
     <ClInclude Include="GPUPrefixSums\ComputeKernelBase.h" />
@@ -212,6 +213,7 @@
     </ClCompile>
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="OrbitalCamera.cpp" />
+    <ClCompile Include="Profiler.cpp" />
     <ClCompile Include="RayTracer.cpp" />
     <ClCompile Include="Resources.cpp" />
     <ClCompile Include="ShaderTable.cpp" />
@@ -246,6 +248,9 @@
       <FileType>Document</FileType>
     </CustomBuild>
     <CustomBuild Include="GlobalValues.hlsli">
+      <FileType>Document</FileType>
+    </CustomBuild>
+    <CustomBuild Include="nvperf_grfx_host.dll">
       <FileType>Document</FileType>
     </CustomBuild>
     <None Include="packages.config" />

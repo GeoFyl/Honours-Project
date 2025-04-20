@@ -10,7 +10,7 @@ public:
 	void Start();
 	// Called every frame.
 	// Returns the delta time, in seconds, since the last frame.
-	double Update();
+	double Update(bool update_elapsed = true);
 
 	// Returns the delta time, in seconds, since the last frame.
 	double GetDeltaTime() { return delta_time_; }
