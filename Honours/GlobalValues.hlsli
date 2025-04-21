@@ -47,6 +47,7 @@
 #define SceneRandom 0
 #define SceneGrid 1
 #define SceneWave 2
+#define SceneNormals 3
 
 struct TestVariables
 {

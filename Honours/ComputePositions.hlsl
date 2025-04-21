@@ -99,6 +99,22 @@ void CSParticleGen(int3 dispatch_ID : SV_DispatchThreadID)
             particle.speed_ = 3;
         }
     }
+    else if (SCENE == SceneNormals)
+    {
+        if (dispatch_ID.x > 9)
+        {
+            particle.position_ = float3(0.1, 0.1, 0.1);
+        }
+        else
+        {
+            float upper = min((NUM_PARTICLES - 1) * PARTICLE_RADIUS * 2, 0.99f - PARTICLE_RADIUS);
+        
+            particle.position_ = float3(upper * ((float) dispatch_ID.x / NUM_PARTICLES) + PARTICLE_RADIUS + 0.01f, 0.1 * sin(5 * (float) dispatch_ID.x / NUM_PARTICLES) + 0.5, 0.5f);            
+        }
+
+        particle.start_pos_ = particle.position_;
+        particle.speed_ = 0;
+    }
     
     particle_positions_[dispatch_ID.x] = particle;
     

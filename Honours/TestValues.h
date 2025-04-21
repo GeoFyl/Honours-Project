@@ -9,7 +9,8 @@
 enum SceneType {
 	SceneRandom = 0,
 	SceneGrid,
-	SceneWave
+	SceneWave,
+	SceneNormals
 };
 
 struct TestVariables {

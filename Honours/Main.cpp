@@ -24,12 +24,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
         int num_args;
         LPWSTR* args = CommandLineToArgvW(GetCommandLineW(), &num_args);
-
-       /* std::wofstream teststream("TestFile.txt");
-        for (int i = 0; i < num_args; i++) {
-            teststream << _wtoi(args[i]) << std::endl;
-        }
-        teststream.close();*/
         
         // Command line arguments: (Test name), (screen res x), (screen res y), (view distance), (scene), (particle no.), (texture res), (cells no.), (blocks no.), (bricks per cell) 
 
@@ -47,13 +41,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
             BRICKS_PER_CELL = _wtoi(args[10]);
         }
         else {
-            cpu_test_vars_.test_mode_ = true;
+            cpu_test_vars_.test_mode_ = false;
             cpu_test_vars_.test_name_ = "Default";
             cpu_test_vars_.screen_res_[0] = 1280;
             cpu_test_vars_.screen_res_[1] = 720;
             cpu_test_vars_.view_dist_ = 2;
-            SCENE = SceneRandom;
-            NUM_PARTICLES = 125;
+            SCENE = SceneNormals; // random
+            NUM_PARTICLES = 10; // 125
             TEXTURE_RESOLUTION = 256;
             NUM_CELLS = 4096;
             NUM_BLOCKS = 64;

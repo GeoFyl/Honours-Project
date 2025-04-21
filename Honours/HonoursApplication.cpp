@@ -46,12 +46,18 @@ void HonoursApplication::OnInit()
     RayTracer::CheckRayTracingSupport(device_resources_->GetD3DDevice());
     device_resources_->CreateWindowSizeDependentResources();
 
-    // Initialise camera
+    // Initialise cameras
     cameras_array_[0] = std::make_unique<OrbitalCamera>();
     cameras_array_[1] = std::make_unique<FPCamera>(&input_, m_width, m_height, Win32Application::GetHwnd());
-    cameras_array_[1]->setPosition(0.5, 0.5, -3.f);
-
-    camera_ = 0;
+    if (SCENE == SceneNormals) {
+        cameras_array_[1]->setPosition(0.59f, 0.51f, 0.22f);
+        cameras_array_[1]->setRotation(6.62f, -38.75f, 0.f);
+        camera_ = 1;
+    }
+    else {
+        cameras_array_[1]->setPosition(0.5, 0.5, -3.f);
+        camera_ = 0;
+    }
 
     LoadPipeline();
 
@@ -88,9 +94,6 @@ void HonoursApplication::InitGUI()
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    //ImGuiIO& io = ImGui::GetIO();
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
     // Setup Platform/Renderer backends
     ImGui_ImplWin32_Init(Win32Application::GetHwnd());
@@ -109,8 +112,9 @@ void HonoursApplication::OnUpdate()
     if (!profiler_->IsCapturing()) { 
 
         profiler_->Update(timer_.GetDeltaTime());
-
+       
         cameras_array_[camera_]->Update(timer_.GetDeltaTime());
+       
 
         // Update constant buffers
         RayTracingCB buff;
@@ -129,7 +133,7 @@ void HonoursApplication::OnUpdate()
 
         ray_tracing_cb_->CopyData(0, buff);     
 
-        if (!debug_.pause_positions_ && SCENE != SceneGrid) {
+        if (!debug_.pause_positions_ && SCENE != SceneGrid && SCENE != SceneNormals) {
             computer_->GetConstantBuffer()->Values().time_ = timer_.GetElapsedTime();
             computer_->GetConstantBuffer()->CopyData(0);
             computer_->ComputePostitions();
@@ -232,6 +236,8 @@ void HonoursApplication::DrawGUI()
    // ImGui::ShowDemoWindow();
 
     ImGui::Text("FPS: %.2f", timer_.GetCurrentFPS());
+    ImGui::Text("pos: %.2f, %.2f, %.2f", cameras_array_[camera_]->getPosition().x, cameras_array_[camera_]->getPosition().y, cameras_array_[camera_]->getPosition().z);
+    ImGui::Text("rot: %.2f, %.2f, %.2f", cameras_array_[camera_]->getRotation().x, cameras_array_[camera_]->getRotation().y, cameras_array_[camera_]->getRotation().z);
 
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (ImGui::CollapsingHeader("System")) {
@@ -267,6 +273,15 @@ void HonoursApplication::DrawGUI()
             computer_->GetTestValsBuffer()->CopyData(0);
             computer_->GenerateParticles();
         }
+        if (ImGui::Button("Normals Test")) {
+            SCENE = SceneNormals;
+            computer_->GetTestValsBuffer()->Values().scene_ = SceneNormals;
+            computer_->GetTestValsBuffer()->CopyData(0);
+            computer_->GenerateParticles();
+            cameras_array_[1]->setPosition(0.59f, 0.51f, 0.22f);
+            cameras_array_[1]->setRotation(6.62f, -38.75f, 0.f);
+        }
+
 
         ImGui::Text("Select camera:");
         if (ImGui::RadioButton("Orbital", &camera_, 0)) {
