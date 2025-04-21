@@ -2,7 +2,7 @@
 //#include "NvPerfReportGeneratorD3D12.h"
 #include "NvPerfReportDefinition.h"
 
-#define NUM_CAPTURES 1
+#define NUM_CAPTURES 20
 
 namespace nv {
 	namespace perf {
@@ -14,8 +14,15 @@ namespace nv {
 
 namespace ProfilerGlobal {
 	// range name -> range values
-	extern std::map<std::string, std::vector<double>> test_results_;
-	extern int remaining_captures_;
+	static std::map<std::string, std::vector<double>> test_results_;
+
+	// buffer name -> size in bytes
+	static std::map<std::string, UINT64> memory_usage_results_;
+	static UINT64 current_brickpool_size_;
+	static UINT64 current_blas_size_;
+	static UINT64 current_aabbs_size_;
+	
+	static int remaining_captures_;
 }
 
 class Profiler
@@ -36,10 +43,10 @@ public:
 	void PushRange(ID3D12GraphicsCommandList* command_list, const char* range_name);
 	void PopRange(ID3D12GraphicsCommandList* command_list);
 
+	static void RegisterResource(std::string name, UINT64 size);
+
 	static nv::perf::ReportDefinition GetCustomReportDefinition();
 	static double GetTotalCaptures() { return NUM_CAPTURES; }
-
-
 
 private:
 	nv::perf::profiler::ReportGeneratorD3D12* nvperf_;

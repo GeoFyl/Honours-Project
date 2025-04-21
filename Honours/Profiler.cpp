@@ -3,11 +3,17 @@
 #include "NvPerfReportGeneratorD3D12.h"
 #include "nvperf_host_impl.h"
 
-namespace ProfilerGlobal {
-    // range name -> range values
-    std::map<std::string, std::vector<double>> test_results_;
-    int remaining_captures_;
-}
+//namespace ProfilerGlobal {
+//    // range name -> range values
+//    std::map<std::string, std::vector<double>> test_results_;
+//
+//    // buffer name -> size in bytes
+//    std::map<std::string, UINT64> memory_usage_results_;
+//    UINT64 current_brickpool_size_;
+//    UINT64 current_blas_size_;
+//
+//    int remaining_captures_;
+//}
 
 Profiler::~Profiler()
 {
@@ -28,7 +34,7 @@ void Profiler::Init(ID3D12Device* device)
         nvperf_->SetMaxNumRanges(1);
         nvperf_->outputOptions.directoryName = "Profiler";
         nvperf_->outputOptions.enableHtmlReport = false;
-        //nvperf_.outputOptions.appendDateTimeToDirName = nv::perf::AppendDateTime::no;
+        nvperf_->outputOptions.appendDateTimeToDirName = nv::perf::AppendDateTime::no;
     }
 }
 
@@ -93,6 +99,11 @@ void Profiler::PopRange(ID3D12GraphicsCommandList* command_list)
     }
 }
 
+void Profiler::RegisterResource(std::string name, UINT64 size)
+{
+    ProfilerGlobal::memory_usage_results_[name] = size;
+}
+
 nv::perf::ReportDefinition Profiler::GetCustomReportDefinition()
 {
     static const char* const RequiredCounters[] = {
@@ -127,3 +138,4 @@ nv::perf::ReportDefinition Profiler::GetCustomReportDefinition()
     };
     return reportDefinition;
 }
+

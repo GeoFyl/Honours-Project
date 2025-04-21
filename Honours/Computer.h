@@ -159,8 +159,6 @@ private:
     ComPtr<ID3D12Resource> brick_pool_3d_texture_;
     D3D12_GPU_DESCRIPTOR_HANDLE brick_pool_3d_texture_gpu_handle_;
     D3D12_CPU_DESCRIPTOR_HANDLE brick_pool_3d_texture_cpu_handle_;
-   // UINT brick_pool_3d_texture_heap_index_;
-    //bool brick_pool_allocated_ = false;
 
     // threadgroup sizes
     UINT particle_threadgroups_; // for particle position manipulation shader

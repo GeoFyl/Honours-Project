@@ -19,13 +19,6 @@ namespace GlobalRTRootSignatureParams {
         Count
     };
 }
-//
-//namespace LocalRootSignatureParams {
-//    enum Value {
-//        AABBBufferSlot = 0,
-//        Count
-//    };
-//}
 
 using Microsoft::WRL::ComPtr;
 
@@ -45,8 +38,6 @@ public:
     inline ID3D12Resource* GetRaytracingOutput() { return m_raytracingOutput.Get(); }
     inline void ReleaseUploaders() { aabb_buffer_uploader_.Reset(); }
 
-    ID3D12Resource* GetSimpleAABBBuffer() { return simple_aabb_buffer_.Get(); }
-
 	static void CheckRayTracingSupport(ID3D12Device5* device);
 
 private:
@@ -64,7 +55,6 @@ private:
 
     // Root signatures
     ComPtr<ID3D12RootSignature> rt_global_root_signature_;
-   // ComPtr<ID3D12RootSignature> rt_hit_local_root_signature_;
 
     // Simple acceleration structure for naive implementation
     ComPtr<ID3D12Resource> top_simple_acceleration_structure;
@@ -94,7 +84,5 @@ private:
     DX::DeviceResources* device_resources_;
     HonoursApplication* application_;
     Computer* computer_;
-    //ID3D12Device5* device_ = nullptr;
-    //ID3D12GraphicsCommandList4* command_list_ = nullptr;
 };
 

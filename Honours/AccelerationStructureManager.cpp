@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "AccelerationStructureManager.h"
 #include "Utilities.h"
+#include "Profiler.h"
 
 
 AccelerationStructureManager::AccelerationStructureManager(DX::DeviceResources* device_resources) :
@@ -46,6 +47,8 @@ void AccelerationStructureManager::AllocateAABBBuffer(int new_aabb_count)
 
 		aabb_buffer_.Reset();
 		Utilities::AllocateDefaultBuffer(device, max_aabb_count_ * sizeof(D3D12_RAYTRACING_AABB), &aabb_buffer_, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+
+		ProfilerGlobal::current_aabbs_size_ = max_aabb_count_ * sizeof(D3D12_RAYTRACING_AABB);
 	}
 
 	aabb_count_ = new_aabb_count;
@@ -70,11 +73,8 @@ void AccelerationStructureManager::UpdateStructure()
 		// Execute and wait for work to finish 
 		device_resources_->ExecuteCommandList();
 		device_resources_->WaitForGpu();
-		//device_resources_->ResetCommandList();
 
 		structure_built = true;
-
-		//OutputDebugString(L"\nFINISHED BUILDING\n");
 	}
 }
 
@@ -103,6 +103,8 @@ void AccelerationStructureManager::RebuildStructure(D3D12_BUILD_RAYTRACING_ACCEL
 
 		// Allocate resource for BLAS
 		Utilities::AllocateDefaultBuffer(device, blas_prebuild_info.ResultDataMaxSizeInBytes, &bottom_acceleration_structure_, D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+
+		ProfilerGlobal::current_blas_size_ = blas_prebuild_info.ResultDataMaxSizeInBytes;
 
 		// Update the instance desc for the bottom-level acceleration structure.
 		D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};

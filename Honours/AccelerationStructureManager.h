@@ -36,7 +36,6 @@ private:
     D3D12_RAYTRACING_GEOMETRY_DESC geometry_desc_;
 
     // Buffer for AABBs used for BLAS construction
-   // ComPtr<ID3D12Resource> aabb_buffer_uploader_;
     ComPtr<ID3D12Resource> aabb_buffer_;
 
     // Misc

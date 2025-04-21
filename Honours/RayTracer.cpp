@@ -236,6 +236,7 @@ void RayTracer::BuildSimpleAccelerationStructure()
     aabb.MinZ = 0.f;
 
     simple_aabb_buffer_ = Utilities::CreateDefaultBuffer(device, command_list, &aabb, sizeof(aabb), aabb_buffer_uploader_);
+    Profiler::RegisterResource("SimpleAABBBuffer", sizeof(aabb));
 
     // Build geometry description
     D3D12_RAYTRACING_GEOMETRY_DESC geometryDesc = {};
@@ -246,7 +247,7 @@ void RayTracer::BuildSimpleAccelerationStructure()
     geometryDesc.AABBs.AABBs.StrideInBytes = sizeof(D3D12_RAYTRACING_AABB);
 
     // Get required sizes for an acceleration structure.
-    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE; // will change this later
+    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS topLevelInputs = {};
     topLevelInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
     topLevelInputs.Flags = buildFlags;
@@ -278,6 +279,8 @@ void RayTracer::BuildSimpleAccelerationStructure()
         Utilities::AllocateDefaultBuffer(device, bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes, &bottom_simple_acceleration_structure, initialResourceState, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
         Utilities::AllocateDefaultBuffer(device, topLevelPrebuildInfo.ResultDataMaxSizeInBytes, &top_simple_acceleration_structure, initialResourceState, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     }
+
+    Profiler::RegisterResource("SimpleBLAS", bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes);
 
     // Create an instance desc for the bottom-level acceleration structure.
     D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};

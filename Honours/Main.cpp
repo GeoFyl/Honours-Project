@@ -47,7 +47,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
             BRICKS_PER_CELL = _wtoi(args[10]);
         }
         else {
-            cpu_test_vars_.test_mode_ = false;
+            cpu_test_vars_.test_mode_ = true;
             cpu_test_vars_.test_name_ = "Default";
             cpu_test_vars_.screen_res_[0] = 1280;
             cpu_test_vars_.screen_res_[1] = 720;

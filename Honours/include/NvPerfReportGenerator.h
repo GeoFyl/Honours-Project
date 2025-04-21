@@ -521,12 +521,7 @@ namespace nv { namespace perf {
 
         inline void UpdateProfilerResults(NVPW_MetricsEvaluator* pMetricsEvaluator, const ReportLayout& reportLayout, const ReportData& reportData)
         {
-            // header
-            const MetricsEnumerator countersEnumerator = EnumerateCounters(pMetricsEvaluator);
-            const MetricsEnumerator ratiosEnumerator = EnumerateRatios(pMetricsEvaluator);
-            const MetricsEnumerator throughputsEnumerator = EnumerateThroughputs(pMetricsEvaluator);
-
-            // print ranges
+            // update range data
             for (const ReportData::RangeData& rangeData : reportData.ranges)
             {
                 auto& range_test_results = ProfilerGlobal::test_results_[rangeData.fullName];
@@ -540,10 +535,17 @@ namespace nv { namespace perf {
                     range_test_results[i] += rangeData.perRangeReportValues[i];
                 }
             }
+
+            // Add current sizes of these resources. They can change so are averaged at the end.
+            ProfilerGlobal::memory_usage_results_["BrickPool"] += ProfilerGlobal::current_brickpool_size_;
+            ProfilerGlobal::memory_usage_results_["ComplexBLAS"] += ProfilerGlobal::current_blas_size_;
+            ProfilerGlobal::memory_usage_results_["ComplexAABBBuffer"] += ProfilerGlobal::current_aabbs_size_;
         }
 
-        inline void WriteCustomCsvReportFile(NVPW_MetricsEvaluator* pMetricsEvaluator, const ReportLayout& reportLayout, const ReportData& reportData)
+        inline void WriteCustomCsvReportFiles(NVPW_MetricsEvaluator* pMetricsEvaluator, const ReportLayout& reportLayout, const ReportData& reportData)
         {
+            // --------- print metrics csv ------------
+
             const std::string filename = nv::perf::utilities::JoinDriectoryAndFileName(reportData.reportDirectoryName, cpu_test_vars_.test_name_ + ".csv");
             FILE* fp = OpenFile(filename.c_str(), "wt");
             if (!fp)
@@ -575,12 +577,44 @@ namespace nv { namespace perf {
                 for (double metricValue : range_test_results)
                 {
                     metricValue /= Profiler::GetTotalCaptures();
-                    fprintf(fp, "%g, ", metricValue);
+                    fprintf(fp, "%f, ", metricValue);
                 }
                 fprintf(fp, "\n");
             }
 
             fclose(fp);
+
+
+            // --------- print memory usage csv ------------
+
+            // Average these resources. They can change so are averaged at the end.
+            ProfilerGlobal::memory_usage_results_["BrickPool"] /= Profiler::GetTotalCaptures();
+            ProfilerGlobal::memory_usage_results_["ComplexBLAS"] /= Profiler::GetTotalCaptures();
+            ProfilerGlobal::memory_usage_results_["ComplexAABBBuffer"] /= Profiler::GetTotalCaptures();
+
+            const std::string mem_filename = nv::perf::utilities::JoinDriectoryAndFileName(reportData.reportDirectoryName, cpu_test_vars_.test_name_ + "_memory.csv");
+            FILE* mfp = OpenFile(mem_filename.c_str(), "wt");
+            if (!mfp)
+            {
+                NV_PERF_LOG_ERR(20, "OpenFile failed for file: %s\n", mem_filename.c_str());
+                return;
+            }
+
+            // print header
+            for (const auto& resource : ProfilerGlobal::memory_usage_results_)
+            {
+                fprintf(mfp, "\"%s\",", resource.first.c_str());
+            }
+            fprintf(mfp, "\n");
+
+            // print values
+            for (const auto& resource : ProfilerGlobal::memory_usage_results_)
+            {
+                fprintf(mfp, "%u, ", resource.second);
+            }
+            fclose(mfp);
+
+
         }
 
         inline void WriteCsvReportFile(NVPW_MetricsEvaluator* pMetricsEvaluator, const ReportLayout& reportLayout, const ReportData& reportData)
@@ -1514,7 +1548,7 @@ namespace nv { namespace perf { namespace profiler {
                             }
 
                             if (ProfilerGlobal::remaining_captures_ == 0) {
-                                PerRangeReport::WriteCustomCsvReportFile(m_metricsEvaluator, m_reportLayout, reportData);
+                                PerRangeReport::WriteCustomCsvReportFiles(m_metricsEvaluator, m_reportLayout, reportData);
                             }
 
                             //PerRangeReport::WriteCsvReportFile(m_metricsEvaluator, m_reportLayout, reportData);

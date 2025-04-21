@@ -8,6 +8,7 @@
  ******************************************************************************/
 
 #include "ChainedScanDecoupledLookback.h"
+#include "../Profiler.h"
 
 ChainedScanDecoupledLookback::ChainedScanDecoupledLookback(DX::DeviceResources* device_resources)
     : GPUPrefixSumBase("ChainedScanDecoupledLookback ", 3072, 1 << 13, device_resources) {
@@ -33,6 +34,8 @@ void ChainedScanDecoupledLookback::InitStaticBuffers() {
     m_scanBumpBuffer =
         CreateBuffer(device_resources_->GetD3DDevice(), sizeof(uint32_t), D3D12_HEAP_TYPE_DEFAULT,
                      D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+
+    Profiler::RegisterResource("ScanBumpBuffer", sizeof(uint32_t));
 }
 
 void ChainedScanDecoupledLookback::PrepareScanCmdListExclusive() {

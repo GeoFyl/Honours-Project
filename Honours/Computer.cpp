@@ -535,42 +535,6 @@ void Computer::CreateBuffers()
     clear_counts_threadgroups_ = std::ceil(NUM_CELLS / 1024.f);
     tex_creation_threadgroups_ = XMUINT3(std::ceil(TEXTURE_RESOLUTION / 32.f), std::ceil(TEXTURE_RESOLUTION / 32.f), TEXTURE_RESOLUTION);
 
-    // Particle position buffer
-    //std::vector<ParticleData> positions;
-    ////ParticleData positions[NUM_PARTICLES];
-    //int bruv = NUM_PARTICLES;
-    //for (int i = 0; i < NUM_PARTICLES; i++) {
-    //    ParticleData p;
-    //    p.position_.x = ((float)(rand() % 10) + 0.5f) / 10.f;
-    //    p.position_.y = ((float)(rand() % 10) + 0.5f) / 10.f;
-    //    p.position_.z = ((float)(rand() % 10) + 0.5f) / 10.f;
-    //    p.speed_ = rand() % 10 + 1;
-    //    p.start_y_ = p.position_.y;
-
-    //    positions.push_back(p);
-    //}
-
-   /* for (int i = 0; i < NUM_PARTICLES; i++) {
-        positions[i].position_.x = i * 0.0625 + 0.15f;
-        positions[i].position_.y = 0.25f;
-        positions[i].position_.z = 0.15f;
-        positions[i].speed_ = rand() % 10 + 1;
-        positions[i].start_y_ = positions[i].position_.y;
-    }*/
-
-    /*positions[0].position_.x = 0.05f;
-    positions[0].position_.y = 0.251f;
-    positions[0].position_.z = 0.05f;
-    positions[0].speed_ = 0;
-    positions[0].start_y_ = positions[0].position_.y;*/
-
-    /*positions[1].position_.x = 0.05f;
-    positions[1].position_.y = 0.05f;VOXELS_PER_AXIS_PER_BRICK
-    positions[1].position_.z = 0.05f;
-    positions[1].speed_ = 0;
-    positions[1].start_y_ = positions[0].position_.y;*/
-
-
 
     UINT64 byte_size = NUM_PARTICLES * sizeof(ParticleData);
 
@@ -579,6 +543,8 @@ void Computer::CreateBuffers()
     Utilities::AllocateDefaultBuffer(device, byte_size, particle_buffer_ordered_.GetAddressOf(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     particle_buffer_unordered_->SetName(L"UnorderedP");
     particle_buffer_ordered_->SetName(L"OrderedP");
+
+    Profiler::RegisterResource("OrderedParticles", byte_size);
 
     // Grid buffers
     //Utilities::AllocateDefaultBuffer(device, NUM_CELLS * sizeof(Cell), cells_buffer_.GetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
@@ -594,7 +560,11 @@ void Computer::CreateBuffers()
     surface_block_indices_buffer_->SetName(L"SurfaceBlockIndices");
     surface_counts_buffer_->SetName(L"SurfaceCounts");
 
-
+    Profiler::RegisterResource("BlocksBuffer", NUM_BLOCKS * sizeof(Block));
+    Profiler::RegisterResource("SurfaceCellIndicesBuffer", NUM_CELLS * sizeof(unsigned int));
+    Profiler::RegisterResource("SurfaceBlockIndicesBuffer", NUM_BLOCKS * sizeof(unsigned int));
+    Profiler::RegisterResource("SurfaceCountsBuffer", sizeof(GridSurfaceCounts));
+    Profiler::RegisterResource("SurfaceCountsReadbackBuffer", sizeof(GridSurfaceCounts));
 
 
     // Allocate buffer for reading back surface cell count
@@ -629,6 +599,11 @@ void Computer::AllocateBrickPoolTexture()
             nullptr, IID_PPV_ARGS(&brick_pool_3d_texture_)));
 
         device_resources_->GetD3DDevice()->CreateUnorderedAccessView(brick_pool_3d_texture_.Get(), nullptr, nullptr, brick_pool_3d_texture_cpu_handle_);
+
+        // Add the size in bytes of the texture for csv
+        UINT64 texture_size;
+        device_resources_->GetD3DDevice()->GetCopyableFootprints(&simple_sdf_3d_texture_->GetDesc(), 0, 1, 0, nullptr, nullptr, nullptr, &texture_size);
+        ProfilerGlobal::current_brickpool_size_ = texture_size;
 
         // Upload dimensions for use in texture creation
         compute_cb_->Values().brick_pool_dimensions_ = std::move(dimensions);
@@ -682,9 +657,13 @@ void Computer::AllocateSimpleSDFTexture()
     UINT heap_index = application_->AllocateDescriptor(&uav_handle);
     device_resources_->GetD3DDevice()->CreateUnorderedAccessView(simple_sdf_3d_texture_.Get(), nullptr, nullptr, uav_handle);
 
-
     UINT descriptor_size = device_resources_->GetD3DDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     simple_sdf_3d_texture_gpu_handle_ = CD3DX12_GPU_DESCRIPTOR_HANDLE(application_->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart(), heap_index, descriptor_size);
+
+    // Get the size in bytes of the texture for csv
+    UINT64 texture_size;
+    device_resources_->GetD3DDevice()->GetCopyableFootprints(&simple_sdf_3d_texture_->GetDesc(), 0, 1, 0, nullptr, nullptr, nullptr, &texture_size);
+    Profiler::RegisterResource("SimpleTexture", texture_size);
 
     // Also allocate descriptors for the brick pool
     heap_index = application_->AllocateDescriptor(&brick_pool_3d_texture_cpu_handle_);

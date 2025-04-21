@@ -10,6 +10,7 @@
 #include "../stdafx.h"
 #include "Utils.h"
 #include "../DeviceResources.h"
+#include "../Profiler.h"
 
 class GPUPrefixSumBase {
    protected:
@@ -106,6 +107,11 @@ class GPUPrefixSumBase {
         m_scanInBuffer->SetName(L"ScanIn");
         m_scanOutBuffer->SetName(L"ScanOut");
         m_threadBlockReductionBuffer->SetName(L"ThreadReduction");
+
+
+        Profiler::RegisterResource("CellsBuffer", alignedSize * sizeof(uint32_t)); // Scan-in buffer
+        Profiler::RegisterResource("GlobalIndexOffsetsBuffer", alignedSize * sizeof(uint32_t)); // Scan-in buffer
+        Profiler::RegisterResource("ThreadReductionBuffer", partitions * sizeof(uint32_t));
     }
 
     virtual void PrepareScanCmdListExclusive() = 0;
