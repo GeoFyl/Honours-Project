@@ -59,6 +59,10 @@ void HonoursApplication::OnInit()
         camera_ = 0;
     }
 
+    if (cpu_test_vars_.test_mode_) {
+        debug_.render_normals_ = true;
+    }
+
     LoadPipeline();
 
     profiler_ = std::make_unique<Profiler>();
@@ -236,8 +240,6 @@ void HonoursApplication::DrawGUI()
    // ImGui::ShowDemoWindow();
 
     ImGui::Text("FPS: %.2f", timer_.GetCurrentFPS());
-    ImGui::Text("pos: %.2f, %.2f, %.2f", cameras_array_[camera_]->getPosition().x, cameras_array_[camera_]->getPosition().y, cameras_array_[camera_]->getPosition().z);
-    ImGui::Text("rot: %.2f, %.2f, %.2f", cameras_array_[camera_]->getRotation().x, cameras_array_[camera_]->getRotation().y, cameras_array_[camera_]->getRotation().z);
 
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (ImGui::CollapsingHeader("System")) {

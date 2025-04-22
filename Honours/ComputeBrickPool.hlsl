@@ -36,7 +36,7 @@ uint3 BrickIndexToVoxelPosition(uint brick_index, uint3 voxel_offset)
 
 float GetSignedDistanceNNS(float3 position)
 {
-    float distance = 10000;
+    float distance = 1000;
     
     for (uint x = 0; x < 27; x++)
     {
@@ -89,8 +89,7 @@ void CSBrickPoolMain(int3 brick_index : SV_GroupID, int3 voxel_offset : SV_Group
     float3 voxel_size = VOXEL_SIZE;
     float3 position = aabb.min_ + (voxel_size * (float3) (voxel_offset - 1)) + (voxel_size * 0.5f); // voxel offset is offset by -(1,1,1) to account for adjacency voxels
    
-    output_texture_[BrickIndexToVoxelPosition(brick_index.x, voxel_offset)] = GetSignedDistanceNNS(position);          
-    //output_texture_[BrickIndexToVoxelPosition(brick_index.x, voxel_offset)] = GetAnalyticalSignedDistance(position);          
+    output_texture_[BrickIndexToVoxelPosition(brick_index.x, voxel_offset)] = GetSignedDistanceNNS(position);                 
     
 }
 

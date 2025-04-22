@@ -60,17 +60,17 @@ void CSParticleGen(int3 dispatch_ID : SV_DispatchThreadID)
     }
     else if (SCENE == SceneGrid)
     {
-        int particles_per_axis = pow(NUM_PARTICLES, 1.0 / 3.0);
+        int particles_per_axis = max(pow(NUM_PARTICLES, 1.0 / 3.0), 1);
 
         float3 lower = float3(PARTICLE_RADIUS + 0.01f, PARTICLE_RADIUS + 0.01f, PARTICLE_RADIUS + 0.01f);
         
-        float up = min((particles_per_axis - 1) * PARTICLE_RADIUS * 2, 0.99f - PARTICLE_RADIUS);
+        float up = min((max(particles_per_axis - 1, 1) * PARTICLE_RADIUS * 2) + PARTICLE_RADIUS, 0.99f - PARTICLE_RADIUS);
         float3 upper = float3(up, up, up);
         
-        lower += (0.99f - PARTICLE_RADIUS - up) / 2;
+        lower += (0.99f - PARTICLE_RADIUS - up) / 2; //centre everything
         upper += (0.99f - PARTICLE_RADIUS - up) / 2;
         
-        float3 particle_coords = lerp(lower, upper, IndexTo3DCoords(dispatch_ID.x, particles_per_axis) / (particles_per_axis - 1));
+        float3 particle_coords = lerp(lower, upper, IndexTo3DCoords(dispatch_ID.x, particles_per_axis) / max(particles_per_axis - 1, 1));
         
         particle.position_ = particle_coords;
         particle.start_pos_ = particle.position_;
@@ -82,10 +82,10 @@ void CSParticleGen(int3 dispatch_ID : SV_DispatchThreadID)
 
         float3 lower = float3(PARTICLE_RADIUS + 0.01f, PARTICLE_RADIUS + 0.01f, PARTICLE_RADIUS + 0.01f);
 
-        float up = min((particles_per_axis - 1) * PARTICLE_RADIUS * 2, 0.99f - PARTICLE_RADIUS);
+        float up = min(((particles_per_axis - 1) * PARTICLE_RADIUS * 2) + PARTICLE_RADIUS, 0.99f - PARTICLE_RADIUS);
         float3 upper = float3(up, 0.3, up);
        
-        lower.xz += (0.99f - PARTICLE_RADIUS - up) / 2;
+        lower.xz += (0.99f - PARTICLE_RADIUS - up) / 2; //centre everything
         upper.xz += (0.99f - PARTICLE_RADIUS - up) / 2;
         
         float3 particle_coords = lerp(lower, upper, IndexTo3DCoords(dispatch_ID.x, particles_per_axis) / (particles_per_axis - 1));
@@ -107,9 +107,9 @@ void CSParticleGen(int3 dispatch_ID : SV_DispatchThreadID)
         }
         else
         {
-            float upper = min((NUM_PARTICLES - 1) * PARTICLE_RADIUS * 2, 0.99f - PARTICLE_RADIUS);
+            float upper = min((10 - 1) * PARTICLE_RADIUS * 2, 0.99f - PARTICLE_RADIUS);
         
-            particle.position_ = float3(upper * ((float) dispatch_ID.x / NUM_PARTICLES) + PARTICLE_RADIUS + 0.01f, 0.1 * sin(5 * (float) dispatch_ID.x / NUM_PARTICLES) + 0.5, 0.5f);            
+            particle.position_ = float3(upper * ((float) dispatch_ID.x / 10) + PARTICLE_RADIUS + 0.01f, 0.1 * sin(5 * (float) dispatch_ID.x / 10) + 0.5, 0.5f);            
         }
 
         particle.start_pos_ = particle.position_;

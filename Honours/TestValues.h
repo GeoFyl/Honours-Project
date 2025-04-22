@@ -4,6 +4,9 @@
 
 // Fixed values
 #define VOXELS_PER_AXIS_PER_BRICK 10
+#define NUM_CELLS 4096 
+#define NUM_BLOCKS 64
+
 
 // Custom values
 enum SceneType {
@@ -16,19 +19,14 @@ enum SceneType {
 struct TestVariables {
 	int num_particles_;
 	int texture_res_;
-	int num_cells_;
-	int num_blocks_;
-	int bricks_per_cell_;
 	SceneType scene_;
 };
 extern TestVariables test_vars_;
 
 #define NUM_PARTICLES test_vars_.num_particles_
 #define TEXTURE_RESOLUTION test_vars_.texture_res_
-#define NUM_CELLS test_vars_.num_cells_
-#define NUM_BLOCKS test_vars_.num_blocks_
-#define BRICKS_PER_CELL test_vars_.bricks_per_cell_
 #define SCENE test_vars_.scene_
+#define BRICKS_PER_CELL ((TEXTURE_RESOLUTION / 128) * (TEXTURE_RESOLUTION / 128) * (TEXTURE_RESOLUTION / 128))
 
 struct TestVariablesCPUOnly {
 	float screen_res_[2];

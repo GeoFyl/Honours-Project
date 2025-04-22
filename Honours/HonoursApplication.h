@@ -36,9 +36,8 @@ using Microsoft::WRL::ComPtr;
 
 struct DebugValues {
     bool visualize_particles_ = false;
-    bool render_analytical_ = true; // If the SDF should be calculated analytically for each ray (without the texture)
+    bool render_analytical_ = false; // If the SDF should be calculated analytically for each ray (without the texture)
     bool pause_positions_ = false;
-    //float uvw_normals_step_ = 0.04f;
     float uvw_normals_step_ = 1.f / TEXTURE_RESOLUTION;
     bool render_normals_ = false;
     bool visualize_aabbs_ = false;
