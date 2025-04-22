@@ -257,9 +257,6 @@ void HonoursApplication::DrawGUI()
         if (ImGui::RadioButton("Complex", (int*)&cpu_test_vars_.implementation_, Complex)) {
             SetComplexImplementation();
         }
-        
-        //ImGui::Checkbox("Analytical distances", &debug_.render_analytical_);
-        //ImGui::Checkbox("Use simple bounding volume", &debug_.use_simple_aabb_);
     }
     
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);

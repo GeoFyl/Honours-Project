@@ -270,9 +270,6 @@
     <CustomBuild Include="RayHelpers.hlsli">
       <Filter>Assets\Shaders\RayTracing</Filter>
     </CustomBuild>
-    <CustomBuild Include="RayTracing.hlsl">
-      <Filter>Assets\Shaders\RayTracing</Filter>
-    </CustomBuild>
     <CustomBuild Include="RayTracingCommon.hlsli">
       <Filter>Assets\Shaders\RayTracing</Filter>
     </CustomBuild>
@@ -314,6 +311,9 @@
     </CustomBuild>
     <CustomBuild Include="nvperf_grfx_host.dll">
       <Filter>Assets</Filter>
+    </CustomBuild>
+    <CustomBuild Include="RayTracing.hlsl">
+      <Filter>Assets\Shaders\RayTracing</Filter>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>

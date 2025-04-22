@@ -34,7 +34,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
             TEXTURE_RESOLUTION = _wtoi(args[3]);
             cpu_test_vars_.screen_res_[0] = _wtoi(args[4]);
             cpu_test_vars_.screen_res_[1] = _wtoi(args[5]);
-            cpu_test_vars_.view_dist_ = _wtoi(args[6]);
+            cpu_test_vars_.view_dist_ = std::atof(CW2A(args[6]));
             SCENE = (SceneType)_wtoi(args[7]);
             cpu_test_vars_.implementation_ = (ImplementationType)_wtoi(args[8]);
         }
@@ -50,7 +50,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
             TEXTURE_RESOLUTION = 256;
         }
 
-        HonoursApplication sample(cpu_test_vars_.screen_res_[0], cpu_test_vars_.screen_res_[1], L"Application");
+        HonoursApplication sample(cpu_test_vars_.screen_res_[0], cpu_test_vars_.screen_res_[1], L"Honours");
         return Win32Application::Run(&sample, hInstance, nCmdShow);
     }
     catch (DxException& exception) {
