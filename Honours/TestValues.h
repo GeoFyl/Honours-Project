@@ -16,6 +16,8 @@ enum SceneType {
 	SceneNormals
 };
 
+
+
 struct TestVariables {
 	int num_particles_;
 	int texture_res_;
@@ -28,11 +30,18 @@ extern TestVariables test_vars_;
 #define SCENE test_vars_.scene_
 #define BRICKS_PER_CELL ((TEXTURE_RESOLUTION / 128) * (TEXTURE_RESOLUTION / 128) * (TEXTURE_RESOLUTION / 128))
 
+enum ImplementationType {
+	Naive = 0, 
+	Simple,
+	Complex
+};
+
 struct TestVariablesCPUOnly {
 	float screen_res_[2];
 	float view_dist_;
 	bool test_mode_;
 	std::string test_name_;
+	ImplementationType implementation_;
 };
 extern TestVariablesCPUOnly cpu_test_vars_;
 

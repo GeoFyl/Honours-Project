@@ -20,7 +20,6 @@ ConstantBuffer<TestVariables> test_values_ : register(b0);
 #define TEXTURE_RESOLUTION test_values_.texture_res_
 #define SCENE test_values_.scene_
 
-
 #define WORLD_MIN float3(0, 0, 0)
 #define WORLD_MAX float3(1, 1, 1)
 

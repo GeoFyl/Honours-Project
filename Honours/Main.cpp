@@ -25,7 +25,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
         int num_args;
         LPWSTR* args = CommandLineToArgvW(GetCommandLineW(), &num_args);
         
-        // Command line arguments: (Test name), (particle no.), (texture res), (screen res x), (screen res y), (view distance), (scene)
+        // Command line arguments: (Test name), (particle no.), (texture res), (screen res x), (screen res y), (view distance), (scene), (implementation)
 
         if (num_args > 1) {
             cpu_test_vars_.test_mode_ = true;
@@ -36,6 +36,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
             cpu_test_vars_.screen_res_[1] = _wtoi(args[5]);
             cpu_test_vars_.view_dist_ = _wtoi(args[6]);
             SCENE = (SceneType)_wtoi(args[7]);
+            cpu_test_vars_.implementation_ = (ImplementationType)_wtoi(args[8]);
         }
         else {
             cpu_test_vars_.test_mode_ = false;
@@ -43,6 +44,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
             cpu_test_vars_.screen_res_[0] = 1920;
             cpu_test_vars_.screen_res_[1] = 1080;
             cpu_test_vars_.view_dist_ = 1.5;
+            cpu_test_vars_.implementation_ = Complex;
             SCENE = SceneRandom;
             NUM_PARTICLES = 343;
             TEXTURE_RESOLUTION = 256;

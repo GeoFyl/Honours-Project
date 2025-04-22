@@ -59,9 +59,14 @@ void HonoursApplication::OnInit()
         camera_ = 0;
     }
 
+    // Initialise values used by shaders
     if (cpu_test_vars_.test_mode_) {
         debug_.render_normals_ = true;
     }
+    if (cpu_test_vars_.implementation_ == Naive) {
+        
+    }
+
 
     LoadPipeline();
 
@@ -127,7 +132,6 @@ void HonoursApplication::OnUpdate()
         buff.view_proj_ = XMMatrixMultiply(cameras_array_[camera_]->getViewMatrix(), projection_matrix_);
         buff.inv_view_proj_ = XMMatrixTranspose(XMMatrixInverse(nullptr, buff.view_proj_));
         buff.view_proj_ = XMMatrixTranspose(buff.view_proj_);
-        buff.uvw_step_ = debug_.uvw_normals_step_;
 
         if (debug_.visualize_particles_) buff.rendering_flags_ |= RENDERING_FLAG_VISUALIZE_PARTICLES;
         if (debug_.render_analytical_) buff.rendering_flags_ |= RENDERING_FLAG_ANALYTICAL;
@@ -242,9 +246,20 @@ void HonoursApplication::DrawGUI()
     ImGui::Text("FPS: %.2f", timer_.GetCurrentFPS());
 
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-    if (ImGui::CollapsingHeader("System")) {
-        ImGui::Checkbox("Analytical distances", &debug_.render_analytical_);
-        ImGui::Checkbox("Use simple bounding volume", &debug_.use_simple_aabb_);
+    if (ImGui::CollapsingHeader("Implementation")) {
+
+        if (ImGui::RadioButton("Naive", (int*)&cpu_test_vars_.implementation_, Naive)) {
+            SetNaiveImplementation();
+        }
+        if (ImGui::RadioButton("Simple", (int*)&cpu_test_vars_.implementation_, Simple)) {
+            SetSimpleImplementation();
+        }
+        if (ImGui::RadioButton("Complex", (int*)&cpu_test_vars_.implementation_, Complex)) {
+            SetComplexImplementation();
+        }
+        
+        //ImGui::Checkbox("Analytical distances", &debug_.render_analytical_);
+        //ImGui::Checkbox("Use simple bounding volume", &debug_.use_simple_aabb_);
     }
     
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
@@ -307,10 +322,27 @@ void HonoursApplication::DrawGUI()
 void HonoursApplication::SwitchCamera()
 {
     int prev_cam = 1 - camera_;
-    //camera_ = 1 - camera_;
 
     cameras_array_[camera_]->setPosition(cameras_array_[prev_cam]->getPosition().x, cameras_array_[prev_cam]->getPosition().y, cameras_array_[prev_cam]->getPosition().z);
     cameras_array_[camera_]->setRotation(cameras_array_[prev_cam]->getRotation().x, cameras_array_[prev_cam]->getRotation().y, cameras_array_[prev_cam]->getRotation().z);
+}
+
+void HonoursApplication::SetNaiveImplementation()
+{
+    debug_.use_simple_aabb_ = true;
+    debug_.render_analytical_ = true;
+}
+
+void HonoursApplication::SetSimpleImplementation()
+{
+    debug_.use_simple_aabb_ = true;
+    debug_.render_analytical_ = false;
+}
+
+void HonoursApplication::SetComplexImplementation()
+{
+    debug_.use_simple_aabb_ = false;
+    debug_.render_analytical_ = false;
 }
 
 void HonoursApplication::OnDestroy()

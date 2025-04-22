@@ -28,7 +28,7 @@ struct RayTracingCB {
     XMMATRIX view_proj_;
     XMMATRIX inv_view_proj_;
 	XMFLOAT3 camera_pos_;
-    float uvw_step_;
+    float padding_;
 	XMFLOAT3 camera_lookat_;
     UINT rendering_flags_ = 0;
 };

@@ -87,7 +87,7 @@ float3 CalculateNormal(float3 position)
     }
     
     // Using simple texture
-    const float2 h = float2(rt_constant_buffer_.uvw_step_, 0);
+    const float2 h = float2(VOXEL_SIZE, 0);
     return normalize(float3(GetDistance(position + h.xyy) - GetDistance(position - h.xyy),
                                 GetDistance(position + h.yxy) - GetDistance(position - h.yxy),
                                 GetDistance(position + h.yyx) - GetDistance(position - h.yyx)));

@@ -38,7 +38,6 @@ struct DebugValues {
     bool visualize_particles_ = false;
     bool render_analytical_ = false; // If the SDF should be calculated analytically for each ray (without the texture)
     bool pause_positions_ = false;
-    float uvw_normals_step_ = 1.f / TEXTURE_RESOLUTION;
     bool render_normals_ = false;
     bool visualize_aabbs_ = false;
     bool use_simple_aabb_ = false;
@@ -56,7 +55,6 @@ public:
     virtual void OnSizeChanged(UINT width, UINT height, bool minimized);
     virtual IDXGISwapChain* GetSwapchain() { return device_resources_->GetSwapChain(); }
 
-    //inline ID3D12Resource* GetComputeCB() { return compute_cb_->Resource(); }
     inline ID3D12Resource* GetRaytracingCB() { return ray_tracing_cb_->Resource(); }
 
     inline DebugValues& GetDebugValues() { return debug_; }
@@ -84,6 +82,9 @@ private:
     void DrawGUI();
 
     void SwitchCamera();
+    void SetNaiveImplementation();
+    void SetSimpleImplementation();
+    void SetComplexImplementation();
 
     static const UINT FrameCount = 2;
 
