@@ -21,7 +21,6 @@ struct ComputeCB {
 struct Cell
 {
 	unsigned int particle_count_;
-	//unsigned int particle_indices_[CELL_MAX_PARTICLE_COUNT];
 };
 
 struct Block
@@ -33,14 +32,3 @@ struct GridSurfaceCounts {
 	unsigned int surface_blocks;
 	unsigned int surface_cells;
 };
-
-//struct SurfaceBlocks {
-//	unsigned int count;
-//	unsigned int indices[NUM_BLOCKS];
-//};
-//
-//struct SurfaceCells {
-//	unsigned int count;
-//	unsigned int indices[NUM_CELLS];
-//};
-

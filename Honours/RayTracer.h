@@ -29,12 +29,12 @@ class RayTracer
 public:
 	RayTracer(DX::DeviceResources* device_resources, HonoursApplication* app, Computer* comp);
 
-    void RayTracing();
+    void RayTracing(Profiler* profiler);
 
     void CreateRaytracingOutputResource();
 
     inline AccelerationStructureManager* GetAccelerationStructure() { return acceleration_structure_.get(); }
-
+    inline UploadBuffer<RayTracingCB>* GetRaytracingCB() { return ray_tracing_cb_.get(); }
     inline ID3D12Resource* GetRaytracingOutput() { return m_raytracingOutput.Get(); }
     inline void ReleaseUploaders() { aabb_buffer_uploader_.Reset(); }
 
@@ -62,7 +62,6 @@ private:
     ComPtr<ID3D12Resource> simple_aabb_buffer_;
     ComPtr<ID3D12Resource> aabb_buffer_uploader_;
 
-
     // Raytracing output
     ComPtr<ID3D12Resource> m_raytracingOutput;
     D3D12_GPU_DESCRIPTOR_HANDLE m_raytracingOutputResourceUAVGpuDescriptor;
@@ -79,7 +78,10 @@ private:
     std::unique_ptr<ShaderTable> m_hitGroupShaderTable;
     std::unique_ptr<ShaderTable> m_rayGenShaderTable;
 
-    //Application stuff
+    // Constant buffer
+    std::unique_ptr<UploadBuffer<RayTracingCB>> ray_tracing_cb_ = nullptr;
+
+    // Application stuff
     std::unique_ptr<AccelerationStructureManager> acceleration_structure_ = nullptr;
     DX::DeviceResources* device_resources_;
     HonoursApplication* application_;

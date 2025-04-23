@@ -1,12 +1,10 @@
 #pragma once
 #include <string>
 
-
 // Fixed values
 #define VOXELS_PER_AXIS_PER_BRICK 10
 #define NUM_CELLS 4096 
 #define NUM_BLOCKS 64
-
 
 // Custom values
 enum SceneType {
@@ -15,8 +13,6 @@ enum SceneType {
 	SceneWave,
 	SceneNormals
 };
-
-
 
 struct TestVariables {
 	int num_particles_;

@@ -16,16 +16,19 @@ const wchar_t* RayTracer::miss_shader_name = L"MissShader";
 RayTracer::RayTracer(DX::DeviceResources* device_resources, HonoursApplication* app, Computer* comp) :
     device_resources_(device_resources), application_(app), computer_(comp)
 {
+    device_resources_->ResetCommandList();
 
-    device_resources_->GetCommandList()->Reset(device_resources_->GetCommandAllocator(), nullptr);
+    // Create constant buffer
+    ray_tracing_cb_ = std::make_unique<UploadBuffer<RayTracingCB>>(device_resources_->GetD3DDevice(), 1, true);
 
+    // Create acceleration structure manager
     acceleration_structure_ = std::make_unique<AccelerationStructureManager>(device_resources);
 
     CreateRootSignatures();
     CreateRaytracingPipelineStateObject();
     BuildSimpleAccelerationStructure();
 
-    device_resources_->GetCommandList()->Reset(device_resources_->GetCommandAllocator(), nullptr);   // only need when using naive aabb
+    device_resources_->ResetCommandList();
     BuildShaderTables();
     CreateRaytracingOutputResource();
 
@@ -34,34 +37,32 @@ RayTracer::RayTracer(DX::DeviceResources* device_resources, HonoursApplication* 
     device_resources_->WaitForGpu();
 }
 
-void RayTracer::RayTracing()
+// Perform ray tracing
+void RayTracer::RayTracing(Profiler* profiler)
 {
     auto commandList = device_resources_->GetCommandList();
 
     commandList->SetComputeRootSignature(rt_global_root_signature_.Get());
 
-    // Bind the heaps, acceleration structure and dispatch rays.
+    // Bind the heap, resources, acceleration structure and dispatch rays.
     ID3D12DescriptorHeap* heap = application_->GetDescriptorHeap();
     commandList->SetDescriptorHeaps(1, &heap);
     commandList->SetComputeRootDescriptorTable(GlobalRTRootSignatureParams::OutputViewSlot, m_raytracingOutputResourceUAVGpuDescriptor);
     commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::ParticlePositionsBufferSlot, computer_->GetUnorderedParticlesBuffer()->GetGPUVirtualAddress());
-    commandList->SetComputeRootConstantBufferView(GlobalRTRootSignatureParams::RTConstantBufferSlot, application_->GetRaytracingCB()->GetGPUVirtualAddress());
+    commandList->SetComputeRootConstantBufferView(GlobalRTRootSignatureParams::RTConstantBufferSlot, ray_tracing_cb_->Resource()->GetGPUVirtualAddress());
     commandList->SetComputeRootConstantBufferView(GlobalRTRootSignatureParams::TestValuesSlot, computer_->GetTestValsBuffer()->Resource()->GetGPUVirtualAddress());
     commandList->SetComputeRootConstantBufferView(GlobalRTRootSignatureParams::CompConstantBufferSlot, computer_->GetConstantBuffer()->Resource()->GetGPUVirtualAddress());
 
     auto& debug_values = application_->GetDebugValues();
     if ((debug_values.use_simple_aabb_ || debug_values.visualize_particles_) && !(debug_values.visualize_particles_ && debug_values.visualize_aabbs_)) {
+        // Naive and simple methods use the simple AABB and acceleration structure, and simple texture (naive doesnt access this)
         commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::AccelerationStructureSlot, top_simple_acceleration_structure->GetGPUVirtualAddress());
         commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::AABBBufferSlot, simple_aabb_buffer_->GetGPUVirtualAddress());
-    }
-    else {
-        commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::AccelerationStructureSlot, acceleration_structure_->GetTLAS()->GetGPUVirtualAddress());
-        commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::AABBBufferSlot, acceleration_structure_->GetAABBBuffer()->GetGPUVirtualAddress());
-    }
-    if (debug_values.use_simple_aabb_) {
         commandList->SetComputeRootDescriptorTable(GlobalRTRootSignatureParams::SDFTextureSlot, computer_->GetSimpleSDFTextureHandle());
     }
-    else {
+    else { // Complex method uses the calculated AABBs and acceleration structure, and brick pool
+        commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::AccelerationStructureSlot, acceleration_structure_->GetTLAS()->GetGPUVirtualAddress());
+        commandList->SetComputeRootShaderResourceView(GlobalRTRootSignatureParams::AABBBufferSlot, acceleration_structure_->GetAABBBuffer()->GetGPUVirtualAddress());
         commandList->SetComputeRootDescriptorTable(GlobalRTRootSignatureParams::SDFTextureSlot, computer_->GetBrickPoolTextureHandle());
     }
 
@@ -81,20 +82,19 @@ void RayTracer::RayTracing()
     dispatchDesc.Depth = 1;
     commandList->SetPipelineState1(rt_state_object_.Get());
 
-    //commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(acceleration_structure_->GetBLAS()));
-   // commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(acceleration_structure_->GetTLAS()));
-    commandList->DispatchRays(&dispatchDesc);
-   // commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(acceleration_structure_->GetBLAS()));
-   // commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(acceleration_structure_->GetTLAS()));
+    profiler->PushRange(commandList, "Ray Tracing");
 
+    // Dispatch rays
+    commandList->DispatchRays(&dispatchDesc);
+
+    profiler->PopRange(commandList);
+
+    // Resource barriers
     auto& debug = application_->GetDebugValues();
     commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(computer_->GetUnorderedParticlesBuffer(),D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
     if (!(debug.render_analytical_ || debug.visualize_particles_)) {
         if (debug.use_simple_aabb_) {
             commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(computer_->GetSimpleSDFTexture(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-        }
-        else {
-            //commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(computer_->GetBrickPoolTexture(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
         }
     }
 }
@@ -133,23 +133,9 @@ void RayTracer::CreateRootSignatures()
 
     // Sampler
     CD3DX12_STATIC_SAMPLER_DESC sampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
-    //CD3DX12_STATIC_SAMPLER_DESC sampler(0, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
-    //CD3DX12_STATIC_SAMPLER_DESC sampler(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_BORDER, D3D12_TEXTURE_ADDRESS_MODE_BORDER, D3D12_TEXTURE_ADDRESS_MODE_BORDER, 0, 16U, D3D12_COMPARISON_FUNC_LESS_EQUAL, D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE);
-    //CD3DX12_STATIC_SAMPLER_DESC sampler(0, D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
-    //CD3DX12_STATIC_SAMPLER_DESC sampler(0, D3D12_FILTER_MIN_MAG_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
 
     CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters, 1, &sampler);
     SerializeAndCreateRaytracingRootSignature(globalRootSignatureDesc, &rt_global_root_signature_);
-
-
-    // ---- Hit group local root signature ----
-
-    // (t)
-   /* CD3DX12_ROOT_PARAMETER local_root_params[LocalRootSignatureParams::Count];
-    local_root_params[LocalRootSignatureParams::AABBBufferSlot].InitAsShaderResourceView(0, 1);
-    CD3DX12_ROOT_SIGNATURE_DESC localRootSignatureDesc(ARRAYSIZE(local_root_params), local_root_params, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE);
-    SerializeAndCreateRaytracingRootSignature(localRootSignatureDesc, &rt_hit_local_root_signature_);*/
-
 }
 
 void RayTracer::SerializeAndCreateRaytracingRootSignature(D3D12_ROOT_SIGNATURE_DESC& desc, ComPtr<ID3D12RootSignature>* rootSig)
@@ -173,12 +159,8 @@ void RayTracer::CreateRaytracingPipelineStateObject()
     // This contains the shaders and their entrypoints for the state object.
     // Since shaders are not considered a subobject, they need to be passed in via DXIL library subobjects.
     auto lib = raytracingPipeline.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
-    //ComPtr<ID3DBlob> blob;
-    UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION; // allow debugging !!!!!!!!!!!!!! - prob dont do this in final build
 
     auto blob = CompileShaderLibrary(application_->GetAssetFullPath(L"RayTracing.hlsl").c_str());
-    //ThrowIfFailed(D3DCompileFromFile(L"assets/RayTracing.hlsl", NULL, NULL, NULL, "lib", compileFlags, 0, &blob, nullptr));
-   // ThrowIfFailed(D3DShaderCompiler::CompileFromFile(L"assets/shaders/raytracing/raytracing.hlsl", L"main", L"lib", {}, &blob));
     D3D12_SHADER_BYTECODE libdxil = CD3DX12_SHADER_BYTECODE(blob->GetBufferPointer(), blob->GetBufferSize());
     lib->SetDXILLibrary(&libdxil);
 
@@ -189,14 +171,6 @@ void RayTracer::CreateRaytracingPipelineStateObject()
     hitGroup->SetClosestHitShaderImport(closest_hit_shader_name_);
     hitGroup->SetHitGroupExport(hit_group_name_);
     hitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_PROCEDURAL_PRIMITIVE);
-
-    //// Create and associate the local root signature with the hit group
-    //const auto localRootSig = raytracingPipeline.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
-    //localRootSig->SetRootSignature(rt_hit_local_root_signature_.Get());
-
-    //const auto localRootSigAssociation = raytracingPipeline.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
-    //localRootSigAssociation->SetSubobjectToAssociate(*localRootSig);
-    //localRootSigAssociation->AddExport(hit_group_name_);
 
     // Shader config
     // Defines the maximum sizes in bytes for the ray payload and attribute structure.

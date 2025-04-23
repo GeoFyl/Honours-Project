@@ -16,6 +16,7 @@ float random(float2 p)
     return frac(cos(dot(p, K1)) * 12345.6789);
 }
 
+// Gets the coords within a grid of variable size given an index
 float3 IndexTo3DCoords(uint index, uint per_axis)
 {
     float3 coords = float3(0, 0, 0);
@@ -40,7 +41,7 @@ void CSParticleGen(int3 dispatch_ID : SV_DispatchThreadID)
     
     ParticleData particle = (ParticleData)0;    
     
-    if (SCENE == SceneRandom)
+    if (SCENE == SceneRandom) // Generate particles randomly
     {
         float2 seed = float2(dispatch_ID.x, dispatch_ID.x);
     
@@ -58,7 +59,7 @@ void CSParticleGen(int3 dispatch_ID : SV_DispatchThreadID)
         particle.speed_ = random(seed) * 4;
 
     }
-    else if (SCENE == SceneGrid)
+    else if (SCENE == SceneGrid) // Place particles in a grid, tightly packed so each particle is touching its neighbours
     {
         int particles_per_axis = max(pow(NUM_PARTICLES, 1.0 / 3.0), 1);
 
@@ -76,7 +77,7 @@ void CSParticleGen(int3 dispatch_ID : SV_DispatchThreadID)
         particle.start_pos_ = particle.position_;
         particle.speed_ = 0;
     }
-    else if (SCENE == SceneWave)
+    else if (SCENE == SceneWave) // Same as above but squish the height-wise and make some of the particles faster than the rest
     {
         int particles_per_axis = pow(NUM_PARTICLES, 1.0 / 3.0);
 
@@ -99,7 +100,7 @@ void CSParticleGen(int3 dispatch_ID : SV_DispatchThreadID)
             particle.speed_ = 3;
         }
     }
-    else if (SCENE == SceneNormals)
+    else if (SCENE == SceneNormals) // The first 10 particles are put in a sine wave shape, the rest are put in the corner
     {
         if (dispatch_ID.x > 9)
         {
@@ -108,7 +109,6 @@ void CSParticleGen(int3 dispatch_ID : SV_DispatchThreadID)
         else
         {
             float upper = min((10 - 1) * PARTICLE_RADIUS * 2, 0.99f - PARTICLE_RADIUS);
-        
             particle.position_ = float3(upper * ((float) dispatch_ID.x / 10) + PARTICLE_RADIUS + 0.01f, 0.1 * sin(5 * (float) dispatch_ID.x / 10) + 0.5, 0.5f);            
         }
 
@@ -133,18 +133,20 @@ void CSPosMain(int3 dispatch_ID : SV_DispatchThreadID)
     
     ParticleData particle = particle_positions_[dispatch_ID.x];
     
-    if (SCENE == SceneRandom)
+    if (SCENE == SceneRandom) // Animate particles by moving them back and forth along a random vector
     {
         float3 direction = normalize(float3(random(float2(dispatch_ID.x, particle.speed_)) - 0.5, random(float2(dispatch_ID.x, particle.start_pos_.z)) - 0.5, random(float2(dispatch_ID.x, particle.start_pos_.y)) - 0.5));
         particle.position_ = particle.start_pos_ + direction * 0.2 * sin(particle.speed_ * constant_buffer_.time_);
     }
-    else if (SCENE == SceneWave)
+    else if (SCENE == SceneWave) // Animate particles by moving them up and down in a sine wave according to the x position
     {
         particle.position_.y = particle.start_pos_.y + 0.1 * sin(5 * particle.position_.x + 2 * constant_buffer_.time_ * particle.speed_);
     }
     
+    // Clamp to within the bounds
     particle.position_ = clamp(particle.position_, WORLD_MIN + 0.1f, WORLD_MAX - 0.1f);
     
+    // Store position
     particle_positions_[dispatch_ID.x].position_ = particle.position_;
     
     return;

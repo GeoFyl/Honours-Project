@@ -77,15 +77,13 @@ public:
     void SetRayTracer(RayTracer* ray_tracer) { ray_tracer_ = ray_tracer; }
     void GenerateParticles();
     void ComputePostitions();
-    void ComputeGrid();
+    void ComputeGrid(Profiler* profiler);
     void ComputeSimpleSDFTexture();
     void ReadBackCellCount();
-    void ComputeAABBs();
+    void ComputeAABBs(Profiler* profiler);
     void ComputeBrickPoolTexture();
     void SortParticleData();
 
-
-    //UINT GetSurfaceCellCount() { return surface_cell_count_; }
 
     inline UploadBuffer<ComputeCB>* GetConstantBuffer() { return compute_cb_.get(); }
     inline UploadBuffer<TestVariables>* GetTestValsBuffer() { return test_vals_cb_.get(); }

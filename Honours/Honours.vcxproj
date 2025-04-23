@@ -129,7 +129,6 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Computer.h" />
     <ClInclude Include="ComputeStructs.h" />
-    <ClInclude Include="CubeMesh.h" />
     <ClInclude Include="DeviceResources.h" />
     <ClInclude Include="FPCamera.h" />
     <ClInclude Include="OrbitalCamera.h" />
@@ -150,13 +149,10 @@
     <ClInclude Include="imGUI\imstb_textedit.h" />
     <ClInclude Include="imGUI\imstb_truetype.h" />
     <ClInclude Include="Input.h" />
-    <ClInclude Include="Mesh.h" />
     <ClInclude Include="RayTracer.h" />
     <ClInclude Include="RayTracingStructs.h" />
-    <ClInclude Include="Resources.h" />
     <ClInclude Include="ShaderTable.h" />
     <ClInclude Include="TimeSystem.h" />
-    <ClInclude Include="TriangleMesh.h" />
     <ClInclude Include="UploadBuffer.h" />
     <ClInclude Include="Utilities.h" />
     <ClInclude Include="Win32Application.h" />
@@ -168,7 +164,6 @@
     <ClCompile Include="AccelerationStructureManager.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="Computer.cpp" />
-    <ClCompile Include="CubeMesh.cpp" />
     <ClCompile Include="DeviceResources.cpp" />
     <ClCompile Include="FPCamera.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
@@ -211,14 +206,11 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="OrbitalCamera.cpp" />
     <ClCompile Include="Profiler.cpp" />
     <ClCompile Include="RayTracer.cpp" />
-    <ClCompile Include="Resources.cpp" />
     <ClCompile Include="ShaderTable.cpp" />
     <ClCompile Include="TimeSystem.cpp" />
-    <ClCompile Include="TriangleMesh.cpp" />
     <ClCompile Include="Utilities.cpp" />
     <ClCompile Include="Win32Application.cpp" />
     <ClCompile Include="DXSample.cpp" />
@@ -227,12 +219,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="shaders.hlsl">
-      <FileType>Document</FileType>
-      <DeploymentContent>true</DeploymentContent>
-    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="ComputeCommon.hlsli">

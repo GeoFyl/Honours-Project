@@ -37,18 +37,7 @@ class GPUPrefixSumBase {
     ~GPUPrefixSumBase(){};
 
    public:
-    /*virtual void TestExclusiveScanInitRandom(uint32_t testSize, bool shouldReadBack,
-                                             bool shouldValidate) {
-        if (testSize <= k_maxRandSize) {
-            UpdateSize(testSize);
-            PrepareScanCmdListExclusive();
-            ExecuteCommandList();
-        } else {
-            printf("Error, test size exceeds maximum test size. \n");
-            printf("Due to numeric limits, the maximum test size for");
-            printf("test values initialized to random integers is %u.\n", k_maxRandSize);
-        }
-    }*/
+
 
     void DispatchScan() {
         PrepareScanCmdListExclusive();

@@ -48,14 +48,14 @@ void AccelerationStructureManager::AllocateAABBBuffer(int new_aabb_count)
 		aabb_buffer_.Reset();
 		Utilities::AllocateDefaultBuffer(device, max_aabb_count_ * sizeof(D3D12_RAYTRACING_AABB), &aabb_buffer_, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
-		ProfilerGlobal::current_aabbs_size_ = max_aabb_count_ * sizeof(D3D12_RAYTRACING_AABB);
+		Profiler::UpdateCurrentAABBsSize(max_aabb_count_ * sizeof(D3D12_RAYTRACING_AABB));
 	}
 
 	aabb_count_ = new_aabb_count;
 }
 
 // Updates or rebuilds acceleration structure
-void AccelerationStructureManager::UpdateStructure()
+void AccelerationStructureManager::UpdateStructure(Profiler* profiler)
 {
 	if (aabb_count_ > 0) {
 		D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO blas_prebuild_info;
@@ -64,10 +64,10 @@ void AccelerationStructureManager::UpdateStructure()
 
 		// Fully rebuild if needed, otherwise update with new geometry
 		if (requires_rebuild_) {
-			RebuildStructure(blas_inputs, blas_prebuild_info);
+			RebuildStructure(blas_inputs, blas_prebuild_info, profiler);
 		}
 		else {
-			BuildStructures(blas_inputs, blas_prebuild_info, true);
+			BuildStructures(blas_inputs, blas_prebuild_info, profiler, true);
 		}
 
 		// Execute and wait for work to finish 
@@ -91,7 +91,7 @@ void AccelerationStructureManager::CalculatePreBuildInfo(D3D12_BUILD_RAYTRACING_
 	device_resources_->GetD3DDevice()->GetRaytracingAccelerationStructurePrebuildInfo(&blas_inputs, &blas_prebuild_info);
 }
 
-void AccelerationStructureManager::RebuildStructure(D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& blas_inputs, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO& blas_prebuild_info)
+void AccelerationStructureManager::RebuildStructure(D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& blas_inputs, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO& blas_prebuild_info, Profiler* profiler)
 {
 	ID3D12Device5* device = device_resources_->GetD3DDevice();
 
@@ -104,7 +104,7 @@ void AccelerationStructureManager::RebuildStructure(D3D12_BUILD_RAYTRACING_ACCEL
 		// Allocate resource for BLAS
 		Utilities::AllocateDefaultBuffer(device, blas_prebuild_info.ResultDataMaxSizeInBytes, &bottom_acceleration_structure_, D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
-		ProfilerGlobal::current_blas_size_ = blas_prebuild_info.ResultDataMaxSizeInBytes;
+		Profiler::UpdateCurrentBLASSize(blas_prebuild_info.ResultDataMaxSizeInBytes);
 
 		// Update the instance desc for the bottom-level acceleration structure.
 		D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
@@ -123,10 +123,10 @@ void AccelerationStructureManager::RebuildStructure(D3D12_BUILD_RAYTRACING_ACCEL
 		Utilities::AllocateDefaultBuffer(device, max(top_level_prebuild_info_.ScratchDataSizeInBytes, blas_prebuild_info.ScratchDataSizeInBytes), &scratch_resource_, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 	}
 
-	BuildStructures(blas_inputs, blas_prebuild_info);
+	BuildStructures(blas_inputs, blas_prebuild_info, profiler);
 }
 
-void AccelerationStructureManager::BuildStructures(D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& blas_inputs, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO& blas_prebuild_info, bool update)
+void AccelerationStructureManager::BuildStructures(D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& blas_inputs, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO& blas_prebuild_info, Profiler* profiler, bool update)
 {
 	ID3D12Device5* device = device_resources_->GetD3DDevice();
 	ID3D12GraphicsCommandList4* command_list = device_resources_->GetCommandList();
@@ -156,14 +156,16 @@ void AccelerationStructureManager::BuildStructures(D3D12_BUILD_RAYTRACING_ACCELE
 		}
 	}
 
+	// Build the structures 
 	device_resources_->ResetCommandList();
-	//command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(bottom_acceleration_structure_.Get()));
+
+	profiler->PushRange(command_list, "BVH Construction");
+
 	command_list->BuildRaytracingAccelerationStructure(&bottomLevelBuildDesc, 0, nullptr);
-	//command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(scratch_resource_.Get()));
 	command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(bottom_acceleration_structure_.Get()));
 
-	//command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(top_acceleration_structure_.Get()));
 	command_list->BuildRaytracingAccelerationStructure(&topLevelBuildDesc, 0, nullptr);
-	//command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(scratch_resource_.Get()));
 	command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(top_acceleration_structure_.Get()));
+
+	profiler->PopRange(command_list);
 }

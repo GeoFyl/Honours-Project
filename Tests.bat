@@ -1,4 +1,4 @@
-:: cd directory
+cd Honours\bin\x64\Release
 
 :: Default values:
 :: - Particle num: 343

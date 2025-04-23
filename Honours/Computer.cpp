@@ -19,6 +19,7 @@ Computer::Computer(DX::DeviceResources* device_resources, HonoursApplication* ap
     device_resources_->WaitForGpu();
     device_resources_->ResetCommandList();
 
+    // Create constant buffers
     compute_cb_ = std::make_unique<UploadBuffer<ComputeCB>>(device_resources_->GetD3DDevice(), 1, true);
     test_vals_cb_ = std::make_unique<UploadBuffer<TestVariables>>(device_resources_->GetD3DDevice(), 1, true);
 
@@ -35,6 +36,7 @@ Computer::Computer(DX::DeviceResources* device_resources, HonoursApplication* ap
     ReleaseUploaders();
 }
 
+// Shader to generate initial particle data
 void Computer::GenerateParticles()
 {
     auto command_list = device_resources_->GetCommandList();
@@ -45,12 +47,12 @@ void Computer::GenerateParticles()
     command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(particle_buffer_unordered_.Get()));
 
     command_list->SetComputeRootUnorderedAccessView(ComputePositionsRootSignatureParams::ParticlePositionsBufferSlot, particle_buffer_unordered_->GetGPUVirtualAddress());
-    //command_list->SetComputeRootConstantBufferView(ComputePositionsRootSignatureParams::ConstantBufferSlot, compute_cb_->Resource()->GetGPUVirtualAddress());
     command_list->SetComputeRootConstantBufferView(ComputePositionsRootSignatureParams::TestValuesSlot, test_vals_cb_->Resource()->GetGPUVirtualAddress());
 
     command_list->Dispatch(particle_threadgroups_, 1, 1);
 }
 
+// Shader to simulate particles
 void Computer::ComputePostitions()
 {
    
@@ -58,8 +60,6 @@ void Computer::ComputePostitions()
 
     command_list->SetPipelineState(compute_pos_state_object_.Get());
     command_list->SetComputeRootSignature(compute_pos_root_signature_.Get());
-
-    //command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(particle_pos_buffer_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 
     command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(particle_buffer_unordered_.Get()));
 
@@ -69,20 +69,15 @@ void Computer::ComputePostitions()
 
     command_list->Dispatch(particle_threadgroups_, 1, 1);
 
-    //command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(particle_pos_buffer_.Get()));
-
-    //command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(particle_pos_buffer_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
-
 }
 
-void Computer::ComputeGrid()
+// Grid construction
+void Computer::ComputeGrid(Profiler* profiler)
 {
     auto command_list = device_resources_->GetCommandList();
 
-
-    // Bind resources
+    // Bind root signature and resources
     command_list->SetComputeRootSignature(compute_grid_root_signature_.Get());
-
     command_list->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::ParticlePositionsBufferSlot, particle_buffer_unordered_->GetGPUVirtualAddress());
     command_list->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::CellsSlot, scan_shader_->GetScanInBuffer()->GetGPUVirtualAddress());
     command_list->SetComputeRootUnorderedAccessView(ComputeGridRootSignatureParams::BlocksSlot, blocks_buffer_->GetGPUVirtualAddress());
@@ -101,6 +96,9 @@ void Computer::ComputeGrid()
 
     command_list->ResourceBarrier(ARRAYSIZE(grid_uav_barriers), grid_uav_barriers);
 
+    // Profile grid construction 
+    profiler->PushRange(command_list, "Grid Construction");
+
     // Clear counters
     command_list->SetPipelineState(compute_clear_counts_state_object_.Get());
     command_list->Dispatch(clear_counts_threadgroups_, 1, 1);
@@ -111,7 +109,12 @@ void Computer::ComputeGrid()
     command_list->SetPipelineState(compute_grid_state_object_.Get());
     command_list->Dispatch(particle_threadgroups_, 1, 1);
 
+    profiler->PopRange(command_list);
+
     command_list->ResourceBarrier(ARRAYSIZE(grid_uav_barriers), grid_uav_barriers);
+
+    // Profile surface detection
+    profiler->PushRange(command_list, "Surface Detection");
 
     // Detect surface blocks
     command_list->SetPipelineState(compute_surface_blocks_state_object_.Get());
@@ -119,21 +122,9 @@ void Computer::ComputeGrid()
     
     command_list->ResourceBarrier(ARRAYSIZE(grid_uav_barriers), grid_uav_barriers);
 
-    //command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_counts_buffer_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
 
+    // Read back the count of surface blocks
     ReadBackBlocksCount();
-
-    // Set dispatch threadgroups for surface cell detection
-   /* command_list->SetPipelineState(compute_dispatch_surface_cells_state_object_.Get());
-    command_list->SetComputeRootSignature(compute_dispatch_surface_cells_root_signature_.Get());
-    command_list->SetComputeRootShaderResourceView(ComputeDispatchCellsRootSignatureParams::SurfaceCountsSlot, surface_counts_buffer_->GetGPUVirtualAddress());
-    command_list->SetComputeRootUnorderedAccessView(ComputeDispatchCellsRootSignatureParams::DispatchArgsSlot, surface_cells_dispatch_buffer_->GetGPUVirtualAddress());
-
-    command_list->Dispatch(1, 1, 1);
-
-    command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_cells_dispatch_buffer_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT));
-    command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_counts_buffer_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));*/
-
 
     if (surface_blocks_count_ > 0) {
         // Detect surface cells
@@ -152,16 +143,15 @@ void Computer::ComputeGrid()
 
         command_list->Dispatch(surface_blocks_count_, 1, 1);
     }
+
+    profiler->PopRange(command_list);
     
     command_list->ResourceBarrier(ARRAYSIZE(grid_uav_barriers), grid_uav_barriers);
 
-
-   // command_list->ExecuteIndirect(compute_surface_cells_command_signature_.Get(), 1, surface_cells_dispatch_buffer_.Get(), 0, nullptr, 0);
-
-   // command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_cells_dispatch_buffer_.Get(), D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 }
 
-void Computer::ComputeAABBs()
+// Create AABBs for surface cells
+void Computer::ComputeAABBs(Profiler* profiler)
 {
     auto command_list = device_resources_->GetCommandList();
 
@@ -176,7 +166,6 @@ void Computer::ComputeAABBs()
         AllocateBrickPoolTexture();
 
         // Fill AABB buffer with AABBs
-
         command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_counts_buffer_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
         command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_cell_indices_buffer_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
         command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(ray_tracer_->GetAccelerationStructure()->GetAABBBuffer(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
@@ -187,10 +176,14 @@ void Computer::ComputeAABBs()
         command_list->SetComputeRootShaderResourceView(ComputeAABBsRootSignatureParams::SurfaceCountsSlot, surface_counts_buffer_->GetGPUVirtualAddress());
         command_list->SetComputeRootUnorderedAccessView(ComputeAABBsRootSignatureParams::AABBBufferSlot, ray_tracer_->GetAccelerationStructure()->GetAABBBuffer()->GetGPUVirtualAddress());
         command_list->SetComputeRootConstantBufferView(ComputeAABBsRootSignatureParams::TestValuesSlot, test_vals_cb_->Resource()->GetGPUVirtualAddress());
+
+        profiler->PushRange(command_list, "AABB Creation");
+
         command_list->Dispatch(std::ceil(bricks_count_ / 1024.f), 1, 1);
 
-        command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_counts_buffer_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-        
+        profiler->PopRange(command_list);
+
+        command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(surface_counts_buffer_.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));      
         command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(ray_tracer_->GetAccelerationStructure()->GetAABBBuffer(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_GENERIC_READ));
 
         // Execute and wait for work to finish 
@@ -199,9 +192,9 @@ void Computer::ComputeAABBs()
     }
 }
 
+// Read back the count of surface cells
 void Computer::ReadBackCellCount()
 {
-
     // Execute and wait for grid compute to finish 
     device_resources_->ExecuteCommandList();
     device_resources_->WaitForGpu();
@@ -223,13 +216,7 @@ void Computer::ReadBackCellCount()
     GridSurfaceCounts* mapped_data = nullptr;
     ThrowIfFailed(surface_counts_readback_buffer_->Map(0, nullptr, reinterpret_cast<void**>(&mapped_data)));
 
-   /* std::wstring count = std::to_wstring(mapped_data->surface_cells);
-    OutputDebugString(L"\ncell count:");
-    OutputDebugString(count.c_str());*/
-
-    //if (mapped_data->surface_cells > 0) {
-        bricks_count_ = mapped_data->surface_cells * BRICKS_PER_CELL;
-    //}
+    bricks_count_ = mapped_data->surface_cells * BRICKS_PER_CELL;
 
     surface_counts_readback_buffer_->Unmap(0, nullptr);
 }
@@ -240,8 +227,6 @@ void Computer::ReadBackBlocksCount()
     device_resources_->ExecuteCommandList();
     device_resources_->WaitForGpu();
     device_resources_->ResetCommandList();
-
-    //OutputDebugString(L"\nCOMPLETED 1ST COMPUTE\n");
     
     auto command_list = device_resources_->GetCommandList();
 
@@ -260,18 +245,12 @@ void Computer::ReadBackBlocksCount()
     GridSurfaceCounts* mapped_data = nullptr;
     ThrowIfFailed(surface_counts_readback_buffer_->Map(0, nullptr, reinterpret_cast<void**>(&mapped_data)));
 
-    /*std::wstring count = std::to_wstring(mapped_data->surface_blocks);
-    OutputDebugString(L"\nblocks count:");
-    OutputDebugString(count.c_str());*/
-
-    //if (mapped_data->surface_blocks > 0) {
-        surface_blocks_count_ = mapped_data->surface_blocks;
-    //}
+    surface_blocks_count_ = mapped_data->surface_blocks;
 
     surface_counts_readback_buffer_->Unmap(0, nullptr);
 }
 
-
+// Fill the brick pool
 void Computer::ComputeBrickPoolTexture()
 {
     auto command_list = device_resources_->GetCommandList();
@@ -304,6 +283,7 @@ void Computer::SortParticleData()
     // Scans the buffer containing particle counts for each cell, to determine global index offsets per cell to be used during reordering.
     scan_shader_->DispatchScan();
 
+    // Now place particle data in order
     auto command_list = device_resources_->GetCommandList();
 
     command_list->SetPipelineState(compute_reorder_state_object_.Get());
@@ -325,6 +305,7 @@ void Computer::SortParticleData()
     command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(scan_shader_->GetScanOutBuffer(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 }
 
+// Fill the simple SDF 3D texture
 void Computer::ComputeSimpleSDFTexture()
 {
     auto command_list = device_resources_->GetCommandList();
@@ -535,10 +516,8 @@ void Computer::CreateBuffers()
     clear_counts_threadgroups_ = std::ceil(NUM_CELLS / 1024.f);
     tex_creation_threadgroups_ = XMUINT3(std::ceil(TEXTURE_RESOLUTION / 32.f), std::ceil(TEXTURE_RESOLUTION / 32.f), TEXTURE_RESOLUTION);
 
-
+    // Particle buffers
     UINT64 byte_size = NUM_PARTICLES * sizeof(ParticleData);
-
-    //particle_buffer_unordered_ = Utilities::CreateDefaultBuffer(device, command_list, positions.data(), byte_size, particle_buffer_uploader_, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     Utilities::AllocateDefaultBuffer(device, byte_size, particle_buffer_unordered_.GetAddressOf(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     Utilities::AllocateDefaultBuffer(device, byte_size, particle_buffer_ordered_.GetAddressOf(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     particle_buffer_unordered_->SetName(L"UnorderedP");
@@ -547,7 +526,6 @@ void Computer::CreateBuffers()
     Profiler::RegisterResource("OrderedParticles", byte_size);
 
     // Grid buffers
-    //Utilities::AllocateDefaultBuffer(device, NUM_CELLS * sizeof(Cell), cells_buffer_.GetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     scan_shader_ = std::make_unique<ChainedScanDecoupledLookback>(device_resources_);
     scan_shader_->UpdateSize(NUM_CELLS);
     Utilities::AllocateDefaultBuffer(device, NUM_BLOCKS * sizeof(Block), blocks_buffer_.GetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
@@ -565,7 +543,6 @@ void Computer::CreateBuffers()
     Profiler::RegisterResource("SurfaceBlockIndicesBuffer", NUM_BLOCKS * sizeof(unsigned int));
     Profiler::RegisterResource("SurfaceCountsBuffer", sizeof(GridSurfaceCounts));
     Profiler::RegisterResource("SurfaceCountsReadbackBuffer", sizeof(GridSurfaceCounts));
-
 
     // Allocate buffer for reading back surface cell count
     ThrowIfFailed(device->CreateCommittedResource(
@@ -602,8 +579,8 @@ void Computer::AllocateBrickPoolTexture()
 
         // Add the size in bytes of the texture for csv
         UINT64 texture_size;
-        device_resources_->GetD3DDevice()->GetCopyableFootprints(&simple_sdf_3d_texture_->GetDesc(), 0, 1, 0, nullptr, nullptr, nullptr, &texture_size);
-        ProfilerGlobal::current_brickpool_size_ = texture_size;
+        device_resources_->GetD3DDevice()->GetCopyableFootprints(&brick_pool_3d_texture_->GetDesc(), 0, 1, 0, nullptr, nullptr, nullptr, &texture_size);
+        Profiler::UpdateCurrentBrickPoolSize(texture_size);
 
         // Upload dimensions for use in texture creation
         compute_cb_->Values().brick_pool_dimensions_ = std::move(dimensions);

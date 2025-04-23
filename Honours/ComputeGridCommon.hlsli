@@ -3,13 +3,12 @@
 
 #include "ComputeCommon.hlsli"
 
-#define CELL_MAX_PARTICLE_COUNT 8 // Also in ComputeStructs.h
+#define CELL_MAX_PARTICLE_COUNT 8
 
 // ---- Two-level Grid -----
 struct Cell
 {
     uint particle_count_;
-    //uint particle_indices_[CELL_MAX_PARTICLE_COUNT];
 };
 
 struct Block
@@ -25,6 +24,7 @@ struct GridSurfaceCounts
 
 static const int invalid_block_indices[8] = { -1, -1, -1, -1, -1, -1, -1, -1 };
 
+// Get the cell index based on particle position
 // Based on http://www.gamedev.net/forums/topic/582945-find-grid-index-based-on-position/4709749/
 int GetCellIndex(float3 particle_pos)
 {
@@ -37,6 +37,7 @@ int GetCellIndex(float3 particle_pos)
     return cell_ID;
 }
 
+// Get the grid-space coordinates of the cell (eg. for a grid of 3x3x3 cells, coords range from (0,0,0) to (2,2,2))
 uint3 CellIndexTo3DCoords(uint cell_index)
 {
     uint3 cells_per_axis = uint3(NUM_CELLS_PER_AXIS);
@@ -50,6 +51,7 @@ uint3 CellIndexTo3DCoords(uint cell_index)
     return coords;
 }
 
+// Get the index of a cell given a current cell index and an offset to apply
 int OffsetCellIndex(uint cell_index, int3 cell_offset)
 {
     uint3 cell_coords = CellIndexTo3DCoords(cell_index) + cell_offset;
@@ -66,6 +68,7 @@ int OffsetCellIndex(uint cell_index, int3 cell_offset)
     return new_index;
 }
 
+// Get the index of the block containing the cell with the given grid-space coords
 int Cell3DCoordsToBlockIndex(uint3 coords, int3 block_offset)
 {
     uint3 cells_per_block = uint3(NUM_CELLS_PER_AXIS_PER_BLOCK);
@@ -159,6 +162,7 @@ int BlockIndexToCellIndex(uint block_index, uint3 cell_offset)
     return (z * cells_per_axis.x * cells_per_axis.y) + (y * cells_per_axis.x) + x;
 }
 
+// Return true if the block is at an edge of the grid
 bool IsBlockAtEdge(uint block_index)
 {
     // Convert block index to its (bx, by, bz) block coordinates

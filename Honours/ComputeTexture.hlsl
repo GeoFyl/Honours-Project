@@ -6,7 +6,7 @@
 
 RWTexture3D<snorm float> output_texture_ : register(u0);
 
-// Shader for creating SDF 3D texture 
+// Shader for creating the simple SDF 3D texture 
 [numthreads(32, 32, 1)]
 void CSTexMain(int3 dispatch_ID : SV_DispatchThreadID)
 {

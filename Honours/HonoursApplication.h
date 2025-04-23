@@ -17,7 +17,6 @@
 #include "DeviceResources.h"
 #include "Computer.h"
 #include "RayTracer.h"
-#include "Resources.h"
 #include "Input.h"
 #include "FPCamera.h"
 #include "OrbitalCamera.h"
@@ -27,11 +26,6 @@
 
 using namespace DirectX;
 
-// Note that while ComPtr is used to manage the lifetime of resources on the CPU,
-// it has no understanding of the lifetime of resources on the GPU. Apps must account
-// for the GPU lifetime of resources to avoid destroying objects that may still be
-// referenced by the GPU.
-// An example of this can be found in the class method: OnDestroy().
 using Microsoft::WRL::ComPtr;
 
 struct DebugValues {
@@ -54,8 +48,6 @@ public:
     virtual void OnDestroy();
     virtual void OnSizeChanged(UINT width, UINT height, bool minimized);
     virtual IDXGISwapChain* GetSwapchain() { return device_resources_->GetSwapChain(); }
-
-    inline ID3D12Resource* GetRaytracingCB() { return ray_tracing_cb_->Resource(); }
 
     inline DebugValues& GetDebugValues() { return debug_; }
 
@@ -93,17 +85,12 @@ private:
     ComPtr<ID3D12DescriptorHeap> descriptor_heap_;
     ComPtr<ID3D12PipelineState> m_pipelineState;
 
-    UINT descriptors_allocated_ = 1; // 0th descriptor for ImGui
+    UINT descriptors_allocated_ = 1; // 0th descriptor is for ImGui
 
     // Application systems
-    std::unique_ptr<Resources> resources_ = nullptr;
     std::unique_ptr<RayTracer> ray_tracer_ = nullptr;
     std::unique_ptr<Computer> computer_ = nullptr;
     std::unique_ptr<Profiler> profiler_ = nullptr;
-
-    // Upload buffers
-   // std::unique_ptr<UploadBuffer<ComputeCB>> compute_cb_ = nullptr;
-    std::unique_ptr<UploadBuffer<RayTracingCB>> ray_tracing_cb_ = nullptr;
 
     // Debug
     DebugValues debug_;
@@ -113,8 +100,6 @@ private:
     Input input_;
     int camera_;
     std::unique_ptr<Camera> cameras_array_[2];
-    //std::unique_ptr<FPCamera> camera_; 
-    //std::unique_ptr<OrbitalCamera> camera_;
 
     XMMATRIX projection_matrix_;					///< Identity projection matrix
     XMMATRIX world_matrix_;						///< Identity world matrix

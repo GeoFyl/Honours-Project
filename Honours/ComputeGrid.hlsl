@@ -29,6 +29,7 @@ bool IsNeighbourEmpty(int cell_index, int3 offset, out bool empty)
     return false;
 }
 
+// Increment the count of surface cells and store the cell's index.
 void MarkAsSurfaceCell(uint cell_index)
 {
     uint surface_cells_array_index;
@@ -84,6 +85,7 @@ void CSGridMain(int3 dispatch_ID : SV_DispatchThreadID)
     particles_[dispatch_ID.x].intra_cell_index_ = particle_intra_cell_index;
     
     // If this is the first particle in the cell, increment the blocks non empty cell counter
+    // and the counters of neighbouring blocks closest to the particle
     if (particle_intra_cell_index == 0)
     {
         int block_indices[8];
@@ -193,7 +195,5 @@ void CSDetectSurfaceCellsMain(int3 group_index : SV_GroupID, int3 offset : SV_Gr
     }
 
 }
-// need to then send the count back to cpu so aabb buffer and 3d texture can be resized
-// then compute the 3d texture
 
 #endif

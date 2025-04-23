@@ -550,7 +550,6 @@ void DeviceResources::Present(D3D12_RESOURCE_STATES beforeState)
 void DX::DeviceResources::ResetCommandList(ID3D12PipelineState* pso)
 {
     // Reset command list and allocator.
-    //ThrowIfFailed(m_commandAllocators[m_backBufferIndex]->Reset());
     ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_backBufferIndex].Get(), pso));
 }
 

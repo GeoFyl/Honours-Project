@@ -26,20 +26,16 @@ float GetDistanceToSphere(float3 displacement, float radius)
     return length(displacement) - radius;
 }
 
+// Naively calculate SDF value using every particle
 float GetAnalyticalSignedDistance(float3 position)
 {
-    // vector between the particle position and the current sphere tracing position
+    float distance = 1000;
     
-    float distance = 10000;
-    
-    //float distance = GetDistanceToSphere(particles_[0].position_ - position, PARTICLE_RADIUS);
+    // For every particle, incorporate the particle into SDF evaluation
     for (int x = 0; x < NUM_PARTICLES; x++)
     {
         float distance1 = GetDistanceToSphere(particles_[x].position_ - position, PARTICLE_RADIUS);
-        
         distance = SmoothMin(distance, distance1, PARTICLE_RADIUS);
-        
-        //distance = min(distance, distance1);
     }
     
     return distance;
@@ -47,6 +43,7 @@ float GetAnalyticalSignedDistance(float3 position)
 
 #ifndef COMPUTE_TEX_HLSL
 
+// Get the SDF value for current position. Either samples a texture or calculates naively
 float GetDistance(float3 position)
 {
     if (rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_ANALYTICAL)
@@ -75,7 +72,7 @@ float3 CalculateNormal(float3 position)
                                 GetDistance(position + h.yxy) - GetDistance(position - h.yxy),
                                 GetDistance(position + h.yyx) - GetDistance(position - h.yyx)));
     }
-    else if (rt_constant_buffer_.rendering_flags_ ^ RENDERING_FLAG_SIMPLE_AABB)
+    else if (!(rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_SIMPLE_AABB))
     {
         // Using complex texture
         

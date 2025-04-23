@@ -4,7 +4,7 @@
 #include "RayHelpers.hlsli"
 #include "SdfHelpers.hlsli"
 
-// Works out the index of the voxel from the brick index and voxel offset
+// Works out the coords of the voxel within the brick pool from the brick index
 uint3 BrickIndexToVoxelPosition(uint brick_index)
 {
     // Convert brick index to its (bx, by, bz) brick coordinates
@@ -24,6 +24,8 @@ uint3 BrickIndexToVoxelPosition(uint brick_index)
     return uint3(x, y, z);
 }
 
+// Work out the uvw within the brick pool using the current brick index (primitive index) 
+// and the coords of the voxel within the brick
 float3 BrickIndexToBrickPoolUVW(float3 voxel_offset)
 {
     float3 uvw = (voxel_offset / VOXELS_PER_AXIS_PER_BRICK) + BrickIndexToVoxelPosition(PrimitiveIndex());
@@ -108,27 +110,30 @@ void IntersectionShader()
             {
                 position = clamp(ray.origin_ + max(t_min, 0) * ray.direction_, WORLD_MIN, WORLD_MAX);
                 
-                // If we are using the complex AABBs and texture
+                // If we are using the complex AABBs and brick pool
                 if (!(rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_SIMPLE_AABB) &&
                     !(rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_ANALYTICAL))
                 {
-                    
+                    // Find voxel offset from position within the brick
                     position /= BRICK_SIZE;
-
                     voxel_offset = position * CORE_VOXELS_PER_AXIS_PER_BRICK;
-                                      
+                    
+                    // position variable is now the uvw to sample the brick pool
                     position = BrickIndexToBrickPoolUVW(voxel_offset + 1.f); // voxel offset is offset by (1,1,1) to account for adjacency voxels
 
                 }
                 else if (!(rt_constant_buffer_.rendering_flags_ & RENDERING_FLAG_ANALYTICAL))
                 {
-                    position /= WORLD_MAX;
+                    // We are using the simple SDF 3D texture
                     
+                    // position variable is now the uvw to sample the texture
+                    position /= WORLD_MAX;               
                 }
                
+                // Get the SDF value for the current position
                 float distance = GetDistance(position);
 
-                // Has the ray intersected the primitive? 
+                // Has the ray intersected the isosurface? 
                 if (distance <= SPHERE_TRACING_THRESHOLD)
                 {
                     // Store the normal and report hit                    

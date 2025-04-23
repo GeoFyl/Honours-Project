@@ -43,7 +43,6 @@ struct RayTracingCB
 
 
 // Global arguments
-
 RaytracingAccelerationStructure scene_ : register(t0);
 StructuredBuffer<ParticleData> particles_ : register(t1);
 Texture3D<snorm float> sdf_texture_ : register(t2);
@@ -53,7 +52,5 @@ ConstantBuffer<RayTracingCB> rt_constant_buffer_ : register(b1);
 ConstantBuffer<ComputeCB> comp_constant_buffer_ : register(b2);
 SamplerState linear_sampler_ : register(s0);
 
-// Local arguments
-//StructuredBuffer<AABB> AABBs_ : register(t0, space1);
 
 #endif

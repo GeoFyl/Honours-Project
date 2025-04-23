@@ -63,10 +63,18 @@ void HonoursApplication::OnInit()
     if (cpu_test_vars_.test_mode_) {
         debug_.render_normals_ = true;
     }
-    if (cpu_test_vars_.implementation_ == Naive) {
-        
+    switch (cpu_test_vars_.implementation_) {
+    case Naive:
+        SetNaiveImplementation();
+        break;
+    case Simple:
+        SetSimpleImplementation();
+        break;
+    case Complex:
+    default:
+        SetComplexImplementation();
+        break;
     }
-
 
     LoadPipeline();
 
@@ -74,10 +82,11 @@ void HonoursApplication::OnInit()
     profiler_->Init(device_resources_->GetD3DDevice());
 
     InitGUI();
+
     timer_.Start();
 }
 
-// Load the rendering pipeline dependencies.
+// Load the rendering pipeline dependencies and systems.
 void HonoursApplication::LoadPipeline()
 {
     // Describe and create a descriptor heap to hold constant buffer, shader resource, and unordered access views (CBV/SRV/UAV)
@@ -93,9 +102,6 @@ void HonoursApplication::LoadPipeline()
     // Create ray tracer
     ray_tracer_ = std::make_unique<RayTracer>(device_resources_.get(), this, computer_.get());
     computer_->SetRayTracer(ray_tracer_.get());
-
-    // Create constant buffers
-    ray_tracing_cb_ = std::make_unique<UploadBuffer<RayTracingCB>>(device_resources_->GetD3DDevice(), 1, true);
 }
 
 void HonoursApplication::InitGUI()
@@ -111,36 +117,37 @@ void HonoursApplication::InitGUI()
         descriptor_heap_->GetGPUDescriptorHandleForHeapStart());
 }
 
-// Update frame-based values.
+// Update frame-based values and compute grid etc
 void HonoursApplication::OnUpdate()
 {
     device_resources_->ResetCommandList();
 
     timer_.Update(!profiler_->IsCapturing());
 
-    if (!profiler_->IsCapturing()) { 
+    if (!profiler_->IsCapturing()) { // Don't update while profiler is capturing
 
         profiler_->Update(timer_.GetDeltaTime());
        
         cameras_array_[camera_]->Update(timer_.GetDeltaTime());
-       
 
-        // Update constant buffers
-        RayTracingCB buff;
-        buff.camera_pos_ = cameras_array_[camera_]->getPosition();
-        buff.camera_lookat_ = cameras_array_[camera_]->getLookAt();
-        buff.view_proj_ = XMMatrixMultiply(cameras_array_[camera_]->getViewMatrix(), projection_matrix_);
-        buff.inv_view_proj_ = XMMatrixTranspose(XMMatrixInverse(nullptr, buff.view_proj_));
-        buff.view_proj_ = XMMatrixTranspose(buff.view_proj_);
+        // Update rt constant buffer
+        RayTracingCB& buffer = ray_tracer_->GetRaytracingCB()->Values();
+        buffer.camera_pos_ = cameras_array_[camera_]->getPosition();
+        buffer.camera_lookat_ = cameras_array_[camera_]->getLookAt();
+        buffer.view_proj_ = XMMatrixMultiply(cameras_array_[camera_]->getViewMatrix(), projection_matrix_);
+        buffer.inv_view_proj_ = XMMatrixTranspose(XMMatrixInverse(nullptr, buffer.view_proj_));
+        buffer.view_proj_ = XMMatrixTranspose(buffer.view_proj_);
 
-        if (debug_.visualize_particles_) buff.rendering_flags_ |= RENDERING_FLAG_VISUALIZE_PARTICLES;
-        if (debug_.render_analytical_) buff.rendering_flags_ |= RENDERING_FLAG_ANALYTICAL;
-        if (debug_.render_normals_) buff.rendering_flags_ |= RENDERING_FLAG_NORMALS;
-        if (debug_.visualize_aabbs_) buff.rendering_flags_ |= RENDERING_FLAG_VISUALIZE_AABBS;
-        if (debug_.use_simple_aabb_) buff.rendering_flags_ |= RENDERING_FLAG_SIMPLE_AABB;
+        buffer.rendering_flags_ = RENDERING_FLAG_NONE;
+        if (debug_.visualize_particles_) buffer.rendering_flags_ |= RENDERING_FLAG_VISUALIZE_PARTICLES;
+        if (debug_.render_analytical_) buffer.rendering_flags_ |= RENDERING_FLAG_ANALYTICAL;
+        if (debug_.render_normals_) buffer.rendering_flags_ |= RENDERING_FLAG_NORMALS;
+        if (debug_.visualize_aabbs_) buffer.rendering_flags_ |= RENDERING_FLAG_VISUALIZE_AABBS;
+        if (debug_.use_simple_aabb_) buffer.rendering_flags_ |= RENDERING_FLAG_SIMPLE_AABB;
 
-        ray_tracing_cb_->CopyData(0, buff);     
+        ray_tracer_->GetRaytracingCB()->CopyData(0);
 
+        // Update particle simulation unless paused or the scene is Grid or Normals
         if (!debug_.pause_positions_ && SCENE != SceneGrid && SCENE != SceneNormals) {
             computer_->GetConstantBuffer()->Values().time_ = timer_.GetElapsedTime();
             computer_->GetConstantBuffer()->CopyData(0);
@@ -149,13 +156,12 @@ void HonoursApplication::OnUpdate()
     }
     profiler_->FrameStart(device_resources_->GetCommandQueue());
 
-    if (!(debug_.use_simple_aabb_)) {
-        profiler_->PushRange(device_resources_->GetCommandList(), "Grid Construction");
-        computer_->ComputeGrid();
-        profiler_->PopRange(device_resources_->GetCommandList());
+    // Grid construction, AABB creation and BVH update - ranges to profile specified in the functions
+    if (!(debug_.use_simple_aabb_)) {    
+        computer_->ComputeGrid(profiler_.get()); 
 
-        computer_->ComputeAABBs();
-        ray_tracer_->GetAccelerationStructure()->UpdateStructure();
+        computer_->ComputeAABBs(profiler_.get());
+        ray_tracer_->GetAccelerationStructure()->UpdateStructure(profiler_.get());
     }
     else {
         // Execute and wait for work to finish need this when not calling ComputeAABBs and UpdateStructure
@@ -163,20 +169,37 @@ void HonoursApplication::OnUpdate()
         device_resources_->WaitForGpu();
     }
 
+    // Create 3D texture/ brick pool
     if (!(debug_.render_analytical_ || debug_.visualize_particles_)) {
         device_resources_->ResetCommandList();
 
-        if (debug_.use_simple_aabb_) {
+        if (debug_.use_simple_aabb_) { // Simple method
+            profiler_->PushRange(device_resources_->GetCommandList(), "Simple Texture");
             computer_->ComputeSimpleSDFTexture();
+            profiler_->PopRange(device_resources_->GetCommandList());
         }
-        else {
-            computer_->SortParticleData();
-            computer_->ComputeBrickPoolTexture();
+        else { // Complex method
+            profiler_->PushRange(device_resources_->GetCommandList(), "Particle Reordering");
+            computer_->SortParticleData(); // Particle sorting 
+            profiler_->PopRange(device_resources_->GetCommandList());
+
+            profiler_->PushRange(device_resources_->GetCommandList(), "Brick Pool");
+            computer_->ComputeBrickPoolTexture(); // Create brick pool
+            profiler_->PopRange(device_resources_->GetCommandList());
         }
 
         device_resources_->ExecuteCommandList();
         device_resources_->WaitForGpu();
     }
+
+    // Perform ray tracing 
+    if (debug_.use_simple_aabb_ || ray_tracer_->GetAccelerationStructure()->IsStructureBuilt()) {
+        device_resources_->ResetCommandList();
+        ray_tracer_->RayTracing(profiler_.get());
+        device_resources_->ExecuteCommandList();
+        device_resources_->WaitForGpu();
+    }
+
 }
 
 // Render the scene.
@@ -192,13 +215,11 @@ void HonoursApplication::OnRender()
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
-    //device_resources_->ResetCommandList();
-
     // Prepare the command list and render target for rendering.
     device_resources_->Prepare(m_pipelineState.Get());
 
-    if (ray_tracer_->GetAccelerationStructure()->IsStructureBuilt()) {
-        ray_tracer_->RayTracing();
+    // Copy the output from ray tracing to the back buffer
+    if (debug_.use_simple_aabb_ || ray_tracer_->GetAccelerationStructure()->IsStructureBuilt()) {
         CopyRaytracingOutputToBackbuffer();
     }
 
@@ -296,7 +317,6 @@ void HonoursApplication::DrawGUI()
             cameras_array_[1]->setRotation(6.62f, -38.75f, 0.f);
         }
 
-
         ImGui::Text("Select camera:");
         if (ImGui::RadioButton("Orbital", &camera_, 0)) {
             SwitchCamera();
@@ -352,8 +372,6 @@ void HonoursApplication::OnDestroy()
     ImGui_ImplDX12_Shutdown();
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
-
-    // ------------------------===================================== TODO: NEED TO CLEANLY DESTROY EVERYTHING =====================================-------------------------------------------
 }
 
 void HonoursApplication::OnSizeChanged(UINT width, UINT height, bool minimized)
@@ -366,7 +384,6 @@ void HonoursApplication::OnSizeChanged(UINT width, UINT height, bool minimized)
 
     projection_matrix_ = XMMatrixPerspectiveFovLH((float)XM_PI / 4.0f, m_aspectRatio, 0.01f, 100.f);
 
-    // todo: resize raytracing output  
     ray_tracer_->CreateRaytracingOutputResource();
 }
 

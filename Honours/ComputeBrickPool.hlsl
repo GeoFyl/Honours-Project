@@ -34,23 +34,27 @@ uint3 BrickIndexToVoxelPosition(uint brick_index, uint3 voxel_offset)
     return uint3(x, y, z);
 }
 
+// Calculated SDF value, checking the 27 adjacent cells utilising the ordered particles list
 float GetSignedDistanceNNS(float3 position)
 {
+    // Init to large value
     float distance = 1000;
     
+    // For each of the 27 adjacent cells
     for (uint x = 0; x < 27; x++)
     {
         int cell_index = neighbouring_cells[x];
         
-        if (cell_index > -1 && cell_index < NUM_CELLS)
+        if (cell_index > -1 && cell_index < NUM_CELLS) // Ensure cell is valid
         {
             uint particle_count = cell_particle_counts_[cell_index].particle_count_;
             
-            if (particle_count > 0)
+            if (particle_count > 0) // If cell contains particles
             {
                 uint particle_index_offset = cell_global_index_offsets_[cell_index];
-                for (uint i = 0; i < particle_count; i++)
+                for (uint i = 0; i < particle_count; i++) // For each particle
                 {
+                    // Incorporate particle into final SDF value
                     float distance1 = GetDistanceToSphere(particles_[particle_index_offset + i].position_ - position, PARTICLE_RADIUS);
                     if (distance1 <= PARTICLE_INFLUENCE_RADIUS)
                     {
@@ -89,6 +93,7 @@ void CSBrickPoolMain(int3 brick_index : SV_GroupID, int3 voxel_offset : SV_Group
     float3 voxel_size = VOXEL_SIZE;
     float3 position = aabb.min_ + (voxel_size * (float3) (voxel_offset - 1)) + (voxel_size * 0.5f); // voxel offset is offset by -(1,1,1) to account for adjacency voxels
    
+    // Calculate and store SDF value
     output_texture_[BrickIndexToVoxelPosition(brick_index.x, voxel_offset)] = GetSignedDistanceNNS(position);                 
     
 }

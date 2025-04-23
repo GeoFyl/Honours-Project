@@ -1,5 +1,4 @@
 #pragma once
-//#include "NvPerfReportGeneratorD3D12.h"
 #include "NvPerfReportDefinition.h"
 
 #define NUM_CAPTURES 20
@@ -44,6 +43,10 @@ public:
 	void PopRange(ID3D12GraphicsCommandList* command_list);
 
 	static void RegisterResource(std::string name, UINT64 size);
+	static void UpdateCurrentBrickPoolSize(UINT64 size);
+	static void UpdateCurrentBLASSize(UINT64 size);
+	static void UpdateCurrentAABBsSize(UINT64 size);
+
 
 	static nv::perf::ReportDefinition GetCustomReportDefinition();
 	static double GetTotalCaptures() { return NUM_CAPTURES; }
