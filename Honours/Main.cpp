@@ -46,7 +46,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
             cpu_test_vars_.view_dist_ = 1.5;
             cpu_test_vars_.implementation_ = Complex;
             SCENE = SceneWave;
-            NUM_PARTICLES = 343;
+            NUM_PARTICLES = 1000;
             TEXTURE_RESOLUTION = 256;
         }
 
